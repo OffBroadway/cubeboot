@@ -7,7 +7,6 @@
 #include <ogc/lwp_watchdog.h>
 #include <fcntl.h>
 #include "sidestep.h"
-#include "exi.h"
 
 static void *xfb = NULL;
 
@@ -206,7 +205,18 @@ int main()
     printf("\n\nIPLboot\n");
 
     *(volatile unsigned long *) 0xCC00643C = 0x00000000; // Enable 27MHz EXI
-    ipl_set_config(6); // Disable Qoob
+
+    // Disable Qoob
+    u32 val = 6 << 24;
+    u32 addr = 0xC0000000;
+    EXI_Lock(EXI_CHANNEL_0, EXI_DEVICE_1, NULL);
+    EXI_Select(EXI_CHANNEL_0, EXI_DEVICE_1, EXI_SPEED8MHZ);
+    EXI_Imm(EXI_CHANNEL_0, &addr, 4, EXI_WRITE, NULL);
+    EXI_Sync(EXI_CHANNEL_0);
+    EXI_Imm(EXI_CHANNEL_0, &val, 4, EXI_WRITE, NULL);
+    EXI_Sync(EXI_CHANNEL_0);
+    EXI_Deselect(EXI_CHANNEL_0);
+    EXI_Unlock(EXI_CHANNEL_0);
 
     // Set the timebase properly for games
     // Note: fuck libogc and dkppc
