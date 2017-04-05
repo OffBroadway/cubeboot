@@ -16,6 +16,10 @@ GXRModeObj *rmode;
 
 u8 *dol = NULL;
 
+#ifdef SX
+#define printf(...) (void)(0)
+#endif
+
 void dol_alloc(int size)
 {
     int mram_size = (SYS_GetArenaHi() - SYS_GetArenaLo());
@@ -61,8 +65,10 @@ int load_fat(char *slot_name, const DISC_INTERFACE *iface)
     printf("Mounted %s as %s\n", name, slot_name);
 
     printf("Reading ipl.dol\n");
-    snprintf(name, 256, "%s:/ipl.dol", slot_name);
-    int file = open(name, O_RDONLY);
+    // Avoiding snprintf
+    char fn[] = "sd_:/ipl.dol";
+    fn[2] = slot_name[2];
+    int file = open(fn, O_RDONLY);
     if (file == -1)
     {
         printf("Failed to open file");
@@ -183,6 +189,7 @@ end:
 
 int main()
 {
+#ifndef SX
     VIDEO_Init();
     rmode = VIDEO_GetPreferredMode(NULL);
     xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode));
@@ -194,6 +201,7 @@ int main()
     if (rmode->viTVMode & VI_NON_INTERLACE)
         VIDEO_WaitVSync();
     console_init(xfb, 20, 20, rmode->fbWidth, rmode->xfbHeight, rmode->fbWidth * 2);
+#endif
 
     printf("\n\nIPLboot\n");
 
