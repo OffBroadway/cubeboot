@@ -5,6 +5,7 @@
 #include <malloc.h>
 #include <unistd.h>
 #include <ogc/lwp_watchdog.h>
+#include <fcntl.h>
 #include "sidestep.h"
 #include "exi.h"
 
@@ -61,25 +62,25 @@ int load_fat(char *slot_name, const DISC_INTERFACE *iface)
 
     printf("Reading ipl.dol\n");
     snprintf(name, 256, "%s:/ipl.dol", slot_name);
-    FILE *file = fopen(name, "rb");
-    if (file == NULL)
+    int file = open(name, O_RDONLY);
+    if (file == -1)
     {
         printf("Failed to open file");
         res = 0;
         goto unmount;
     }
 
-    fseek(file, 0, SEEK_END);
-    int size = ftell(file);
-    fseek(file, 0, SEEK_SET);
+    struct stat st;
+    fstat(file, &st);
+    size_t size = st.st_size;
     dol_alloc(size);
     if (!dol)
     {
         res = 0;
         goto unmount;
     }
-    fread(dol, 1, size, file);
-    fclose(file);
+    read(file, dol, size);
+    close(file);
 
 unmount:
     printf("Unmounting %s\n", slot_name);
