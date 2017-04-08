@@ -19,19 +19,19 @@ u8 *dol = NULL;
 void dol_alloc(int size)
 {
     int mram_size = (SYS_GetArenaHi() - SYS_GetArenaLo());
-    printf("Memory available: %iB\n", mram_size);
+    kprintf("Memory available: %iB\n", mram_size);
 
-    printf("DOL size is %iB\n", size);
+    kprintf("DOL size is %iB\n", size);
 
     if (size <= 0)
     {
-        printf("Empty DOL\n");
+        kprintf("Empty DOL\n");
         return;
     }
 
     if (size >= (AR_GetSize() - (64 * 1024)))
     {
-        printf("DOL too big\n");
+        kprintf("DOL too big\n");
         return;
     }
 
@@ -39,7 +39,7 @@ void dol_alloc(int size)
 
     if (!dol)
     {
-        printf("Couldn't allocate memory\n");
+        kprintf("Couldn't allocate memory\n");
     }
 }
 
@@ -47,26 +47,26 @@ int load_fat(const char *slot_name, const DISC_INTERFACE *iface_)
 {
     int res = 1;
 
-    printf("Trying %s\n", slot_name);
+    kprintf("Trying %s\n", slot_name);
 
     FATFS fs;
     iface = iface_;
     if (f_mount(&fs, "", 1) != FR_OK)
     {
-        printf("Couldn't mount %s\n", slot_name);
+        kprintf("Couldn't mount %s\n", slot_name);
         res = 0;
         goto end;
     }
 
     char name[256];
     f_getlabel(slot_name, name, NULL);
-    printf("Mounted %s as %s\n", name, slot_name);
+    kprintf("Mounted %s as %s\n", name, slot_name);
 
-    printf("Reading ipl.dol\n");
+    kprintf("Reading ipl.dol\n");
     FIL file;
     if (f_open(&file, "/ipl.dol", FA_READ) != FR_OK)
     {
-        printf("Failed to open file\n");
+        kprintf("Failed to open file\n");
         res = 0;
         goto unmount;
     }
@@ -83,7 +83,7 @@ int load_fat(const char *slot_name, const DISC_INTERFACE *iface_)
     f_close(&file);
 
 unmount:
-    printf("Unmounting %s\n", slot_name);
+    kprintf("Unmounting %s\n", slot_name);
     iface->shutdown();
     iface = NULL;
 
@@ -110,7 +110,7 @@ unsigned int convert_int(unsigned int in)
 
 int load_usb(char slot)
 {
-    printf("Trying USB Gecko in slot %c\n", slot);
+    kprintf("Trying USB Gecko in slot %c\n", slot);
 
     int channel, res = 1;
 
@@ -128,7 +128,7 @@ int load_usb(char slot)
 
     if (!usb_isgeckoalive(channel))
     {
-        printf("Not present\n");
+        kprintf("Not present\n");
         res = 0;
         goto end;
     }
@@ -137,24 +137,24 @@ int load_usb(char slot)
 
     char data;
 
-    printf("Sending ready\n");
+    kprintf("Sending ready\n");
     data = GC_READY;
     usb_sendbuffer_safe(channel, &data, 1);
 
-    printf("Waiting for ack...\n");
+    kprintf("Waiting for ack...\n");
     while ((data != PC_READY) && (data != PC_OK))
         usb_recvbuffer_safe(channel, &data, 1);
 
     if(data == PC_READY)
     {
-        printf("Respond with OK\n");
+        kprintf("Respond with OK\n");
         // Sometimes the PC can fail to receive the byte, this helps
         usleep(100000);
         data = GC_OK;
         usb_sendbuffer_safe(channel, &data, 1);
     }
 
-    printf("Getting DOL size\n");
+    kprintf("Getting DOL size\n");
     int size;
     usb_recvbuffer_safe(channel, &size, 4);
     size = convert_int(size);
@@ -168,7 +168,7 @@ int load_usb(char slot)
         goto end;
     }
 
-    printf("Receiving file...\n");
+    kprintf("Receiving file...\n");
     while (size > 0xF7D8)
     {
         usb_recvbuffer_safe(channel, (void *) pointer, 0xF7D8);
@@ -196,7 +196,7 @@ int main()
         VIDEO_WaitVSync();
     console_init(xfb, 20, 20, rmode->fbWidth, rmode->xfbHeight, rmode->fbWidth * 2);
 
-    printf("\n\nIPLboot\n");
+    kprintf("\n\nIPLboot\n");
 
     *(volatile unsigned long *) 0xCC00643C = 0x00000000; // Enable 27MHz EXI
 
