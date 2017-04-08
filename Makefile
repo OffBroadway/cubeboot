@@ -103,7 +103,8 @@ $(BUILD):
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).dol $(OUTPUT)_lz.dol
+	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).dol $(OUTPUT)_lz.dol \
+		$(OUTPUT)_lz.gcb $(OUTPUT).gcb
 
 #---------------------------------------------------------------------------------
 run: $(BUILD)
@@ -118,12 +119,18 @@ DEPENDS	:=	$(OFILES:.o=.d)
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
+all: $(OUTPUT)_lz.gcb $(OUTPUT).gcb
 $(OUTPUT)_lz.dol: $(OUTPUT).dol
 	@echo compress ... $(notdir $@)
 	@dollz3 $< $@ -m
 
 $(OUTPUT).dol: $(OUTPUT).elf
 $(OUTPUT).elf: $(OFILES)
+
+#---------------------------------------------------------------------------------
+%.gcb: %.dol
+	@echo pack IPL ... $(notdir $@)
+	@cd $(PWD); ./dol2gcb.py ipl.rom $< $@
 
 #---------------------------------------------------------------------------------
 # This rule links in binary data with the .jpg extension
