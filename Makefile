@@ -20,7 +20,6 @@ BUILD		:=	build
 SOURCES		:=	source/ source/fatfs/ source/fatfs/option/unicode.c
 DATA		:=	data  
 INCLUDES	:=
-SX		?=	0
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -30,10 +29,6 @@ CFLAGS	= -g -O2 -Wall $(MACHDEP) $(INCLUDE)
 CXXFLAGS	=	$(CFLAGS)
 
 LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map #,--section-start,.init=0x81300000
-
-ifeq ($(SX),1)
-CFLAGS += -DSX
-endif
 
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
