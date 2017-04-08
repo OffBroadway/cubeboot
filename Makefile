@@ -103,12 +103,11 @@ $(BUILD):
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).dol
+	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).dol $(OUTPUT)_lz.dol
 
 #---------------------------------------------------------------------------------
 run: $(BUILD)
-	#$(DEVKITPRO)/emulators/gcube/gcube $(OUTPUT).dol
-	$(HOME)/source/gamecube/gc-usb-load/PC/usb-load $(OUTPUT).dol
+	usb-load $(OUTPUT)_lz.dol
 
 
 #---------------------------------------------------------------------------------
@@ -119,6 +118,10 @@ DEPENDS	:=	$(OFILES:.o=.d)
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
+$(OUTPUT)_lz.dol: $(OUTPUT).dol
+	@echo compress ... $(notdir $@)
+	@dollz3 $< $@ -m
+
 $(OUTPUT).dol: $(OUTPUT).elf
 $(OUTPUT).elf: $(OFILES)
 
