@@ -17,7 +17,7 @@ include $(DEVKITPPC)/gamecube_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	source
+SOURCES		:=	source/ source/fatfs/ source/fatfs/option/unicode.c
 DATA		:=	data  
 INCLUDES	:=
 SX		?=	0
@@ -38,7 +38,7 @@ endif
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
 #---------------------------------------------------------------------------------
-LIBS	:=	-logc -lfat
+LIBS	:=	-logc
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
@@ -55,7 +55,7 @@ ifneq ($(BUILD),$(notdir $(CURDIR)))
 
 export OUTPUT	:=	$(CURDIR)/$(TARGET)
 
-export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
+export VPATH	:=	$(foreach dir,$(dir $(SOURCES)),$(CURDIR)/$(dir)) \
 					$(foreach dir,$(DATA),$(CURDIR)/$(dir))
 
 export DEPSDIR	:=	$(CURDIR)/$(BUILD)
@@ -64,6 +64,7 @@ export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 # automatically build a list of object files for our project
 #---------------------------------------------------------------------------------
 CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+CFILES		+=	$(foreach file,$(filter %.c,$(SOURCES)),$(notdir $(file)))
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 sFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))

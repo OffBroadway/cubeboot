@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <fat.h>
 #include <sdcard/gcsd.h>
 #include <malloc.h>
 #include <unistd.h>
 #include <ogc/lwp_watchdog.h>
 #include <fcntl.h>
 #include "sidestep.h"
+#include "ffshim.h"
+#include "fatfs/ff.h"
 
 static void *xfb = NULL;
 
@@ -46,13 +47,15 @@ void dol_alloc(int size)
     }
 }
 
-int load_fat(char *slot_name, const DISC_INTERFACE *iface)
+int load_fat(const char *slot_name, const DISC_INTERFACE *iface_)
 {
     int res = 1;
 
     printf("Trying %s\n", slot_name);
 
-    if (!fatMountSimple(slot_name, iface))
+    FATFS fs;
+    iface = iface_;
+    if (f_mount(&fs, "", 1) != FR_OK)
     {
         printf("Couldn't mount %s\n", slot_name);
         res = 0;
@@ -60,36 +63,33 @@ int load_fat(char *slot_name, const DISC_INTERFACE *iface)
     }
 
     char name[256];
-    fatGetVolumeLabel(slot_name, name);
+    f_getlabel(slot_name, name, NULL);
     printf("Mounted %s as %s\n", name, slot_name);
 
     printf("Reading ipl.dol\n");
-    // Avoiding snprintf
-    char fn[] = "sd_:/ipl.dol";
-    fn[2] = slot_name[2];
-    int file = open(fn, O_RDONLY);
-    if (file == -1)
+    FIL file;
+    if (f_open(&file, "/ipl.dol", FA_READ) != FR_OK)
     {
-        printf("Failed to open file");
+        printf("Failed to open file\n");
         res = 0;
         goto unmount;
     }
 
-    struct stat st;
-    fstat(file, &st);
-    size_t size = st.st_size;
+    size_t size = f_size(&file);
     dol_alloc(size);
     if (!dol)
     {
         res = 0;
         goto unmount;
     }
-    read(file, dol, size);
-    close(file);
+    UINT _;
+    f_read(&file, dol, size, &_);
+    f_close(&file);
 
 unmount:
     printf("Unmounting %s\n", slot_name);
-    fatUnmount(slot_name);
+    iface->shutdown();
+    iface = NULL;
 
 end:
     return res;
