@@ -9,6 +9,10 @@ endif
 
 include $(DEVKITPPC)/gamecube_rules
 
+export CC := clang -target powerpc-eabi -ccc-gcc-name powerpc-eabi-gcc
+MACHDEP =  -DGEKKO -mcpu=750 \
+	   -D__gamecube__ -DHW_DOL -ffunction-sections -fdata-sections
+
 #---------------------------------------------------------------------------------
 # TARGET is the name of the output
 # BUILD is the directory where object files & intermediate files will be placed
@@ -69,7 +73,12 @@ BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
 # use CXX for linking C++ projects, CC for standard C
 #---------------------------------------------------------------------------------
 ifeq ($(strip $(CPPFILES)),)
-	export LD	:=	$(CC)
+	export LD	:=	$(CC) -Wl,--gc-sections -nostartfiles \
+		$(DEVKITPPC)/lib/gcc/powerpc-eabi/*/crtend.o \
+		$(DEVKITPPC)/lib/gcc/powerpc-eabi/*/ecrtn.o \
+		$(DEVKITPPC)/lib/gcc/powerpc-eabi/*/ecrti.o \
+		$(DEVKITPPC)/lib/gcc/powerpc-eabi/*/crtbegin.o \
+		$(DEVKITPPC)/powerpc-eabi/lib/crtmain.o
 else
 	export LD	:=	$(CXX)
 endif
