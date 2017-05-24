@@ -4,7 +4,7 @@ A minimal GameCube IPL
 
 ## Usage
 
-Flash the latest build to your Qoob Pro as a BIOS.  
+Flash the latest build to your Qoob Pro or Viper as a BIOS.  
 The `_lz` version is intended for the Qoob SX but I haven't figured out how to
 flash it yet.
 
