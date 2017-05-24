@@ -74,7 +74,8 @@ def main():
     header = ipl[:256]
     bs1 = scramble(ipl[256:2 * 1024])
 
-    print(header.decode("ASCII"))
+    if header:
+        print(header.decode("ASCII"))
 
     with open(sys.argv[2], "rb") as f:
         dol = bytearray(f.read())
@@ -89,23 +90,36 @@ def main():
     print(f"Load address:  0x{load:0{8}X}")
     print(f"Image size:    {size} bytes ({size // 1024}K)")
 
-    bs1[0x51C + 2:0x51C + 4] = struct.pack(">H", load >> 16)
-    bs1[0x520 + 2:0x520 + 4] = struct.pack(">H", load & 0xFFFF)
-    bs1[0x5D4 + 2:0x5D4 + 4] = struct.pack(">H", entry >> 16)
-    bs1[0x5D8 + 2:0x5D8 + 4] = struct.pack(">H", entry & 0xFFFF)
-    bs1[0x524 + 2:0x524 + 4] = struct.pack(">H", size >> 16)
-    bs1[0x528 + 2:0x528 + 4] = struct.pack(">H", size & 0xFFFF)
+    if sys.argv[3].endswith(".gcb"):
+        bs1[0x51C + 2:0x51C + 4] = struct.pack(">H", load >> 16)
+        bs1[0x520 + 2:0x520 + 4] = struct.pack(">H", load & 0xFFFF)
+        bs1[0x5D4 + 2:0x5D4 + 4] = struct.pack(">H", entry >> 16)
+        bs1[0x5D8 + 2:0x5D8 + 4] = struct.pack(">H", entry & 0xFFFF)
+        bs1[0x524 + 2:0x524 + 4] = struct.pack(">H", size >> 16)
+        bs1[0x528 + 2:0x528 + 4] = struct.pack(">H", size & 0xFFFF)
 
-    # Qoob specific
-    npages = math.ceil((len(header) + len(bs1) + size) / 0x10000)
-    header[0xFD] = npages
-    print(f"Qoob blocks:   {npages}")
+        # Qoob specific
+        npages = math.ceil((len(header) + len(bs1) + size) / 0x10000)
+        header[0xFD] = npages
+        print(f"Qoob blocks:   {npages}")
 
-    # Put it all together
-    out = header + scramble(bs1 + img)
+        # Put it all together
+        out = header + scramble(bs1 + img)
 
-    # Pad to a multiple of 64KB
-    out += bytearray(npages * 0x10000 - len(out))
+        # Pad to a multiple of 64KB
+        out += bytearray(npages * 0x10000 - len(out))
+
+    elif sys.argv[3].endswith(".vgc"):
+        if entry != 0x81300000 or load != 0x01300000:
+            print("Invalid entry point and base address (must be 0x81300000)")
+            return -1
+
+        header = b"VIPR\x01\x02".ljust(16, b"\x00") + b"iplboot".ljust(16, b"\x00")
+        out = header + scramble(bytearray(0x720) + img)[0x720:]
+
+    else:
+        print("Unknown output format")
+        return -1
 
     with open(sys.argv[3], "wb") as f:
         f.write(out)

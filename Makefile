@@ -28,7 +28,7 @@ INCLUDES	:=
 CFLAGS	= -g -O2 -Wall $(MACHDEP) $(INCLUDE)
 CXXFLAGS	=	$(CFLAGS)
 
-LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map #,--section-start,.init=0x81300000
+LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map -T$(PWD)/ipl.ld
 
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
@@ -104,7 +104,7 @@ $(BUILD):
 clean:
 	@echo clean ...
 	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).dol $(OUTPUT)_lz.dol \
-		$(OUTPUT)_lz.gcb $(OUTPUT).gcb
+		$(OUTPUT)_lz.gcb $(OUTPUT).gcb $(OUTPUT).vgc
 
 #---------------------------------------------------------------------------------
 run: $(BUILD)
@@ -119,7 +119,7 @@ DEPENDS	:=	$(OFILES:.o=.d)
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
-all: $(OUTPUT)_lz.gcb $(OUTPUT).gcb
+all: $(OUTPUT)_lz.gcb $(OUTPUT).gcb $(OUTPUT).vgc
 $(OUTPUT)_lz.dol: $(OUTPUT).dol
 	@echo compress ... $(notdir $@)
 	@dollz3 $< $@ -m
@@ -130,7 +130,11 @@ $(OUTPUT).elf: $(OFILES)
 #---------------------------------------------------------------------------------
 %.gcb: %.dol
 	@echo pack IPL ... $(notdir $@)
-	@cd $(PWD); ./dol2gcb.py ipl.rom $< $@
+	@cd $(PWD); ./dol2ipl.py ipl.rom $< $@
+
+%.vgc: %.dol
+	@echo pack IPL ... $(notdir $@)
+	@cd $(PWD); ./dol2ipl.py /dev/null $< $@
 
 #---------------------------------------------------------------------------------
 # This rule links in binary data with the .jpg extension
