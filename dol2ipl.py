@@ -114,7 +114,7 @@ def main():
             print("Invalid entry point and base address (must be 0x81300000)")
             return -1
 
-        header = b"VIPR\x01\x02".ljust(16, b"\x00") + b"iplboot".ljust(16, b"\x00")
+        header = b"VIPR\x00\x02".ljust(16, b"\x00") + b"iplboot".ljust(16, b"\x00")
         out = header + scramble(bytearray(0x720) + img)[0x720:]
 
     else:
