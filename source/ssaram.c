@@ -2,8 +2,11 @@
 * SSARAM
 ***************************************************************************/
 #ifndef HW_RVL
-#include <gccore.h>
 #include <string.h>
+#include <gctypes.h>
+#include <gcutil.h>
+#include <ogc/aram.h>
+#include <ogc/cache.h>
 #include "ssaram.h"
 
 static u8 aramfix[2048] ATTRIBUTE_ALIGN(32);

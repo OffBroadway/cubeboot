@@ -6,10 +6,13 @@
 *
 * softdev March 2007
 ***************************************************************************/
-#include <gccore.h>
 #include <string.h>
 #include <malloc.h>
+#include <ogc/aram.h>
+#include <ogc/cache.h>
+#include <ogc/gx.h>
 #include <ogc/lwp_threads.h>
+#include <ogc/system.h>
 
 #include "sidestep.h"
 #include "ssaram.h"
