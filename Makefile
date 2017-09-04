@@ -113,7 +113,7 @@ $(BUILD):
 clean:
 	@echo clean ...
 	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).dol $(OUTPUT)_lz.dol \
-		$(OUTPUT)_lz.gcb $(OUTPUT).gcb $(OUTPUT).vgc
+		$(OUTPUT)_lz.gcb $(OUTPUT).gcb $(OUTPUT).vgc $(OUTPUT)_xeno.bin
 
 #---------------------------------------------------------------------------------
 run: $(BUILD)
@@ -128,13 +128,18 @@ DEPENDS	:=	$(OFILES:.o=.d)
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
-all: $(OUTPUT)_lz.gcb $(OUTPUT).gcb $(OUTPUT).vgc
+all: $(OUTPUT)_lz.gcb $(OUTPUT).gcb $(OUTPUT).vgc $(OUTPUT)_xeno.bin
 $(OUTPUT)_lz.dol: $(OUTPUT).dol
 	@echo compress ... $(notdir $@)
 	@dollz3 $< $@ -m
 
 $(OUTPUT).dol: $(OUTPUT).elf
 $(OUTPUT).elf: $(OFILES)
+
+$(OUTPUT)_xeno.elf: $(OFILES)
+	@echo linking ... $(notdir $@)
+	@$(LD)  $^ $(LDFLAGS) -Wl,--section-start,.init=0x81700000 $(LIBPATHS) $(LIBS) -o $@
+
 
 #---------------------------------------------------------------------------------
 %.gcb: %.dol
@@ -144,6 +149,10 @@ $(OUTPUT).elf: $(OFILES)
 %.vgc: %.dol
 	@echo pack IPL ... $(notdir $@)
 	@cd $(PWD); ./dol2ipl.py /dev/null $< $@
+
+%.bin: %.elf
+	@echo extract binary ... $(notdir $@)
+	@$(OBJCOPY) -O binary $< $@
 
 #---------------------------------------------------------------------------------
 # This rule links in binary data with the .jpg extension
