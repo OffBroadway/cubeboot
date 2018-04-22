@@ -9,7 +9,7 @@ endif
 
 include $(DEVKITPPC)/gamecube_rules
 
-export CC := clang -target powerpc-eabi -ccc-gcc-name powerpc-eabi-gcc
+export CC := powerpc-eabi-clang
 MACHDEP =  -DGEKKO -mcpu=750 \
 	   -D__gamecube__ -DHW_DOL -ffunction-sections -fdata-sections
 
@@ -23,7 +23,7 @@ TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
 SOURCES		:=	source/ source/fatfs/ source/fatfs/option/unicode.c
 DATA		:=	data  
-INCLUDES	:=
+INCLUDES	:=	-nostdlibinc -isystem $(DEVKITPPC)/powerpc-eabi/include
 
 #---------------------------------------------------------------------------------
 # options for code generation
