@@ -21,7 +21,7 @@ MACHDEP =  -DGEKKO -mcpu=750 \
 #---------------------------------------------------------------------------------
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	source/ source/fatfs/ source/fatfs/option/unicode.c
+SOURCES		:=	source/ source/fatfs/
 DATA		:=	data  
 INCLUDES	:=	-nostdlibinc -isystem $(DEVKITPPC)/powerpc-eabi/include
 
