@@ -113,7 +113,8 @@ $(BUILD):
 clean:
 	@echo clean ...
 	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).dol $(OUTPUT)_lz.dol \
-		$(OUTPUT)_lz.gcb $(OUTPUT).gcb $(OUTPUT).vgc $(OUTPUT)_xeno.bin
+		$(OUTPUT)_lz.gcb $(OUTPUT).gcb $(OUTPUT).vgc \
+		$(OUTPUT)_xeno.bin $(OUTPUT)_xeno.elf
 
 #---------------------------------------------------------------------------------
 run: $(BUILD)
