@@ -5,7 +5,7 @@ import struct
 import sys
 
 # bootrom descrambler reversed by segher
-def scramble(data):
+def scramble(data, *, qoobsx=False):
     acc = 0
     nacc = 0
 
@@ -14,6 +14,18 @@ def scramble(data):
     v = 0x3FF1
 
     x = 1
+
+    if qoobsx:
+        # Qoob SX scrambling starts at 0x210000
+        # Use a custom initialization vector to speed things up
+        acc = 0xCB
+        nacc = 0
+
+        t = 0x9E57
+        u = 0xC7C5
+        v = 0x2EED
+
+        x = 1
 
     it = 0
     while it < len(data):
