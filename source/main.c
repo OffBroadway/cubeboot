@@ -9,11 +9,6 @@
 #include "ffshim.h"
 #include "fatfs/ff.h"
 
-static void *xfb = NULL;
-
-u32 first_frame = 1;
-GXRModeObj *rmode;
-
 u8 *dol = NULL;
 
 void dol_alloc(int size)
@@ -185,8 +180,8 @@ end:
 int main()
 {
     VIDEO_Init();
-    rmode = VIDEO_GetPreferredMode(NULL);
-    xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode));
+    GXRModeObj *rmode = VIDEO_GetPreferredMode(NULL);
+    void *xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode));
     VIDEO_Configure(rmode);
     VIDEO_SetNextFramebuffer(xfb);
     VIDEO_SetBlack(FALSE);
