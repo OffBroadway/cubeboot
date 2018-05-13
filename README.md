@@ -12,3 +12,13 @@ After flashing, place an ipl.dol file on your SD card and turn the Cube on, it
 will load it right away. The IPL also acts as a server for emu_kidid's
 [usb-load](https://github.com/emukidid/gc-usb-load), should you want to use it
 for development purposes.
+
+## Building
+
+A specific setup is required to build iplboot:
+- devkitPPC r26
+- Latest libOGC compiled with dkPPC r26
+- Clang (`ln -s /usb/bin/clang $DEVKITPPC/bin/powerpc-eabi-clang`)
+
+Additionally, the only BS1 that is currently known to work is the one from PAL
+1.0 IPLs (full ROM MD5: `0cdda509e2da83c85bfe423dd87346cc`).
