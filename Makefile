@@ -53,6 +53,7 @@ ifneq ($(BUILD),$(notdir $(CURDIR)))
 #---------------------------------------------------------------------------------
 
 export OUTPUT	:=	$(CURDIR)/$(TARGET)
+export OUTPUT_SX :=	$(CURDIR)/qoob_sx_$(TARGET)_upgrade.elf
 
 export VPATH	:=	$(foreach dir,$(dir $(SOURCES)),$(CURDIR)/$(dir)) \
 					$(foreach dir,$(DATA),$(CURDIR)/$(dir))
@@ -112,13 +113,12 @@ $(BUILD):
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).dol $(OUTPUT)_lz.dol \
-		$(OUTPUT)_lz.gcb $(OUTPUT).gcb $(OUTPUT).vgc \
-		$(OUTPUT)_xeno.bin $(OUTPUT)_xeno.elf
+	@rm -fr $(BUILD) $(OUTPUT).{elf,dol} $(OUTPUT).{gcb,vgc} \
+		$(OUTPUT)_lz.{dol,elf,qbsx} $(OUTPUT_SX) $(OUTPUT)_xeno.{bin,elf}
 
 #---------------------------------------------------------------------------------
 run: $(BUILD)
-	usb-load $(OUTPUT)_lz.dol
+	usb-load $(OUTPUT).dol
 
 
 #---------------------------------------------------------------------------------
@@ -129,39 +129,42 @@ DEPENDS	:=	$(OFILES:.o=.d)
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
-all: $(OUTPUT)_lz.gcb $(OUTPUT).gcb $(OUTPUT).vgc $(OUTPUT)_xeno.bin
+all: $(OUTPUT).gcb $(OUTPUT_SX) $(OUTPUT).vgc $(OUTPUT)_xeno.bin
+
+$(OUTPUT).elf: $(OFILES)
+
+%.gcb: %.dol
+	@echo pack IPL ... $(notdir $@)
+	@cd $(PWD); ./dol2ipl.py ipl.rom $< $@
+
 $(OUTPUT)_lz.dol: $(OUTPUT).dol
 	@echo compress ... $(notdir $@)
 	@dollz3 $< $@ -m
 
-$(OUTPUT).dol: $(OUTPUT).elf
-$(OUTPUT).elf: $(OFILES)
+$(OUTPUT)_lz.elf: $(OUTPUT)_lz.dol
+	@echo dol2elf ... $(notdir $@)
+	@doltool -e $<
 
-$(OUTPUT)_xeno.elf: $(OFILES)
-	@echo linking ... $(notdir $@)
-	@$(LD)  $^ $(LDFLAGS) -Wl,--section-start,.init=0x81700000 $(LIBPATHS) $(LIBS) -o $@
-
-
-#---------------------------------------------------------------------------------
-%.gcb: %.dol
+%.qbsx: %.elf
 	@echo pack IPL ... $(notdir $@)
-	@cd $(PWD); ./dol2ipl.py ipl.rom $< $@
+	@cd $(PWD); ./dol2ipl.py /dev/null $< $@
+
+$(OUTPUT_SX): $(OUTPUT)_lz.qbsx
+	@echo splice ... $@
+	@cd $(PWD); cp -f qoob_sx_13c_upgrade.elf $@
+	@cd $(PWD); dd if=$< of=$@ obs=4 seek=1851 conv=notrunc
 
 %.vgc: %.dol
 	@echo pack IPL ... $(notdir $@)
 	@cd $(PWD); ./dol2ipl.py /dev/null $< $@
 
+%_xeno.elf: $(OFILES)
+	@echo linking ... $(notdir $@)
+	@$(LD)  $^ $(LDFLAGS) -Wl,--section-start,.init=0x81700000 $(LIBPATHS) $(LIBS) -o $@
+
 %.bin: %.elf
 	@echo extract binary ... $(notdir $@)
 	@$(OBJCOPY) -O binary $< $@
-
-#---------------------------------------------------------------------------------
-# This rule links in binary data with the .jpg extension
-#---------------------------------------------------------------------------------
-%.jpg.o	:	%.jpg
-#---------------------------------------------------------------------------------
-	@echo $(notdir $<)
-	$(bin2o)
 
 -include $(DEPENDS)
 

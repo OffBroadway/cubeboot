@@ -4,5 +4,6 @@
 
 ipl.rom
 *.gcb
+*.qbsx
 *.vgc
 *.bin

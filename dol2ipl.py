@@ -62,7 +62,7 @@ def scramble(data, *, qoobsx=False):
 
     return data
 
-def unpack_dol(data):
+def flatten_dol(data):
     header = struct.unpack(">64I", data[:256])
 
     dol_min = min(a for a in header[18:36] if a)
@@ -78,7 +78,7 @@ def unpack_dol(data):
 
 def main():
     if len(sys.argv) != 4:
-        print(f"Usage: {sys.argv[0]} <original IPL> <DOL> <output>")
+        print(f"Usage: {sys.argv[0]} <original IPL> <executable> <output>")
 
     with open(sys.argv[1], "rb") as f:
         ipl = bytearray(f.read())
@@ -90,17 +90,23 @@ def main():
         print(header.decode("ASCII"))
 
     with open(sys.argv[2], "rb") as f:
-        dol = bytearray(f.read())
+        exe = bytearray(f.read())
 
-    entry, load, img = unpack_dol(dol)
-    entry &= 0x017FFFFF
-    entry |= 0x80000000
-    load &= 0x017FFFFF
-    size = len(img)
+    if sys.argv[2].endswith(".dol"):
+        entry, load, img = flatten_dol(exe)
+        entry &= 0x017FFFFF
+        entry |= 0x80000000
+        load &= 0x017FFFFF
+        size = len(img)
 
-    print(f"Entry point:   0x{entry:0{8}X}")
-    print(f"Load address:  0x{load:0{8}X}")
-    print(f"Image size:    {size} bytes ({size // 1024}K)")
+        print(f"Entry point:   0x{entry:0{8}X}")
+        print(f"Load address:  0x{load:0{8}X}")
+        print(f"Image size:    {size} bytes ({size // 1024}K)")
+    elif sys.argv[2].endswith(".elf"):
+        pass
+    else:
+        print("Unknown input format")
+        return -1
 
     if sys.argv[3].endswith(".gcb"):
         bs1[0x51C + 2:0x51C + 4] = struct.pack(">H", load >> 16)
@@ -128,6 +134,21 @@ def main():
 
         header = b"VIPR\x00\x02".ljust(16, b"\x00") + b"iplboot".ljust(16, b"\x00")
         out = header + scramble(bytearray(0x720) + img)[0x720:]
+
+    elif sys.argv[3].endswith(".qbsx"):
+        header = bytearray(b"iplboot".ljust(256, b"\x00"))
+
+        # SX BIOSes are always one page long
+        header[0xFD] = 1
+
+        out = header + scramble(exe, qoobsx=True)
+
+        if len(out) > 62800:
+            print("Warning: SX BIOS image too big to fit in flasher")
+            return -1
+        if len(out) > 1 << 16:
+            print("SX BIOS image too big")
+            return -1
 
     else:
         print("Unknown output format")
