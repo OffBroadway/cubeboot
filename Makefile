@@ -29,7 +29,7 @@ INCLUDES	:=	-nostdlibinc -isystem $(DEVKITPPC)/powerpc-eabi/include
 # options for code generation
 #---------------------------------------------------------------------------------
 
-CFLAGS	= -g -O2 -Wall $(MACHDEP) $(INCLUDE)
+CFLAGS	= -g -Os -Wall $(MACHDEP) $(INCLUDE)
 CXXFLAGS	=	$(CFLAGS)
 
 LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map -T$(PWD)/ipl.ld
@@ -114,11 +114,11 @@ $(BUILD):
 clean:
 	@echo clean ...
 	@rm -fr $(BUILD) $(OUTPUT).{elf,dol} $(OUTPUT).{gcb,vgc} \
-		$(OUTPUT)_lz.{dol,elf,qbsx} $(OUTPUT_SX) $(OUTPUT)_xeno.{bin,elf}
+		$(OUTPUT)_xz.{dol,elf,qbsx} $(OUTPUT_SX) $(OUTPUT)_xeno.{bin,elf}
 
 #---------------------------------------------------------------------------------
 run: $(BUILD)
-	usb-load $(OUTPUT).dol
+	usb-load $(OUTPUT)_xz.dol
 
 
 #---------------------------------------------------------------------------------
@@ -137,11 +137,11 @@ $(OUTPUT).elf: $(OFILES)
 	@echo pack IPL ... $(notdir $@)
 	@cd $(PWD); ./dol2ipl.py ipl.rom $< $@
 
-$(OUTPUT)_lz.dol: $(OUTPUT).dol
+$(OUTPUT)_xz.dol: $(OUTPUT).dol
 	@echo compress ... $(notdir $@)
-	@dollz3 $< $@ -m
+	@dolxz $< $@ -cube
 
-$(OUTPUT)_lz.elf: $(OUTPUT)_lz.dol
+$(OUTPUT)_xz.elf: $(OUTPUT)_xz.dol
 	@echo dol2elf ... $(notdir $@)
 	@doltool -e $<
 
@@ -149,7 +149,7 @@ $(OUTPUT)_lz.elf: $(OUTPUT)_lz.dol
 	@echo pack IPL ... $(notdir $@)
 	@cd $(PWD); ./dol2ipl.py /dev/null $< $@
 
-$(OUTPUT_SX): $(OUTPUT)_lz.qbsx
+$(OUTPUT_SX): $(OUTPUT)_xz.qbsx
 	@echo splice ... $@
 	@cd $(PWD); cp -f qoob_sx_13c_upgrade.elf $@
 	@cd $(PWD); dd if=$< of=$@ obs=4 seek=1851 conv=notrunc
