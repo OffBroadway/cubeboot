@@ -154,6 +154,8 @@ $(OUTPUT_SX).elf: $(OUTPUT)_xz.qbsx
 	@echo splice ... $@
 	@cd $(PWD); cp -f qoob_sx_13c_upgrade.elf $@
 	@cd $(PWD); dd if=$< of=$@ obs=4 seek=1851 conv=notrunc
+	@cd $(PWD); printf 'QOOB SX iplboot install\0' \
+		| dd of=$@ obs=4 seek=1810 conv=notrunc
 
 %.vgc: %.dol
 	@echo pack IPL ... $(notdir $@)
