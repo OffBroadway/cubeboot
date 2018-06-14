@@ -53,7 +53,7 @@ ifneq ($(BUILD),$(notdir $(CURDIR)))
 #---------------------------------------------------------------------------------
 
 export OUTPUT	:=	$(CURDIR)/$(TARGET)
-export OUTPUT_SX :=	$(CURDIR)/qoob_sx_$(TARGET)_upgrade.elf
+export OUTPUT_SX :=	$(CURDIR)/qoob_sx_$(TARGET)_upgrade
 
 export VPATH	:=	$(foreach dir,$(dir $(SOURCES)),$(CURDIR)/$(dir)) \
 					$(foreach dir,$(DATA),$(CURDIR)/$(dir))
@@ -114,7 +114,8 @@ $(BUILD):
 clean:
 	@echo clean ...
 	@rm -fr $(BUILD) $(OUTPUT).{elf,dol} $(OUTPUT).{gcb,vgc} \
-		$(OUTPUT)_xz.{dol,elf,qbsx} $(OUTPUT_SX) $(OUTPUT)_xeno.{bin,elf}
+		$(OUTPUT)_xz.{dol,elf,qbsx} $(OUTPUT_SX).{dol,elf} \
+		$(OUTPUT)_xeno.{bin,elf}
 
 #---------------------------------------------------------------------------------
 run: $(BUILD)
@@ -129,7 +130,7 @@ DEPENDS	:=	$(OFILES:.o=.d)
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
-all: $(OUTPUT).gcb $(OUTPUT_SX) $(OUTPUT).vgc $(OUTPUT)_xeno.bin
+all: $(OUTPUT).gcb $(OUTPUT_SX).dol $(OUTPUT).vgc $(OUTPUT)_xeno.bin
 
 $(OUTPUT).elf: $(OFILES)
 
@@ -149,7 +150,7 @@ $(OUTPUT)_xz.elf: $(OUTPUT)_xz.dol
 	@echo pack IPL ... $(notdir $@)
 	@cd $(PWD); ./dol2ipl.py /dev/null $< $@
 
-$(OUTPUT_SX): $(OUTPUT)_xz.qbsx
+$(OUTPUT_SX).elf: $(OUTPUT)_xz.qbsx
 	@echo splice ... $@
 	@cd $(PWD); cp -f qoob_sx_13c_upgrade.elf $@
 	@cd $(PWD); dd if=$< of=$@ obs=4 seek=1851 conv=notrunc
