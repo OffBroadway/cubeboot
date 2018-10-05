@@ -1,3 +1,13 @@
+# NO LONGER MAINTAINED
+
+Because the most recent devkitPPC builds generate huge code, I can no longer
+make iplboot fit in Qoob SX flash. Other modchips still have a fair amount of
+headroom, but some critical bugs have demotivated me from working on this
+project anymore.
+
+Feel free to file bug reports, but beware that I will ignore them. I will review
+pull requests, but I won't release any new binaries.
+
 # iplboot
 
 A minimal GameCube IPL
