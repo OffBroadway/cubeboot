@@ -220,6 +220,8 @@ int main()
 
     if (load_fat("sda", &__io_gcsda)) goto load;
 
+    if (load_fat("sd2", &__io_gcsd2)) goto load;
+
 load:
     if (dol)
     {
