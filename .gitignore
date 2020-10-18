@@ -7,3 +7,4 @@ ipl.rom
 *.qbsx
 *.vgc
 *.bin
+*.bin.scrambled

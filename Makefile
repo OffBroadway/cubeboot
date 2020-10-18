@@ -105,7 +105,7 @@ $(BUILD):
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(OUTPUT).{elf,bin}
+	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).bin $(OUTPUT)_scrambled.bin ipl.bin
 
 #---------------------------------------------------------------------------------
 else
@@ -122,10 +122,12 @@ $(OUTPUT).elf: $(OFILES)
 %.bin: %.elf
 	@echo extract binary ... $(notdir $@)
 	@$(OBJCOPY) -O binary $< $@
+	@echo scrambling binary ... $(notdir $@)
+	@cd $(PWD) && python3 iplscramble.py $(@) $(@).scrambled
 
 ipl.bin: $(OUTPUT).bin
 	@echo packing ipl image ipl.bin ...
-	@cd $(PWD) && python3 iplinject.py NTSCIPL.bin $(OUTPUT).bin ipl.bin
+	@cd $(PWD) && python3 iplinject.py NTSCIPL.bin $(OUTPUT).bin.scrambled ipl.bin
 
 -include $(DEPENDS)
 
