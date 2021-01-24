@@ -4,10 +4,16 @@
 #include <malloc.h>
 #include <unistd.h>
 #include <ogc/lwp_watchdog.h>
+#include <ogc/video_types.h>
+#include <ogc/system.h>
+#include <ogc/pad.h>
 #include <fcntl.h>
+#include <string.h>
 #include "sidestep.h"
 #include "ffshim.h"
 #include "fatfs/ff.h"
+
+int bs2main();
 
 u8 *dol = NULL;
 
@@ -177,7 +183,16 @@ end:
     return res;
 }
 
+//Entry point from crt
 int main()
+{
+    bs2main();
+    kprintf("BS2 ERROR >>> SHOULD NEVER REACH HERE");
+    while(1);
+    return 0;
+}
+
+int bs2main()
 {
     VIDEO_Init();
     GXRModeObj *rmode = VIDEO_GetPreferredMode(NULL);
@@ -191,9 +206,9 @@ int main()
         VIDEO_WaitVSync();
     console_init(xfb, 20, 20, rmode->fbWidth, rmode->xfbHeight, rmode->fbWidth * 2);
 
-    kprintf("\n\nIPLboot\n");
+    kprintf("\n\nIPLboot (FlippyBoot Edition)\n");
 
-    *(volatile unsigned long *) 0xCC00643C = 0x00000000; // Enable 27MHz EXI
+    *(u32*)0xCC00643C = 0x00000000; // Enable 32MHz EXI
 
     // Disable Qoob
     u32 val = 6 << 24;
