@@ -4,8 +4,5 @@ __pycache__
 *.elf
 
 ipl.rom
-*.gcb
-*.qbsx
-*.vgc
 *.bin
 *.bin.scrambled

@@ -105,7 +105,11 @@ $(BUILD):
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).bin $(OUTPUT)_scrambled.bin ipl.bin
+	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).bin $(OUTPUT).bin.scrambled dolphinipl.bin
+
+dolphinipl.bin: $(BUILD)
+	@echo packing ipl image dolphinipl.bin ...
+	@cd $(PWD) && python3 iplinject.py NTSCIPL.bin $(OUTPUT).bin.scrambled dolphinipl.bin
 
 #---------------------------------------------------------------------------------
 else
@@ -115,7 +119,7 @@ DEPENDS	:=	$(OFILES:.o=.d)
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
-all: $(OUTPUT).bin ipl.bin
+all: $(OUTPUT).bin
 
 $(OUTPUT).elf: $(OFILES)
 
@@ -124,10 +128,6 @@ $(OUTPUT).elf: $(OFILES)
 	@$(OBJCOPY) -O binary $< $@
 	@echo scrambling binary ... $(notdir $@)
 	@cd $(PWD) && python3 iplscramble.py $(@) $(@).scrambled
-
-ipl.bin: $(OUTPUT).bin
-	@echo packing ipl image ipl.bin ...
-	@cd $(PWD) && python3 iplinject.py NTSCIPL.bin $(OUTPUT).bin.scrambled ipl.bin
 
 -include $(DEPENDS)
 

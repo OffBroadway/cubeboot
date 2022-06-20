@@ -1,34 +1,24 @@
-# NO LONGER MAINTAINED
+# iplboot (Flippyboot Edition)
 
-Because the most recent devkitPPC builds generate huge code, I can no longer
-make iplboot fit in Qoob SX flash. Other modchips still have a fair amount of
-headroom, but some critical bugs have demotivated me from working on this
-project anymore.
+Port of the marvelous iplboot - A minimal GameCube IPL, for the Flippyboot.
 
-Feel free to file bug reports, but beware that I will ignore them. I will review
-pull requests, but I won't release any new binaries.
+iplboot acts as a replacement BS2 capable of mounting the internal (or a 
+select list of external) FAT devices and chainloading a DOL.  The essential
+copyrighted BS1 and Font ROM are not provided, nor needed with the Flippyboot 
+as these are resident onboard the Gamecube's U10 ROM.
 
-# iplboot
-
-A minimal GameCube IPL
+iplboot can inject the BS2 into an existing scrambled ROM image for simulation
+purposes via `make dolphinipl.bin`.  You must provide the original ROM image for 
+injection.  Again, this is only necessary for development and debugging.
 
 ## Usage
 
-Flash the latest build to your Qoob Pro or Viper as a BIOS.  
-The Qoob SX is currently not supported because it uses a very different process
-to boot, and reverse-engineering efforts so far have been unsuccessful.
+This project contains all the scripts to build iplboot using the latest 
+devkitPPC and GCC.  Additionally, scripts are provided which scramble the BS2
+image suitable for injection over the stock BS2 in the GCN.
 
-After flashing, place an ipl.dol file on your SD card and turn the Cube on, it
-will load it right away. The IPL also acts as a server for emu_kidid's
-[usb-load](https://github.com/emukidid/gc-usb-load), should you want to use it
-for development purposes.
+## Compatibility
 
-## Building
+Known compatible IPL versions:
 
-A specific setup is required to build iplboot:
-- devkitPPC r26
-- Latest libOGC compiled with dkPPC r26
-- Clang (`ln -s /usb/bin/clang $DEVKITPPC/bin/powerpc-eabi-clang`)
-
-Additionally, the only BS1 that is currently known to work is the one from PAL
-1.0 IPLs (full ROM MD5: `0cdda509e2da83c85bfe423dd87346cc`).
+- NTSC 1.1 (sim + hardware verified)
