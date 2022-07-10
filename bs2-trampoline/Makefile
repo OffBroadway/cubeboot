@@ -29,6 +29,8 @@ endif
 
 PATCHES	:=	data/patches.elf
 
+PATCHES_PATH := $(PROJDIR)/$(PATCHES)
+
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
@@ -36,19 +38,20 @@ PATCHES	:=	data/patches.elf
 CFLAGS	= -O3 -Wno-main -Wall $(MACHDEP) $(INCLUDE)
 CXXFLAGS	=	$(CFLAGS)
 
-LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map -Wl,--defsym,EXI=0xCC006800 -Wl,--defsym,__SYS_PreInit=start
+LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map -Wl,--defsym,EXI=0xCC006800
+# Allow start function # -Wl,--defsym,__SYS_PreInit=start
 # Allow main not to exist: -Wl,--defsym,main=0x82000000
 
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
 #---------------------------------------------------------------------------------
-LIBS	:=	-logc
+LIBS	:= -lasnd -logc -lfreetype -lpng16 -lz -lm -lz -lbz2
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
 # include and lib
 #---------------------------------------------------------------------------------
-LIBDIRS	:=
+LIBDIRS	:= $(PORTLIBS)
 
 #---------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional
@@ -71,7 +74,8 @@ CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 sFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
-BINFILES	:=	$(notdir $(PATCHES))
+BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
+BINFILES	+=	$(notdir $(PATCHES))
 
 #---------------------------------------------------------------------------------
 # use CXX for linking C++ projects, CC for standard C
@@ -90,7 +94,7 @@ export OFILES	:=	$(addsuffix .o,$(BINFILES)) \
 # build a list of include paths
 #---------------------------------------------------------------------------------
 export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
-					$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
+					$(foreach dir,$(LIBDIRS),-I$(dir)/include) $(foreach dir,$(PORTLIBS),-I$(dir)/include/freetype2) \
 					-I$(CURDIR)/$(BUILD) \
 					-I$(LIBOGC_INC)
 
@@ -109,7 +113,6 @@ $(BUILD): $(PATCHES)
 
 #---------------------------------------------------------------------------------
 $(PATCHES):
-	@[ -d $(DATA) ] || mkdir -p $(DATA)
 	@$(MAKE) --no-print-directory -C $(dir $(PROJDIR))/$(basename $(notdir $@))
 	@cp $(dir $(PROJDIR))/$(basename $(notdir $@))/$(notdir $@) $@
 
@@ -117,7 +120,7 @@ $(PATCHES):
 clean:
 	@$(MAKE) --no-print-directory -C $(dir $(PROJDIR))/$(basename $(notdir $(PATCHES))) clean
 	@echo clean $(TARGET) ...
-	@rm -fr $(BUILD) $(PROJDIR)/$(DATA) $(OUTPUT).elf $(OUTPUT).dol
+	@rm -fr $(BUILD) $(PATCHES_PATH) $(OUTPUT).elf $(OUTPUT).dol
 
 #---------------------------------------------------------------------------------
 else
@@ -131,9 +134,17 @@ $(OUTPUT).dol: $(OUTPUT).elf
 $(OUTPUT).elf: $(OFILES)
 
 #---------------------------------------------------------------------------------
-# This rule links in binary data with the .dol extension
+# This rule links in binary data with the .elf extension
 #---------------------------------------------------------------------------------
 %.elf.o	%_elf.h:	%.elf
+#---------------------------------------------------------------------------------
+	@echo $(notdir $<)
+	$(bin2o)
+
+#---------------------------------------------------------------------------------
+# This rule links in binary data with the .ttf extension
+#---------------------------------------------------------------------------------
+%.ttf.o	%_ttf.h:	%.ttf
 #---------------------------------------------------------------------------------
 	@echo $(notdir $<)
 	$(bin2o)

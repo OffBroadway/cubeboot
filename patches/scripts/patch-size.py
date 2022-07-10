@@ -42,10 +42,17 @@ sections = []
 lines = []
 for i in range(elf.num_sections()):
     sect = elf.get_section(i)
+
+    if sect.name == ".symtab":
+        for sym in sect.iter_symbols():
+            if sym.name.startswith('_addr_'):
+                addr = sym.name.removeprefix('_addr_')
+                lines.append(f'{sym.name} = 0x{addr};\n')
+
     if not sect.name.startswith('.patch.'):
         continue
 
-    _, name = sect.name.split('.patch.')
+    name = sect.name.removeprefix('.patch.')
     symbol_name = name.removesuffix('_func')
 
     header = header_template.format(symbol_name)

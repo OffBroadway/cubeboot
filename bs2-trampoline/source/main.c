@@ -6,77 +6,15 @@
 #include <gccore.h>
 #include <unistd.h>
 
+#include <asndlib.h>
+#include <ogc/lwp_threads.h>
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef unsigned int u32;
-extern volatile u32 EXI[3][5];
-
-#define EXI_READ_WRITE				2			/*!< EXI transfer type read-write */
-#define EXI_CHANNEL_1				1			/*!< EXI channel 1 (memory card slot B) */
-#define EXI_DEVICE_0				0			/*!< EXI device 0 */
-#define EXI_SPEED_32MHZ				5			/*!< EXI device frequency 32MHz */
-
-static void exi_select(void) {
-	EXI[EXI_CHANNEL_1][0] = (EXI[EXI_CHANNEL_1][0] & 0x405) | ((1 << EXI_DEVICE_0) << 7) | (EXI_SPEED_32MHZ << 4);
-}
-
-static void exi_deselect(void) {
-	EXI[EXI_CHANNEL_1][0] &= 0x405;
-}
-
-static uint32_t exi_imm_read_write(uint32_t data, uint32_t len) {
-	EXI[EXI_CHANNEL_1][4] = data;
-	EXI[EXI_CHANNEL_1][3] = ((len - 1) << 4) | (EXI_READ_WRITE << 2) | 0b01;
-	while (EXI[EXI_CHANNEL_1][3] & 0b01);
-	return EXI[EXI_CHANNEL_1][4] >> ((4 - len) * 8);
-}
-
-static bool usb_transmit_byte(const uint8_t *data) {
-	uint16_t val;
-
-	exi_select();
-	val = exi_imm_read_write(0xB << 28 | *data << 20, 2);
-	exi_deselect();
-
-	return !(val & 0x400);
-}
-
-static bool usb_transmit_check(void) {
-	uint8_t val;
-
-	exi_select();
-	val = exi_imm_read_write(0xC << 28, 1);
-	exi_deselect();
-
-	return !(val & 0x4);
-}
-
-static int usb_transmit(const void *data, int size, int minsize) {
-	int i = 0, j = 0, check = 1;
-
-	while (i < size) {
-		if ((check && usb_transmit_check()) ||
-			(check = usb_transmit_byte(data + i))) {
-			j = i % 128;
-			if (i < minsize)
-				continue;
-			else break;
-		}
-
-		i++;
-		check = i % 128 == j;
-	}
-
-	return i;
-}
-
 #include "patches_elf.h"
 #include "elf_abi.h"
-
-#define ppc_nop 0x60000000
-#define ppc_blr 0x4e800020
 
 #define IPL_SIZE 0x200000
 #define BS2_START_OFFSET 0x800
@@ -88,19 +26,19 @@ extern void __SYS_ReadROM(void *buf,u32 len,u32 offset);
 
 static void (*bs2entry)(void) = (void(*)(void))BS2_BASE_ADDR;
 
-static char geckoBuffer[0x100];
 static char stringBuffer[0x80];
 
-void start() {
-    __exi_init();
+void *gc_text_tex_data_ptr;
+extern void render_logo();
+
+int main() {
+    // enable printf
+    CON_EnableGecko(1, true);
 
 	u32 size = IPL_SIZE - BS2_CODE_OFFSET;
     u8 *bs2 = (u8*)(BS2_BASE_ADDR);
 
 	__SYS_ReadROM(bs2, size, BS2_CODE_OFFSET);
-
-    const char* str = "bopD\n";
-    usb_transmit(str, strlen(str), strlen(str));
 
     Elf32_Ehdr* ehdr;
 	Elf32_Shdr* shdr;
@@ -174,17 +112,45 @@ void start() {
 			image = (unsigned char*)addr + shdr->sh_offset;
 			memcpy((void*)shdr->sh_addr, (const void*)image, sh_size);
 
-            sprintf(geckoBuffer, "patching ptr=%x size=%04x orig=%08x val=%08x\n", shdr->sh_addr, sh_size, *(u32*)shdr->sh_addr, *(u32*)image);
-            usb_transmit(geckoBuffer, strlen(geckoBuffer), strlen(geckoBuffer));    
+            printf("patching ptr=%x size=%04x orig=%08x val=%08x [%s]\n", shdr->sh_addr, sh_size, *(u32*)shdr->sh_addr, *(u32*)image, sh_name);
 		}
     }
 
-	bs2entry();
+    // Copy Logo into place
+    {
+        sprintf(&stringBuffer[0], "gc_text_tex_data");
+        u32 ptr = 0;
+        for (int i = 0; i < (symshdr->sh_size / sizeof(Elf32_Sym)); ++i) {
+            if (syment[i].st_name == SHN_UNDEF) {
+                continue;
+            }
+
+            char *symname = symstringdata + syment[i].st_name;
+            if (strcmp(symname, stringBuffer) == 0) {
+                ptr = syment[i].st_value;
+            }
+        }
+        
+        if (ptr != 0) {
+            printf("Found gc_text_tex_data = %08x\n", ptr);
+
+            gc_text_tex_data_ptr = (void*)ptr;
+            render_logo();
+        }
+    }
+
+	/*** Shutdown libOGC ***/
+	GX_AbortFrame();
+	ASND_End();
+	u32 bi2Addr = *(volatile u32*)0x800000F4;
+	u32 osctxphys = *(volatile u32*)0x800000C0;
+	u32 osctxvirt = *(volatile u32*)0x800000D4;
+	SYS_ResetSystem(SYS_SHUTDOWN, 0, 0);
+	*(volatile u32*)0x800000F4 = bi2Addr;
+	*(volatile u32*)0x800000C0 = osctxphys;
+	*(volatile u32*)0x800000D4 = osctxvirt;
+	/*** Shutdown all threads and exit to this method ***/
+	__lwp_thread_stopmultitasking(bs2entry);
 
     __builtin_unreachable();
-}
-
-// unused
-int main() {
-	return 0;
 }

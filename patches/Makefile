@@ -19,7 +19,7 @@ TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
 SOURCES		:=	source
 DATA		:=	data
-INCLUDES	:=
+INCLUDES	:=	include
 
 ifneq ($(BUILD),$(notdir $(CURDIR)))
 	export PROJDIR	:=	$(CURDIR)
@@ -31,7 +31,7 @@ endif
 # options for code generation
 #---------------------------------------------------------------------------------
 
-CFLAGS		= -g -O0 -Wall $(MACHDEP) $(INCLUDE)
+CFLAGS		= -g -O2 -Wall $(MACHDEP) $(INCLUDE)
 CXXFLAGS	= $(CFLAGS)
 
 LDFLAGS		= -g $(MACHDEP) -Wl,-Map,$(notdir $@).map -T $(PROJDIR)/link.ld -T patch.ld -Wl,--gc-keep-exported -nolibc -nostdlib -nodefaultlibs
@@ -39,7 +39,7 @@ LDFLAGS		= -g $(MACHDEP) -Wl,-Map,$(notdir $@).map -T $(PROJDIR)/link.ld -T patc
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
 #---------------------------------------------------------------------------------
-LIBS	:=
+LIBS	:= -lm
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
@@ -86,7 +86,7 @@ export OFILES := $(OFILES_BIN) $(OFILES_SOURCES) fake.o
 export HFILES := $(addsuffix .h,$(subst .,_,$(BINFILES)))
 
 #---------------------------------------------------------------------------------
-# build a list of include paths
+# build PowerPC defines really don't belong in here,a list of include paths
 #---------------------------------------------------------------------------------
 export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 			$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
@@ -99,7 +99,7 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 export LIBPATHS	:=	-L$(LIBOGC_LIB) $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
 export OUTPUT	:=	$(CURDIR)/$(TARGET)
-.PHONY: XXX $(BUILD) clean
+.PHONY: $(BUILD) clean
 
 #---------------------------------------------------------------------------------
 $(BUILD):
@@ -123,6 +123,7 @@ $(OUTPUT).elf: $(OFILES)
 
 $(OFILES_SOURCES) : $(HFILES)
 
+# TODO: there has got to be a better way to create an elf dep
 fake.o: patch.o
 	@$(PROJDIR)/scripts/patch-size.py $^
 	@touch $@

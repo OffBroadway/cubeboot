@@ -1,9 +1,12 @@
 .vscode
 __pycache__
-/iplboot/build
+build/
 *.dol
 *.elf
+*.iso
 
 ipl.rom
 *.bin
 *.bin.scrambled
+
+patches/include/secret.h
