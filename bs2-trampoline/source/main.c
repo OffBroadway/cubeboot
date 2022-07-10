@@ -116,29 +116,6 @@ int main() {
 		}
     }
 
-    // Copy Logo into place
-    {
-        sprintf(&stringBuffer[0], "gc_text_tex_data");
-        u32 ptr = 0;
-        for (int i = 0; i < (symshdr->sh_size / sizeof(Elf32_Sym)); ++i) {
-            if (syment[i].st_name == SHN_UNDEF) {
-                continue;
-            }
-
-            char *symname = symstringdata + syment[i].st_name;
-            if (strcmp(symname, stringBuffer) == 0) {
-                ptr = syment[i].st_value;
-            }
-        }
-        
-        if (ptr != 0) {
-            printf("Found gc_text_tex_data = %08x\n", ptr);
-
-            gc_text_tex_data_ptr = (void*)ptr;
-            render_logo();
-        }
-    }
-
 	/*** Shutdown libOGC ***/
 	GX_AbortFrame();
 	ASND_End();

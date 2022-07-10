@@ -13,12 +13,6 @@ __attribute_used__ u32 bs2tick() {
     return 0x1; // end state is 0x10?? (start game)
 }
 
-#define GC_TEXT_WIDTH 352
-#define GC_TEXT_HEIGHT 40
-
-__atrribute_data__ u8 gc_text_tex_data[GC_TEXT_WIDTH * GC_TEXT_HEIGHT];
-extern void* memcpy(void* dest,const void* src, size_t count);
-
 extern model bg_outer_model;
 extern model bg_inner_model;
 extern model gc_text_model;
@@ -85,15 +79,6 @@ __attribute_used__ void pre_cube_init() {
     // logo
 
     // dump_color(logo_model.data->mat[0].tev_color[3]);
-
-    {
-        tex_data *gc_text_tex = gc_text_model.data->tex->dat;
-        u16 wd = gc_text_tex->width;
-        u16 ht = gc_text_tex->height;
-        void *img_ptr = (void*)((u8*)gc_text_tex + gc_text_tex->offset);
-        OSReport("TEXT TEX: %dx%d[%d] @ %p\n", wd, ht, gc_text_tex->format, img_ptr);
-        memcpy(img_ptr, &gc_text_tex_data[0], wd * ht);
-    }
 
     tex_data *base = logo_model.data->tex->dat;
     for (int i = 0; i < 8; i++) {
