@@ -76,14 +76,14 @@ typedef struct mat_t {
     GXColorS10* tev_color[4];
 
     void* unk10[8];
-	void* unk11[8];
-	void* unk12[8];
-	void* unk13[10];
+    void* unk11[8];
+    void* unk12[8];
+    void* unk13[10];
 
-	void* unk14;
-	void* unk15;
-	void* unk16;
-	void* unk17;
+    void* unk14;
+    void* unk15;
+    void* unk16;
+    void* unk17;
 } mat;
 
 typedef struct tex_data_t {

@@ -35,17 +35,17 @@ int main() {
     // enable printf
     CON_EnableGecko(1, true);
 
-	u32 size = IPL_SIZE - BS2_CODE_OFFSET;
+    u32 size = IPL_SIZE - BS2_CODE_OFFSET;
     u8 *bs2 = (u8*)(BS2_BASE_ADDR);
 
-	__SYS_ReadROM(bs2, size, BS2_CODE_OFFSET);
+    __SYS_ReadROM(bs2, size, BS2_CODE_OFFSET);
 
     Elf32_Ehdr* ehdr;
-	Elf32_Shdr* shdr;
-	unsigned char* image;
+    Elf32_Shdr* shdr;
+    unsigned char* image;
 
     void * addr = (void*)patches_elf;
-	ehdr = (Elf32_Ehdr *)addr;
+    ehdr = (Elf32_Ehdr *)addr;
 
     // get section string table
     Elf32_Shdr* shstr = &((Elf32_Shdr *)(addr + ehdr->e_shoff))[ehdr->e_shstrndx];
@@ -67,21 +67,21 @@ int main() {
     // get symbols
     Elf32_Sym* syment = (Elf32_Sym*) (addr + symshdr->sh_offset);
 
-	// Patch each appropriate section
-	for (int i = 0; i < ehdr->e_shnum; ++i) {
-		shdr = (Elf32_Shdr *)(addr + ehdr->e_shoff + (i * sizeof(Elf32_Shdr)));
+    // Patch each appropriate section
+    for (int i = 0; i < ehdr->e_shnum; ++i) {
+        shdr = (Elf32_Shdr *)(addr + ehdr->e_shoff + (i * sizeof(Elf32_Shdr)));
 
-		if (!(shdr->sh_flags & SHF_ALLOC) || shdr->sh_addr == 0 || shdr->sh_size == 0) {
-			continue;
-		}
+        if (!(shdr->sh_flags & SHF_ALLOC) || shdr->sh_addr == 0 || shdr->sh_size == 0) {
+            continue;
+        }
 
         shdr->sh_addr &= 0x3FFFFFFF;
-		shdr->sh_addr |= 0x80000000;
+        shdr->sh_addr |= 0x80000000;
         // shdr->sh_size &= 0xfffffffc;
 
-		if (shdr->sh_type == SHT_NOBITS) {
-			memset((void*)shdr->sh_addr, 0, shdr->sh_size);
-		} else {
+        if (shdr->sh_type == SHT_NOBITS) {
+            memset((void*)shdr->sh_addr, 0, shdr->sh_size);
+        } else {
             // check if this is a patch section
             uint32_t sh_size = 0;
             char *sh_name = stringdata + shdr->sh_name;
@@ -109,25 +109,25 @@ int main() {
             // set section size from header if it is not provided as a symbol
             if (sh_size == 0) sh_size = shdr->sh_size;
 
-			image = (unsigned char*)addr + shdr->sh_offset;
-			memcpy((void*)shdr->sh_addr, (const void*)image, sh_size);
+            image = (unsigned char*)addr + shdr->sh_offset;
+            memcpy((void*)shdr->sh_addr, (const void*)image, sh_size);
 
             printf("patching ptr=%x size=%04x orig=%08x val=%08x [%s]\n", shdr->sh_addr, sh_size, *(u32*)shdr->sh_addr, *(u32*)image, sh_name);
-		}
+        }
     }
 
-	/*** Shutdown libOGC ***/
-	GX_AbortFrame();
-	ASND_End();
-	u32 bi2Addr = *(volatile u32*)0x800000F4;
-	u32 osctxphys = *(volatile u32*)0x800000C0;
-	u32 osctxvirt = *(volatile u32*)0x800000D4;
-	SYS_ResetSystem(SYS_SHUTDOWN, 0, 0);
-	*(volatile u32*)0x800000F4 = bi2Addr;
-	*(volatile u32*)0x800000C0 = osctxphys;
-	*(volatile u32*)0x800000D4 = osctxvirt;
-	/*** Shutdown all threads and exit to this method ***/
-	__lwp_thread_stopmultitasking(bs2entry);
+    /*** Shutdown libOGC ***/
+    GX_AbortFrame();
+    ASND_End();
+    u32 bi2Addr = *(volatile u32*)0x800000F4;
+    u32 osctxphys = *(volatile u32*)0x800000C0;
+    u32 osctxvirt = *(volatile u32*)0x800000D4;
+    SYS_ResetSystem(SYS_SHUTDOWN, 0, 0);
+    *(volatile u32*)0x800000F4 = bi2Addr;
+    *(volatile u32*)0x800000C0 = osctxphys;
+    *(volatile u32*)0x800000D4 = osctxvirt;
+    /*** Shutdown all threads and exit to this method ***/
+    __lwp_thread_stopmultitasking(bs2entry);
 
     __builtin_unreachable();
 }
