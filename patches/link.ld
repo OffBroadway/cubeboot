@@ -10,9 +10,17 @@ PHDRS {
 memset = 0x813001c8;
 memcpy = 0x813002bc;
 
+PADSync = 0x81368c34;
+OSDisableInterrupts = 0x8135bc70;
+__OSStopAudioSystem = 0x81359580;
+run = 0x813007b8;
+
 OSReport = 0x8135a344;
 __OSGetSystemTime = 0x8136023c;
 __OSBusClock = 0x800000f8;
+
+rmode = 0x8137d9f0;
+heap_init = 0x81307d90;
 
 cube_init = 0x813107b0;
 cube_model = 0x81489f28;
@@ -30,7 +38,7 @@ SECTIONS {
         *(.text);
         . = ALIGN(32);
 
-        *(.rodata* .data* .gnu.linkonce.r.*);
+        *(.rodata* .data* .bss* .gnu.linkonce.r.*);
         . = ALIGN(32);
     } :text = 0
 }

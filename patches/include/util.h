@@ -32,13 +32,15 @@ inline void copy_color(rgb_color src, GXColor* dst) {
     dst->a = src.parts.a;
 }
 
-inline void dump_color(GXColorS10 *input) {
+#define DUMP_COLOR(x) dump_color(#x, x);
+
+inline void dump_color(char *line, GXColorS10 *input) {
     GXColorS10 cs10_temp;
     rgb_color rgb_temp;
     u32 hsl_temp;
 
     if (input == NULL) {
-        OSReport("COLOR: NULL\n");
+        OSReport("COLOR: %s = NULL\n", line);
         return;
     }
 
@@ -48,7 +50,7 @@ inline void dump_color(GXColorS10 *input) {
     rgb_temp.parts.b = cs10_temp.b;
     rgb_temp.parts.a = cs10_temp.a;
     hsl_temp = GRRLIB_RGBToHSL(rgb_temp.color);
-    OSReport("COLOR: %02x%02x%02x = (%d, %d, %d)\n", cs10_temp.r, cs10_temp.g, cs10_temp.b, H(hsl_temp), S(hsl_temp), L(hsl_temp));
+    OSReport("COLOR: %s = %02x%02x%02x = (%d, %d, %d)\n", line, cs10_temp.r, cs10_temp.g, cs10_temp.b, H(hsl_temp), S(hsl_temp), L(hsl_temp));
 }
 
 inline void override_texture(tex_data *tex) {

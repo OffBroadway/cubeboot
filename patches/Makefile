@@ -31,7 +31,7 @@ endif
 # options for code generation
 #---------------------------------------------------------------------------------
 
-CFLAGS		= -g -O2 -Wall $(MACHDEP) $(INCLUDE)
+CFLAGS		= -g -O2 -Wall -Wno-unused-function $(MACHDEP) $(INCLUDE)
 CXXFLAGS	= $(CFLAGS)
 
 LDFLAGS		= -g $(MACHDEP) -Wl,-Map,$(notdir $@).map -T $(PROJDIR)/link.ld -T patch.ld -Wl,--gc-keep-exported -nolibc -nostdlib -nodefaultlibs

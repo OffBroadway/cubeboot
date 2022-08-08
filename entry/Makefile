@@ -27,7 +27,7 @@ else
 	export PROJDIR	:=	$(dir $(CURDIR))
 endif
 
-TRAMPOLINE	:=	data/bs2-trampoline.dol
+TRAMPOLINE	:=	data/cubeboot.dol
 
 #---------------------------------------------------------------------------------
 # options for code generation

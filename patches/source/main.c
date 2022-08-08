@@ -10,8 +10,20 @@
 #define countof(a) (sizeof(a)/sizeof(a[0]))
 
 __attribute_used__ u32 bs2tick() {
-    return 0x1; // end state is 0x10?? (start game)
+    return 0x10; // end state is 0x10?? (start game)
 }
+
+__atrribute_data__ u32 prog_entrypoint;
+__atrribute_data__ u32 prog_dst;
+__atrribute_data__ u32 prog_src;
+__atrribute_data__ u32 prog_len;
+
+extern u32 PADSync();
+extern u32 OSDisableInterrupts();
+extern void __OSStopAudioSystem();
+extern void run(register void* entry_point, register u32 clear_start, register u32 clear_size);
+extern void *memmove(void *dst, const void *src, size_t length);
+extern void* memcpy(void* dst, const void* src, size_t count);
 
 extern model bg_outer_model;
 extern model bg_inner_model;
@@ -30,7 +42,7 @@ __attribute_used__ void pre_cube_init() {
     cube_init();
 
     rgb_color target_color;
-    target_color.color = (0xaf3131 << 8) | 0xFF;
+    target_color.color = (0xfb900e << 8) | 0xFF;
 
     // tough colors: 252850 A18594 763C28
 
@@ -41,6 +53,7 @@ __attribute_used__ void pre_cube_init() {
     float sat_mult = (float)target_sat / 40.0; //* 1.5;
     if (sat_mult > 2.0) sat_mult = sat_mult * 0.5;
     if (sat_mult > 1.5) sat_mult = sat_mult * 0.5;
+    // sat_mult = 0.35; // temp for light colors
     float lum_mult = (float)target_lum / 135.0; //* 0.75;
     if (lum_mult < 0.75) lum_mult = lum_mult * 1.5;
     OSReport("SAT MULT = %f\n", sat_mult);
@@ -78,7 +91,7 @@ __attribute_used__ void pre_cube_init() {
 
     // logo
 
-    // dump_color(logo_model.data->mat[0].tev_color[3]);
+    DUMP_COLOR(logo_model.data->mat[0].tev_color[0]);
 
     tex_data *base = logo_model.data->tex->dat;
     for (int i = 0; i < 8; i++) {
@@ -89,6 +102,7 @@ __attribute_used__ void pre_cube_init() {
         void *img_ptr = (void*)((u8*)base + p->offset + (i * 0x20));
         OSReport("FOUND TEX: %dx%d @ %p\n", wd, ht, img_ptr);
 
+#if 1
         for (int y = 0; y < ht; y++) {
             for (int x = 0; x < wd; x++) {
                 u32 color = GRRLIB_GetPixelFromtexImg(x, y, img_ptr, wd);
@@ -106,7 +120,8 @@ __attribute_used__ void pre_cube_init() {
                 GRRLIB_SetPixelTotexImg(x, y, img_ptr, wd, color);
             }
         }
-
+#else
+#endif
 
     }
 
@@ -138,7 +153,19 @@ __attribute_used__ void pre_cube_init() {
 __attribute_used__ void bs2start() {
     OSReport("DONE\n");
 
-    while(1);
+    OSReport("LOADCMD %x, %x, %x, %x\n", prog_entrypoint, prog_dst, prog_src, prog_len);
+    memmove((void*)prog_dst, (void*)prog_src, prog_len);
+
+    while (!PADSync());
+    OSDisableInterrupts();
+    __OSStopAudioSystem();
+
+    if (prog_len == 0) {
+        while(1); // block forever
+    }
+
+    void (*stubentry)(void) = (void(*)(void))prog_entrypoint;
+    run(stubentry,0x81300000,0x20000);
 
     return;
 }
