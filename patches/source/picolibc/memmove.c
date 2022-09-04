@@ -49,9 +49,7 @@ QUICKREF
 // #include <_ansi.h>
 #include <stddef.h>
 #include <limits.h>
-// #include "local.h"
-
-#define __inhibit_loop_to_libcall __attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns")))
+#include "local.h"
 
 /* Nonzero if either X or Y is not aligned on a "long" boundary.  */
 #define UNALIGNED(X, Y) \

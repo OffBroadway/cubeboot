@@ -31,7 +31,7 @@ section_template = '''
 
 import sys
 if len(sys.argv) < 2:
-    print("missing patch size input")
+    print("missing patch object input")
     exit(1)
 
 file = open(sys.argv[1], 'rb')
@@ -55,7 +55,7 @@ for i in range(elf.num_sections()):
     name = sect.name.removeprefix('.patch.')
     symbol_name = name.removesuffix('_func')
 
-    header = header_template.format(symbol_name)
+    header = header_template.format(symbol_name).rstrip()
     headers.append(header)
 
     section = section_template.format(symbol_name)

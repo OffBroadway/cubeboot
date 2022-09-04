@@ -7,11 +7,17 @@
 
 #define __attribute_used__ __attribute__((used))
 #define __atrribute_data__ __attribute__((section(".data")))
+#define __atrribute_aligned_data__ __attribute__((aligned(32), section(".data"))) 
 #define countof(a) (sizeof(a)/sizeof(a[0]))
+
+#define CUBE_TEX_WIDTH 84
+#define CUBE_TEX_HEIGHT 84
 
 __attribute_used__ u32 bs2tick() {
     return 0x10; // end state is 0x10?? (start game)
 }
+
+__atrribute_aligned_data__ u8 img_data[CUBE_TEX_WIDTH * CUBE_TEX_HEIGHT * 4];
 
 __atrribute_data__ u32 prog_entrypoint;
 __atrribute_data__ u32 prog_dst;
@@ -42,7 +48,7 @@ __attribute_used__ void pre_cube_init() {
     cube_init();
 
     rgb_color target_color;
-    target_color.color = (0xfb900e << 8) | 0xFF;
+    target_color.color = (0xe11915 << 8) | 0xFF;
 
     // tough colors: 252850 A18594 763C28
 
@@ -54,6 +60,7 @@ __attribute_used__ void pre_cube_init() {
     if (sat_mult > 2.0) sat_mult = sat_mult * 0.5;
     if (sat_mult > 1.5) sat_mult = sat_mult * 0.5;
     // sat_mult = 0.35; // temp for light colors
+    // sat_mult = 1.0;
     float lum_mult = (float)target_lum / 135.0; //* 0.75;
     if (lum_mult < 0.75) lum_mult = lum_mult * 1.5;
     OSReport("SAT MULT = %f\n", sat_mult);
@@ -120,9 +127,39 @@ __attribute_used__ void pre_cube_init() {
                 GRRLIB_SetPixelTotexImg(x, y, img_ptr, wd, color);
             }
         }
-#else
-#endif
 
+        uint32_t buffer_size = (wd * ht) << 2;
+        DCFlushRange(img_ptr, buffer_size);
+#else
+        // decode_tex_data((u32*)img_data, (u32*)img_ptr, wd, ht);
+
+        u32 *pix_data = (u32*)img_data;
+        // for (int i = 0; i < wd * ht; i++) {
+        //     u32 color = pix_data[i];
+        //     // ...
+        //     pix_data[i] = color;
+        // }
+
+        for (int y = 0; y < ht; y++) {
+            for (int x = 0; x < wd; x++) {
+                u32 color = GRRLIB_GetPixelFromtexImg(x, y, img_ptr, wd);
+
+                // hsl
+                {
+                    u32 hsl = GRRLIB_RGBToHSL(color);
+                    u32 sat = round((float)L(hsl) * sat_mult);
+                    if (sat > 0xFF) sat = 0xFF;
+                    u32 lum = round((float)L(hsl) * lum_mult);
+                    if (lum > 0xFF) lum = 0xFF;
+                    color = GRRLIB_HSLToRGB(HSLA(target_hue, (u8)sat, (u8)lum, A(hsl)));
+                }
+
+                pix_data[(y * wd) + x] = color;
+            }
+        }
+
+        Metaphrasis_convertBufferToRGBA8(img_data, img_ptr, wd, ht);
+#endif
     }
 
     // copy over colors
@@ -165,6 +202,7 @@ __attribute_used__ void bs2start() {
     }
 
     void (*stubentry)(void) = (void(*)(void))prog_entrypoint;
+    // ppc_set_link_register(stubentry);
     run(stubentry,0x81300000,0x20000);
 
     return;

@@ -24,8 +24,9 @@
 #include "patches_elf.h"
 #include "elf_abi.h"
 
+#define VIDEO_ENABLE
 // #define CONSOLE_ENABLE
-// #define PRINT_PATCHES
+#define PRINT_PATCHES
 
 #define IPL_ROM_FONT_SJIS	0x1AFF00
 #define DECRYPT_START		0x100
@@ -61,11 +62,17 @@ extern void render_logo();
 
 void set_patch_value(Elf32_Shdr* symshdr, Elf32_Sym* syment, char* symstringdata, char* sym_name, u32 value);
 int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path);
-int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_, char *path);
+int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_);
 void Descrambler(unsigned char* data, unsigned int size);
 
 char *bios_path = "/ipl.bin";
-char *swiss_path = "/swiss.dol";
+char *swiss_paths[] = {
+    "/AUTOEXEC.DOL",
+    "/BOOT.DOL",
+    "/BOOT2.DOL",
+    "/IGR.DOL",
+    "/IPL.DOL"
+};
 
 static u32 bs2_size = IPL_SIZE - BS2_CODE_OFFSET;
 static u8 *bs2 = (u8*)(BS2_BASE_ADDR);
@@ -81,7 +88,9 @@ u32 bios_crc[] = {
 
 int main() {
     SYS_SetArenaHi((void*)0x81300000);
+    // SYS_SetArenaHi((void*)0x81700000);
 
+#ifdef VIDEO_ENABLE
 	VIDEO_Init();
 	GXRModeObj *rmode = VIDEO_GetPreferredMode(NULL);
 	void *xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode));
@@ -96,6 +105,7 @@ int main() {
 	VIDEO_WaitVSync();
 	if(rmode->viTVMode&VI_NON_INTERLACE) VIDEO_WaitVSync();
     // // debug above
+#endif
 
     // enable printf
     CON_EnableGecko(1, true);
@@ -113,6 +123,10 @@ int main() {
     }
 
     printf("BS2 is valid? = %d\n", valid);
+    
+    // // TEST ONLY
+    // valid = 0;
+
     if (!valid) {
         if (load_fat_ipl("sdb", &__io_gcsdb, bios_path)) goto found;
         if (load_fat_ipl("sda", &__io_gcsda, bios_path)) goto found;
@@ -124,9 +138,9 @@ int main() {
 found:
     printf("IPL loaded...\n");
 
-    if (load_fat_swiss("sdb", &__io_gcsdb, swiss_path)) goto load;
-    if (load_fat_swiss("sda", &__io_gcsda, swiss_path)) goto load;
-    if (load_fat_swiss("sd2", &__io_gcsd2, swiss_path)) goto load;
+    if (load_fat_swiss("sdb", &__io_gcsdb)) goto load;
+    if (load_fat_swiss("sda", &__io_gcsda)) goto load;
+    if (load_fat_swiss("sd2", &__io_gcsd2)) goto load;
 
 load:
     printf("Program loaded... [%08x]\n", *(u32*)prog_buf);
@@ -165,7 +179,11 @@ load:
     for (int i = 0; i < ehdr->e_shnum; ++i) {
         shdr = (Elf32_Shdr *)(addr + ehdr->e_shoff + (i * sizeof(Elf32_Shdr)));
 
+        char *prefix = ".patch.";
+        uint32_t prefix_len = strlen(prefix);
+
         if (!(shdr->sh_flags & SHF_ALLOC) || shdr->sh_addr == 0 || shdr->sh_size == 0) {
+            printf("Skipping ALLOC %s!!\n", stringdata + shdr->sh_name);
             continue;
         }
 
@@ -173,14 +191,13 @@ load:
         shdr->sh_addr |= 0x80000000;
         // shdr->sh_size &= 0xfffffffc;
 
-        if (shdr->sh_type == SHT_NOBITS) {
+        if (shdr->sh_type == SHT_NOBITS && strncmp(prefix, stringdata + shdr->sh_name, prefix_len) != 0) {
+            printf("Skipping NOBITS %s!!\n", stringdata + shdr->sh_name);
             memset((void*)shdr->sh_addr, 0, shdr->sh_size);
         } else {
             // check if this is a patch section
             uint32_t sh_size = 0;
             char *sh_name = stringdata + shdr->sh_name;
-            char *prefix = ".patch.";
-            uint32_t prefix_len = strlen(prefix);
             uint32_t sh_name_len = strlen(sh_name);
             if (strncmp(prefix, sh_name, prefix_len) == 0) {
                 // create symbol name for section size
@@ -204,10 +221,10 @@ load:
             if (sh_size == 0) sh_size = shdr->sh_size;
 
             image = (unsigned char*)addr + shdr->sh_offset;
-            memcpy((void*)shdr->sh_addr, (const void*)image, sh_size);
 #ifdef PRINT_PATCHES
             printf("patching ptr=%x size=%04x orig=%08x val=%08x [%s]\n", shdr->sh_addr, sh_size, *(u32*)shdr->sh_addr, *(u32*)image, sh_name);
 #endif
+            memcpy((void*)shdr->sh_addr, (const void*)image, sh_size);
         }
     }
 
@@ -255,7 +272,6 @@ void set_patch_value(Elf32_Shdr* symshdr, Elf32_Sym* syment, char* symstringdata
     } else {
         printf("Could not find symbol %s\n", sym_name);
     }
-
 }
 
 int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path) {
@@ -309,7 +325,7 @@ end:
     return res;
 }
 
-int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_, char *path) {
+int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_) {
     int res = 0;
 
     printf("Trying %s\n", slot_name);
@@ -326,31 +342,36 @@ int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_, char *pa
     f_getlabel(slot_name, name, NULL);
     printf("Mounted %s as %s\n", name, slot_name);
 
-    printf("Reading %s\n", path);
-    FIL file;
-    FRESULT open_result = f_open(&file, path, FA_READ);
-    if (open_result != FR_OK)
-    {
-        printf("Failed to open file: %s\n", get_fresult_message(open_result));
-        goto unmount;
+    for (int f = 0; f < (sizeof(swiss_paths) / sizeof(char *)); f++) {
+        char *path = swiss_paths[f];
+
+        printf("Reading %s\n", path);
+        FIL file;
+        FRESULT open_result = f_open(&file, path, FA_READ);
+        if (open_result != FR_OK)
+        {
+            printf("Failed to open file: %s\n", get_fresult_message(open_result));
+            continue;
+        }
+
+        size_t size = f_size(&file);
+        dol_alloc(size);
+        if (!dol_buf) {
+            printf("Failed to allocate memory\n");
+            goto unmount;
+        }
+
+        u32 unused;
+        f_read(&file, dol_buf, size, &unused);
+        f_close(&file);
+
+        printf("Loaded DOL into %p\n", dol_buf);
+
+        DOLtoMRAM(dol_buf);
+
+        res = 1;
+        break;
     }
-
-    size_t size = f_size(&file);
-    dol_alloc(size);
-    if (!dol_buf) {
-        printf("Failed to allocate memory\n");
-        goto unmount;
-    }
-
-    u32 unused;
-    f_read(&file, dol_buf, size, &unused);
-    f_close(&file);
-
-    printf("Loaded DOL into %p\n", dol_buf);
-
-    DOLtoMRAM(dol_buf);
-
-    res = 1;
 
 unmount:
     printf("Unmounting %s\n", slot_name);
@@ -513,9 +534,9 @@ u32 DOLSize(DOLHEADER *dol)
 }
 
 /****************************************************************************
-* DOLtoARAM
+* DOLtoMRAM
 *
-* Moves the DOL from main memory to ARAM, positioning as it goes
+* Moves the DOL from main memory to MRAM
 *
 * Pass in a memory pointer to a previously loaded DOL
 ****************************************************************************/

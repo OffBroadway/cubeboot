@@ -6,9 +6,8 @@ PHDRS {
     text PT_LOAD;
 }
 
-/* compiler */
-memset = 0x813001c8;
-memcpy = 0x813002bc;
+/* unknown: needed by compiler */
+memset = 0x80000000;
 
 PADSync = 0x81368c34;
 OSDisableInterrupts = 0x8135bc70;
