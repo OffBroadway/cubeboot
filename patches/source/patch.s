@@ -2,7 +2,7 @@
 #include "asm.h"
 #include "patch_asm.h"
 
-// patch_inst_ntsc "_stub_something" 0x81401010 0x81401020 0x81401030 nop
+patch_inst_ntsc "_stub_something" 0x81761010 0x81761020 0x81761030 nop
 // patch_inst_pal "_stub_something" 0x81401040 0x81401050 0x81401060 nop
 
 patch_inst vNTSC_11(_stub_dvdwait) 0x8130108c nop

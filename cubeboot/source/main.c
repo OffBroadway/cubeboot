@@ -26,6 +26,7 @@
 #include "elf_abi.h"
 
 #include "print.h"
+#include "helpers.h"
 
 #define VIDEO_ENABLE
 // #define CONSOLE_ENABLE
@@ -87,6 +88,8 @@ typedef struct {
 
 s8 bios_index = -1;
 bios_item *current_bios;
+
+// NOTE: these are not ipl.bin CRCs, but decoded ipl[0x100:] hashes
 
 bios_item bios_table[] = {
     {"gc-ntsc-10",  "ntsc10",   "VER_NTSC_10",   0xa8325e47},
@@ -218,11 +221,13 @@ load:
     // setup local vars
     char *patch_prefix = ".patch.";
     uint32_t patch_prefix_len = strlen(patch_prefix);
+    char patch_region_suffix[128];
+    sprintf(patch_region_suffix, "%s_func", current_bios->patch_suffix);
 
     char *reloc_prefix = ".reloc";
     u32 reloc_start = 0;
     u32 reloc_end = 0;
-
+    char *reloc_region = current_bios->reloc_prefix;
 
     // Patch each appropriate section
     for (int i = 0; i < ehdr->e_shnum; ++i) {
@@ -246,6 +251,12 @@ load:
             char *sh_name = stringdata + shdr->sh_name;
             uint32_t sh_name_len = strlen(sh_name);
             if (strncmp(patch_prefix, sh_name, patch_prefix_len) == 0) {
+                // check if this patch is for the current IPL
+                if (!ensdwith(sh_name, patch_region_suffix)) {
+                    // iprintf("SKIP PATCH %s != %s\n", sh_name, patch_region_suffix);
+                    continue;
+                }
+
                 // create symbol name for section size
                 (sh_name + patch_prefix_len)[sh_name_len - patch_prefix_len - 5] = '\x00';
                 sprintf(&stringBuffer[0], "%s_size", sh_name + patch_prefix_len);
@@ -276,9 +287,6 @@ load:
             memcpy((void*)shdr->sh_addr, (const void*)image, sh_size);
         }
     }
-
-    // WHERE IS THIS FROM??
-    char *reloc_region = current_bios->reloc_prefix;
 
     // Copy symbol relocations by region
     iprintf(".reloc section [0x%08x - 0x%08x]\n", reloc_start, reloc_end);
