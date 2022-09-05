@@ -1,12 +1,14 @@
 #include <math.h>
 #include <stddef.h>
 
+#include "picolibc.h"
 #include "structs.h"
 #include "util.h"
 #include "os.h"
 
 #define __attribute_used__ __attribute__((used))
 #define __atrribute_data__ __attribute__((section(".data")))
+#define __atrribute_reloc__ __attribute__((section(".reloc")))
 #define __atrribute_aligned_data__ __attribute__((aligned(32), section(".data"))) 
 #define countof(a) (sizeof(a)/sizeof(a[0]))
 
@@ -24,12 +26,10 @@ __atrribute_data__ u32 prog_dst;
 __atrribute_data__ u32 prog_src;
 __atrribute_data__ u32 prog_len;
 
-extern u32 PADSync();
-extern u32 OSDisableInterrupts();
-extern void __OSStopAudioSystem();
-extern void run(register void* entry_point, register u32 clear_start, register u32 clear_size);
-extern void *memmove(void *dst, const void *src, size_t length);
-extern void* memcpy(void* dst, const void* src, size_t count);
+__atrribute_reloc__ u32 (*PADSync)();
+__atrribute_reloc__ u32 (*OSDisableInterrupts)();
+__atrribute_reloc__ void (*__OSStopAudioSystem)();
+__atrribute_reloc__ void (*run)(register void* entry_point, register u32 clear_start, register u32 clear_size);
 
 extern model bg_outer_model;
 extern model bg_inner_model;

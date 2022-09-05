@@ -115,6 +115,8 @@ $(BUILD): $(PATCHES)
 $(PATCHES):
 	@$(MAKE) --no-print-directory -C $(dir $(PROJDIR))/$(basename $(notdir $@))
 	@cp $(dir $(PROJDIR))/$(basename $(notdir $@))/$(notdir $@) $@
+	@$(OBJCOPY) --remove-section .comment --remove-section .gnu.attributes $@
+
 
 #---------------------------------------------------------------------------------
 clean:

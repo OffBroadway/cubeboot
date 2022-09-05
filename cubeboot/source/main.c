@@ -60,6 +60,7 @@ static u8 bios_buffer[IPL_SIZE];
 void *gc_text_tex_data_ptr;
 extern void render_logo();
 
+u32 get_symbol_value(Elf32_Shdr* symshdr, Elf32_Sym* syment, char* symstringdata, char* sym_name);
 void set_patch_value(Elf32_Shdr* symshdr, Elf32_Sym* syment, char* symstringdata, char* sym_name, u32 value);
 int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path);
 int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_);
@@ -152,7 +153,7 @@ load:
     Elf32_Shdr* shdr;
     unsigned char* image;
 
-    void * addr = (void*)patches_elf;
+    void *addr = (void*)patches_elf;
     ehdr = (Elf32_Ehdr *)addr;
 
     // get section string table
@@ -175,15 +176,21 @@ load:
     // get symbols
     Elf32_Sym* syment = (Elf32_Sym*) (addr + symshdr->sh_offset);
 
+    // setup local vars
+    char *patch_prefix = ".patch.";
+    uint32_t patch_prefix_len = strlen(patch_prefix);
+
+    char *reloc_prefix = ".reloc";
+    u32 reloc_start = 0;
+    u32 reloc_end = 0;
+
+
     // Patch each appropriate section
     for (int i = 0; i < ehdr->e_shnum; ++i) {
         shdr = (Elf32_Shdr *)(addr + ehdr->e_shoff + (i * sizeof(Elf32_Shdr)));
 
-        char *prefix = ".patch.";
-        uint32_t prefix_len = strlen(prefix);
-
         if (!(shdr->sh_flags & SHF_ALLOC) || shdr->sh_addr == 0 || shdr->sh_size == 0) {
-            printf("Skipping ALLOC %s!!\n", stringdata + shdr->sh_name);
+            // printf("Skipping ALLOC %s!!\n", stringdata + shdr->sh_name);
             continue;
         }
 
@@ -191,18 +198,18 @@ load:
         shdr->sh_addr |= 0x80000000;
         // shdr->sh_size &= 0xfffffffc;
 
-        if (shdr->sh_type == SHT_NOBITS && strncmp(prefix, stringdata + shdr->sh_name, prefix_len) != 0) {
-            printf("Skipping NOBITS %s!!\n", stringdata + shdr->sh_name);
+        if (shdr->sh_type == SHT_NOBITS && strncmp(patch_prefix, stringdata + shdr->sh_name, patch_prefix_len) != 0) {
+            printf("Skipping NOBITS %s @ %08x!!\n", stringdata + shdr->sh_name, shdr->sh_addr);
             memset((void*)shdr->sh_addr, 0, shdr->sh_size);
         } else {
             // check if this is a patch section
             uint32_t sh_size = 0;
             char *sh_name = stringdata + shdr->sh_name;
             uint32_t sh_name_len = strlen(sh_name);
-            if (strncmp(prefix, sh_name, prefix_len) == 0) {
+            if (strncmp(patch_prefix, sh_name, patch_prefix_len) == 0) {
                 // create symbol name for section size
-                (sh_name + prefix_len)[sh_name_len - prefix_len - 5] = '\x00';
-                sprintf(&stringBuffer[0], "%s_size", sh_name + prefix_len);
+                (sh_name + patch_prefix_len)[sh_name_len - patch_prefix_len - 5] = '\x00';
+                sprintf(&stringBuffer[0], "%s_size", sh_name + patch_prefix_len);
 
                 // find symbol by name
                 for (int i = 0; i < (symshdr->sh_size / sizeof(Elf32_Sym)); ++i) {
@@ -215,6 +222,9 @@ load:
                         sh_size = syment[i].st_value;
                     }
                 }
+            } else if (strcmp(reloc_prefix, sh_name) == 0) {
+                reloc_start = shdr->sh_addr;
+                reloc_end = shdr->sh_addr + shdr->sh_size;
             }
 
             // set section size from header if it is not provided as a symbol
@@ -225,6 +235,30 @@ load:
             printf("patching ptr=%x size=%04x orig=%08x val=%08x [%s]\n", shdr->sh_addr, sh_size, *(u32*)shdr->sh_addr, *(u32*)image, sh_name);
 #endif
             memcpy((void*)shdr->sh_addr, (const void*)image, sh_size);
+        }
+    }
+
+    // WHERE IS THIS FROM??
+    char *region = "ntsc11";
+
+    // Copy symbol relocations by region
+    printf(".reloc section [0x%08x - 0x%08x]\n", reloc_start, reloc_end);
+    for (int i = 0; i < (symshdr->sh_size / sizeof(Elf32_Sym)); ++i) {
+        if (syment[i].st_name == SHN_UNDEF) {
+            continue;
+        }
+
+        char *current_symname = symstringdata + syment[i].st_name;
+        if (syment[i].st_value >= reloc_start && syment[i].st_value < reloc_end) {
+            sprintf(stringBuffer, "%s_%s", region, current_symname);
+            u32 val = get_symbol_value(symshdr, syment, symstringdata, stringBuffer);
+            
+            if (val != 0) {
+                printf("Found reloc %s = %x, val = %08x\n", current_symname, syment[i].st_value, val);
+                *(u32*)syment[i].st_value = val;
+            } else {
+                printf("ERROR broken reloc %s = %x\n", current_symname, syment[i].st_value);
+            }
         }
     }
 
@@ -252,6 +286,24 @@ load:
     __builtin_unreachable();
 }
 
+u32 get_symbol_value(Elf32_Shdr* symshdr, Elf32_Sym* syment, char* symstringdata, char* sym_name) {
+    uint32_t value = 0;
+
+    // find symbol by name
+    for (int i = 0; i < (symshdr->sh_size / sizeof(Elf32_Sym)); ++i) {
+        if (syment[i].st_name == SHN_UNDEF) {
+            continue;
+        }
+
+        char *current_symname = symstringdata + syment[i].st_name;
+        if (strcmp(current_symname, sym_name) == 0) {
+            value = syment[i].st_value;
+        }
+    }
+
+    return value;
+}
+
 void set_patch_value(Elf32_Shdr* symshdr, Elf32_Sym* syment, char* symstringdata, char* sym_name, u32 value) {
     u32 ptr = 0;
     for (int i = 0; i < (symshdr->sh_size / sizeof(Elf32_Sym)); ++i) {
@@ -266,8 +318,7 @@ void set_patch_value(Elf32_Shdr* symshdr, Elf32_Sym* syment, char* symstringdata
     }
     
     if (ptr != 0) {
-        printf("Found %s = %08x\n", sym_name, ptr);
-
+        printf("Found var %s = %08x\n", sym_name, ptr);
         *(u32*)ptr = value; 
     } else {
         printf("Could not find symbol %s\n", sym_name);
