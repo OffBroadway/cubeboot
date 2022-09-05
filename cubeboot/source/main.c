@@ -59,6 +59,7 @@ static void (*bs2entry)(void) = (void(*)(void))BS2_BASE_ADDR;
 static char stringBuffer[0x80];
 static u8 bios_buffer[IPL_SIZE];
 
+// text logo replacment
 void *gc_text_tex_data_ptr;
 extern void render_logo();
 

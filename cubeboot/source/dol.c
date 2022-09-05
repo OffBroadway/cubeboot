@@ -6,8 +6,7 @@
 *
 * Calculate the DOL minimum and maximum memory addresses
 ****************************************************************************/
-static void DOLMinMax(DOLHEADER * dol)
-{
+static void DOLMinMax(DOLHEADER * dol) {
     int i;
 
     maxaddress = 0;
@@ -49,8 +48,7 @@ static void DOLMinMax(DOLHEADER * dol)
     maxaddress += 0x20000;
 }
 
-u32 DOLSize(DOLHEADER *dol)
-{
+u32 DOLSize(DOLHEADER *dol) {
     u32 sizeinbytes;
     int i;
 

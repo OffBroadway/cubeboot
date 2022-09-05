@@ -34,7 +34,16 @@ endif
 CFLAGS		= -O2 -Wall -ffunction-sections -fdata-sections -Wno-unused-function $(MACHDEP) $(INCLUDE)
 CXXFLAGS	= $(CFLAGS)
 
-LDFLAGS		= $(MACHDEP) -Wl,-Map,$(notdir $@).map -T $(PROJDIR)/link.ld -T patch.ld -Wl,--gc-keep-exported -nolibc -nostdlib -nodefaultlibs
+LINKER_SCRIPTS	:=
+LINKER_SCRIPTS	+= patch.ld
+LINKER_SCRIPTS	+= $(PROJDIR)/link.ld
+LINKER_SCRIPTS	+= $(PROJDIR)/link_ntsc10.ld
+LINKER_SCRIPTS	+= $(PROJDIR)/link_ntsc11.ld
+LINKER_SCRIPTS	+= $(PROJDIR)/link_ntsc12.ld
+LINKER_SCRIPTS	+= $(PROJDIR)/link_pal10.ld
+LINKER_SCRIPTS	+= $(PROJDIR)/link_pal11.ld
+LINKER_SCRIPTS	+= $(PROJDIR)/link_pal12.ld
+LDFLAGS		= $(MACHDEP) -Wl,-Map,$(notdir $@).map $(foreach script,$(LINKER_SCRIPTS),-T $(script)) -Wl,--gc-keep-exported -nolibc -nostdlib -nodefaultlibs
 
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
