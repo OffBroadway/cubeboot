@@ -75,7 +75,7 @@ int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_);
 // bios/gc-pal-11.bin
 // bios/gc-pal-12.bin
 
-char *bios_path = "/bios/gc-pal-12.bin";
+char *bios_path = "/bios/gc-pal-11.bin";
 char *swiss_paths[] = {
     "/BOOT.DOL",
     "/BOOT2.DOL",
@@ -188,10 +188,10 @@ ipl_loaded:
     iprintf("IPL loaded...\n");
     current_bios = &bios_table[bios_index];
 
-    // load program
-    if (load_fat_swiss("sdb", &__io_gcsdb)) goto load;
-    if (load_fat_swiss("sda", &__io_gcsda)) goto load;
-    if (load_fat_swiss("sd2", &__io_gcsd2)) goto load;
+    // // load program
+    // if (load_fat_swiss("sdb", &__io_gcsdb)) goto load;
+    // if (load_fat_swiss("sda", &__io_gcsda)) goto load;
+    // if (load_fat_swiss("sd2", &__io_gcsd2)) goto load;
 
 load:
     iprintf("Program loaded... [%08x]\n", *(u32*)prog_buf);
@@ -296,7 +296,7 @@ load:
         }
     }
 
-    // HACK dvdwait is in the same place on NTSC/PAL v1.1
+    // HACK patches are at the same address on NTSC/PAL v1.1
     // HACK and I don't want to move to OVERLAY linker scripts
     if (strcmp(current_bios->name, "gc-pal-11") == 0) {
         iprintf("INSTALLING PAL 1.1 HACK\n");
