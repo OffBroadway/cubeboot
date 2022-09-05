@@ -68,6 +68,13 @@ void set_patch_value(Elf32_Shdr* symshdr, Elf32_Sym* syment, char* symstringdata
 int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path);
 int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_);
 
+// bios/gc-ntsc-10.bin
+// bios/gc-ntsc-11.bin
+// bios/gc-ntsc-12.bin
+// bios/gc-pal-10.bin
+// bios/gc-pal-11.bin
+// bios/gc-pal-12.bin
+
 char *bios_path = "/ipl.bin";
 char *swiss_paths[] = {
     "/BOOT.DOL",
