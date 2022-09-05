@@ -21,6 +21,7 @@
 #include "crc32.h"
 #include "dol.h"
 
+#include "descrambler.h"
 #include "patches_elf.h"
 #include "elf_abi.h"
 
@@ -38,17 +39,15 @@
 #define BS2_CODE_OFFSET (BS2_START_OFFSET + 0x20)
 #define BS2_BASE_ADDR 0x81300000
 
-#define PROG_ADDR 0x80100000
-
-static u8 *prog_buf = (u8*)(PROG_ADDR);
+u8 *prog_buf = (u8*)(PROG_ADDR);
 
 void dol_alloc(int size);
 u8 *dol_buf = NULL;
 
-static DOLHEADER *dolhdr;
-static u32 minaddress = 0;
-static u32 maxaddress = 0;
-static u32 _entrypoint, _dst, _src, _len;
+DOLHEADER *dolhdr;
+u32 minaddress = 0;
+u32 maxaddress = 0;
+u32 _entrypoint, _dst, _src, _len;
 
 extern void __exi_init(void);
 extern void __SYS_ReadROM(void *buf,u32 len,u32 offset);
@@ -66,15 +65,14 @@ u32 get_symbol_value(Elf32_Shdr* symshdr, Elf32_Sym* syment, char* symstringdata
 void set_patch_value(Elf32_Shdr* symshdr, Elf32_Sym* syment, char* symstringdata, char* sym_name, u32 value);
 int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path);
 int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_);
-void Descrambler(unsigned char* data, unsigned int size);
 
 char *bios_path = "/ipl.bin";
 char *swiss_paths[] = {
-    "/AUTOEXEC.DOL",
     "/BOOT.DOL",
     "/BOOT2.DOL",
-    "/IGR.DOL",
-    "/IPL.DOL"
+    "/IGR.DOL", // used by swiss-gc
+    "/IPL.DOL", // used by iplboot
+    "/AUTOEXEC.DOL", // used by ActionReplay
 };
 
 static u32 bs2_size = IPL_SIZE - BS2_CODE_OFFSET;
@@ -490,185 +488,4 @@ void dol_alloc(int size) {
     if (!dol_buf) {
         iprintf("Couldn't allocate memory\n");
     }
-}
-
-// bootrom descrambler reversed by segher
-// Copyright 2008 Segher Boessenkool <segher@kernel.crashing.org>
-void Descrambler(unsigned char* data, unsigned int size) {
-	unsigned char acc = 0;
-	unsigned char nacc = 0;
-
-	unsigned short t = 0x2953;
-	unsigned short u = 0xd9c2;
-	unsigned short v = 0x3ff1;
-
-	unsigned char x = 1;
-	unsigned int it;
-	for (it = 0; it < size; )
-	{
-		int t0 = t & 1;
-		int t1 = (t >> 1) & 1;
-		int u0 = u & 1;
-		int u1 = (u >> 1) & 1;
-		int v0 = v & 1;
-
-		x ^= t1 ^ v0;
-		x ^= (u0 | u1);
-		x ^= (t0 ^ u1 ^ v0) & (t0 ^ u0);
-
-		if (t0 == u0)
-		{
-			v >>= 1;
-			if (v0)
-				v ^= 0xb3d0;
-		}
-
-		if (t0 == 0)
-		{
-			u >>= 1;
-			if (u0)
-				u ^= 0xfb10;
-		}
-
-		t >>= 1;
-		if (t0)
-			t ^= 0xa740;
-
-		nacc++;
-		acc = 2*acc + x;
-		if (nacc == 8)
-		{
-			data[it++] ^= acc;
-			nacc = 0;
-		}
-	}
-}
-
-/*--- DOL Decoding functions -----------------------------------------------*/
-/****************************************************************************
-* DOLMinMax
-*
-* Calculate the DOL minimum and maximum memory addresses
-****************************************************************************/
-static void DOLMinMax(DOLHEADER * dol)
-{
-    int i;
-
-    maxaddress = 0;
-    minaddress = 0x87100000;
-
-    /*** Go through DOL sections ***/
-    /*** Text sections ***/
-    for (i = 0; i < MAXTEXTSECTION; i++)
-    {
-        if (dol->textAddress[i] && dol->textLength[i])
-        {
-            if (dol->textAddress[i] < minaddress)
-                minaddress = dol->textAddress[i];
-            if ((dol->textAddress[i] + dol->textLength[i]) > maxaddress) 
-                maxaddress = dol->textAddress[i] + dol->textLength[i];
-        }
-    }
-
-    /*** Data sections ***/
-    for (i = 0; i < MAXDATASECTION; i++)
-    {
-        if (dol->dataAddress[i] && dol->dataLength[i])
-        {
-            if (dol->dataAddress[i] < minaddress)
-                minaddress = dol->dataAddress[i];
-            if ((dol->dataAddress[i] + dol->dataLength[i]) > maxaddress)
-                maxaddress = dol->dataAddress[i] + dol->dataLength[i];
-        }
-    }
-
-    /*** And of course, any BSS section ***/
-    if (dol->bssAddress)
-    {
-        if ((dol->bssAddress + dol->bssLength) > maxaddress)
-            maxaddress = dol->bssAddress + dol->bssLength;
-    }
-
-    /*** Some OLD dols, Xrick in particular, require ~128k clear memory ***/
-    maxaddress += 0x20000;
-}
-
-u32 DOLSize(DOLHEADER *dol)
-{
-    u32 sizeinbytes;
-    int i;
-
-    sizeinbytes = DOLHDRLENGTH;
-
-    /*** Go through DOL sections ***/
-    /*** Text sections ***/
-    for (i = 0; i < MAXTEXTSECTION; i++)
-    {
-        if (dol->textOffset[i])
-        {
-            if ((dol->textOffset[i] + dol->textLength[i]) > sizeinbytes)
-                sizeinbytes = dol->textOffset[i] + dol->textLength[i];
-        }
-    }
-
-    /*** Data sections ***/
-    for (i = 0; i < MAXDATASECTION; i++)
-    {
-        if (dol->dataOffset[i])
-        {
-            if ((dol->dataOffset[i] + dol->dataLength[i]) > sizeinbytes)
-                sizeinbytes = dol->dataOffset[i] + dol->dataLength[i];
-        }
-    }
-
-    /*** Return DOL size ***/
-    return sizeinbytes;
-}
-
-/****************************************************************************
-* DOLtoMRAM
-*
-* Moves the DOL from main memory to MRAM
-*
-* Pass in a memory pointer to a previously loaded DOL
-****************************************************************************/
-int DOLtoMRAM(unsigned char *dol) {
-    u32 sizeinbytes;
-    int i;
-
-    /*** Get DOL header ***/
-    dolhdr = (DOLHEADER *) dol;
-
-    /*** First, does this look like a DOL? ***/
-    if (dolhdr->textOffset[0] != DOLHDRLENGTH && dolhdr->textOffset[0] != 0x0620)	// DOLX style 
-        return 0;
-
-    /*** Get DOL stats ***/
-    DOLMinMax(dolhdr);
-    sizeinbytes = maxaddress - minaddress;
-
-    /*** Move all DOL sections into ARAM ***/
-    /*** Move text sections ***/
-    for (i = 0; i < MAXTEXTSECTION; i++) {
-        /*** This may seem strange, but in developing d0lLZ we found some with section addresses with zero length ***/
-        if (dolhdr->textAddress[i] && dolhdr->textLength[i]) {
-            memcpy((char *) ((dolhdr->textAddress[i] - minaddress) + PROG_ADDR), dol + dolhdr->textOffset[i], dolhdr->textLength[i]);
-        }
-    }
-
-    /*** Move data sections ***/
-    for (i = 0; i < MAXDATASECTION; i++) {
-        if (dolhdr->dataAddress[i] && dolhdr->dataLength[i]) {
-            memcpy((char *) ((dolhdr->dataAddress[i] - minaddress) + PROG_ADDR), dol + dolhdr->dataOffset[i], dolhdr->dataLength[i]);
-        }
-    }
-
-    iprintf("LOADCMD entry=%08x, minaddr=%08x, size=%08x\n", dolhdr->entryPoint, minaddress, sizeinbytes);
-
-	_entrypoint = dolhdr->entryPoint;
-	_dst = minaddress;
-	_src = PROG_ADDR;
-	_len = sizeinbytes;
-
-    return 0;
 }
