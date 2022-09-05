@@ -27,12 +27,15 @@ __attribute_data__ u32 prog_dst;
 __attribute_data__ u32 prog_src;
 __attribute_data__ u32 prog_len;
 
+// used to start game
 __attribute_reloc__ u32 (*PADSync)();
 __attribute_reloc__ u32 (*OSDisableInterrupts)();
 __attribute_reloc__ void (*__OSStopAudioSystem)();
 __attribute_reloc__ void (*run)(register void* entry_point, register u32 clear_start, register u32 clear_size);
-__attribute_reloc__ void (*cube_init)();
+
+// This is actually BS2Report on IPL rev 1.2
 __attribute_reloc__ void (*OSReport)(const char* text, ...);
+__attribute_reloc__ void (*cube_init)();
 
 __attribute_reloc__ model *bg_outer_model;
 __attribute_reloc__ model *bg_inner_model;
