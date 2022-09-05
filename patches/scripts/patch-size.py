@@ -8,13 +8,15 @@ OUTPUT_ARCH(powerpc:common)
 ENTRY(_start)
 
 PHDRS {{
-    {}
+    {phdrs}
 }}
+
+{var_lines}
 
 SECTIONS {{
     . = 0x81300000;
 
-    {}
+    {sects}
 }}
 '''
 
@@ -44,9 +46,13 @@ for i in range(elf.num_sections()):
     sect = elf.get_section(i)
 
     if sect.name == ".symtab":
+        addrs = []
         for sym in sect.iter_symbols():
             if sym.name.startswith('_addr_'):
                 addr = sym.name.removeprefix('_addr_')
+                if addr in addrs:
+                    continue
+                addrs.append(addr)
                 lines.append(f'{sym.name} = 0x{addr};\n')
 
     if not sect.name.startswith('.patch.'):
@@ -66,10 +72,10 @@ for i in range(elf.num_sections()):
 
     lines.append(f'{size_name} = 0x{size:08X};\n')
 
-headers_content = "".join(headers)
-sections_content = "".join(sections)
-linker_script = linker_script_template.format(headers_content, sections_content)
+headers_content = "".join(headers).lstrip()
+sections_content = "".join(sections).strip()
+var_contents = "".join(lines).rstrip()
+linker_script = linker_script_template.format(phdrs=headers_content, sects=sections_content, var_lines=var_contents)
 
 with open('patch.ld', 'w') as output:
-    output.write(linker_script)
-    output.writelines(lines)
+    output.write(linker_script.lstrip())
