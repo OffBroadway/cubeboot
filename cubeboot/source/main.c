@@ -24,6 +24,8 @@
 #include "patches_elf.h"
 #include "elf_abi.h"
 
+#include "print.h"
+
 #define VIDEO_ENABLE
 // #define CONSOLE_ENABLE
 #define PRINT_PATCHES
@@ -78,19 +80,30 @@ char *swiss_paths[] = {
 static u32 bs2_size = IPL_SIZE - BS2_CODE_OFFSET;
 static u8 *bs2 = (u8*)(BS2_BASE_ADDR);
 
-u32 bios_crc[] = {
-    0xa8325e47, // gc-ntsc-10
-    0x1082fbc9, // gc-pal-12
-    0xbf225e4d, // gc-ntsc-12
-    0x05196b74, // gc-pal-11
-    0xf1ebeb95, // gc-ntsc-11
-    0x5c3445d0, // gc-pal-10
+typedef struct {
+    char *name;
+    char *reloc_prefix;
+    char *patch_suffix;
+    u32 crc;
+} bios_item;
+
+s8 bios_index = -1;
+bios_item *current_bios;
+
+bios_item bios_table[] = {
+    {"gc-ntsc-10",  "ntsc10",   "VER_NTSC_10",   0xa8325e47},
+    {"gc-ntsc-11",  "ntsc11",   "VER_NTSC_11",   0xf1ebeb95},
+    {"gc-ntsc-12",  "ntsc12",   "VER_NTSC_12",   0xbf225e4d},
+    {"gc-pal-10",   "pal10",    "VER_PAL_10",    0x5c3445d0},
+    {"gc-pal-11",   "pal11",    "VER_PAL_11",    0x05196b74},
+    {"gc-pal-12",   "pal12",    "VER_PAL_12",    0x1082fbc9},
 };
 
-int main() {
+void __SYS_PreInit() {
     SYS_SetArenaHi((void*)0x81300000);
-    // SYS_SetArenaHi((void*)0x81700000);
+}
 
+int main() {
 #ifdef VIDEO_ENABLE
 	VIDEO_Init();
 	GXRModeObj *rmode = VIDEO_GetPreferredMode(NULL);
@@ -108,46 +121,74 @@ int main() {
     // // debug above
 #endif
 
+#ifdef DOLPHIN
+    InitializeUART();
+#else
     // enable printf
     CON_EnableGecko(1, true);
+#endif
 
     __SYS_ReadROM(bs2, bs2_size, BS2_CODE_OFFSET);
     u32 crc = csp_crc32_memory(bs2, bs2_size);
-    printf("Read BS2 crc=%08x\n", crc);
+    iprintf("Read BS2 crc=%08x\n", crc);
 
     bool valid = FALSE;
-    for(int i = 0; i < sizeof(bios_crc) / sizeof(bios_crc[0]); i++) {
-        if(bios_crc[i] == crc) {
+    for(int i = 0; i < sizeof(bios_table) / sizeof(bios_table[0]); i++) {
+        if(bios_table[i].crc == crc) {
+            bios_index = i;
             valid = TRUE;
             break;
         }
     }
 
-    printf("BS2 is valid? = %d\n", valid);
-    
-    // // TEST ONLY
-    // valid = 0;
+    iprintf("BS2 is valid? = %d\n", valid);
+
+#ifdef DOLPHIN
+    // TEST ONLY
+    valid = FALSE;
+#endif
 
     if (!valid) {
         if (load_fat_ipl("sdb", &__io_gcsdb, bios_path)) goto found;
         if (load_fat_ipl("sda", &__io_gcsda, bios_path)) goto found;
         if (load_fat_ipl("sd2", &__io_gcsd2, bios_path)) goto found;
 
-        printf("Failed to find %s\n", bios_path);
+        iprintf("Failed to find %s\n", bios_path);
+    } else {
+        goto ipl_loaded;
     }
 
 found:
-    printf("IPL loaded...\n");
+    crc = csp_crc32_memory(bs2, bs2_size);
+    iprintf("Read IPL crc=%08x\n", crc);
 
+    valid = FALSE;
+    for(int i = 0; i < sizeof(bios_table) / sizeof(bios_table[0]); i++) {
+        if(bios_table[i].crc == crc) {
+            bios_index = i;
+            valid = TRUE;
+            break;
+        }
+    }
+
+    if (!valid) {
+        iprintf("Bad IPL image\n");
+    }
+
+ipl_loaded:
+    iprintf("IPL loaded...\n");
+    current_bios = &bios_table[bios_index];
+
+    // load program
     if (load_fat_swiss("sdb", &__io_gcsdb)) goto load;
     if (load_fat_swiss("sda", &__io_gcsda)) goto load;
     if (load_fat_swiss("sd2", &__io_gcsd2)) goto load;
 
 load:
-    printf("Program loaded... [%08x]\n", *(u32*)prog_buf);
+    iprintf("Program loaded... [%08x]\n", *(u32*)prog_buf);
 
-    printf("maxaddress = 0x%08x\n", maxaddress);
-    printf("minaddress = 0x%08x\n", minaddress);
+    iprintf("maxaddress = 0x%08x\n", maxaddress);
+    iprintf("minaddress = 0x%08x\n", minaddress);
 
     Elf32_Ehdr* ehdr;
     Elf32_Shdr* shdr;
@@ -190,7 +231,7 @@ load:
         shdr = (Elf32_Shdr *)(addr + ehdr->e_shoff + (i * sizeof(Elf32_Shdr)));
 
         if (!(shdr->sh_flags & SHF_ALLOC) || shdr->sh_addr == 0 || shdr->sh_size == 0) {
-            // printf("Skipping ALLOC %s!!\n", stringdata + shdr->sh_name);
+            // iprintf("Skipping ALLOC %s!!\n", stringdata + shdr->sh_name);
             continue;
         }
 
@@ -199,7 +240,7 @@ load:
         // shdr->sh_size &= 0xfffffffc;
 
         if (shdr->sh_type == SHT_NOBITS && strncmp(patch_prefix, stringdata + shdr->sh_name, patch_prefix_len) != 0) {
-            printf("Skipping NOBITS %s @ %08x!!\n", stringdata + shdr->sh_name, shdr->sh_addr);
+            iprintf("Skipping NOBITS %s @ %08x!!\n", stringdata + shdr->sh_name, shdr->sh_addr);
             memset((void*)shdr->sh_addr, 0, shdr->sh_size);
         } else {
             // check if this is a patch section
@@ -232,17 +273,17 @@ load:
 
             image = (unsigned char*)addr + shdr->sh_offset;
 #ifdef PRINT_PATCHES
-            printf("patching ptr=%x size=%04x orig=%08x val=%08x [%s]\n", shdr->sh_addr, sh_size, *(u32*)shdr->sh_addr, *(u32*)image, sh_name);
+            iprintf("patching ptr=%x size=%04x orig=%08x val=%08x [%s]\n", shdr->sh_addr, sh_size, *(u32*)shdr->sh_addr, *(u32*)image, sh_name);
 #endif
             memcpy((void*)shdr->sh_addr, (const void*)image, sh_size);
         }
     }
 
     // WHERE IS THIS FROM??
-    char *region = "ntsc11";
+    char *reloc_region = current_bios->reloc_prefix;
 
     // Copy symbol relocations by region
-    printf(".reloc section [0x%08x - 0x%08x]\n", reloc_start, reloc_end);
+    iprintf(".reloc section [0x%08x - 0x%08x]\n", reloc_start, reloc_end);
     for (int i = 0; i < (symshdr->sh_size / sizeof(Elf32_Sym)); ++i) {
         if (syment[i].st_name == SHN_UNDEF) {
             continue;
@@ -250,14 +291,14 @@ load:
 
         char *current_symname = symstringdata + syment[i].st_name;
         if (syment[i].st_value >= reloc_start && syment[i].st_value < reloc_end) {
-            sprintf(stringBuffer, "%s_%s", region, current_symname);
+            sprintf(stringBuffer, "%s_%s", reloc_region, current_symname);
             u32 val = get_symbol_value(symshdr, syment, symstringdata, stringBuffer);
             
             if (val != 0) {
-                printf("Found reloc %s = %x, val = %08x\n", current_symname, syment[i].st_value, val);
+                iprintf("Found reloc %s = %x, val = %08x\n", current_symname, syment[i].st_value, val);
                 *(u32*)syment[i].st_value = val;
             } else {
-                printf("ERROR broken reloc %s = %x\n", current_symname, syment[i].st_value);
+                iprintf("ERROR broken reloc %s = %x\n", current_symname, syment[i].st_value);
             }
         }
     }
@@ -318,41 +359,41 @@ void set_patch_value(Elf32_Shdr* symshdr, Elf32_Sym* syment, char* symstringdata
     }
     
     if (ptr != 0) {
-        printf("Found var %s = %08x\n", sym_name, ptr);
+        iprintf("Found var %s = %08x\n", sym_name, ptr);
         *(u32*)ptr = value; 
     } else {
-        printf("Could not find symbol %s\n", sym_name);
+        iprintf("Could not find symbol %s\n", sym_name);
     }
 }
 
 int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path) {
     int res = 0;
 
-    printf("Trying %s\n", slot_name);
+    iprintf("Trying %s\n", slot_name);
 
     FATFS fs;
     iface = iface_;
     FRESULT mount_result = f_mount(&fs, "", 1);
     if (mount_result != FR_OK) {
-        printf("Couldn't mount %s: %s\n", slot_name, get_fresult_message(mount_result));
+        iprintf("Couldn't mount %s: %s\n", slot_name, get_fresult_message(mount_result));
         goto end;
     }
 
     char name[256];
     f_getlabel(slot_name, name, NULL);
-    printf("Mounted %s as %s\n", name, slot_name);
+    iprintf("Mounted %s as %s\n", name, slot_name);
 
-    printf("Reading %s\n", path);
+    iprintf("Reading %s\n", path);
     FIL file;
     FRESULT open_result = f_open(&file, path, FA_READ);
     if (open_result != FR_OK) {
-        printf("Failed to open file: %s\n", get_fresult_message(open_result));
+        iprintf("Failed to open file: %s\n", get_fresult_message(open_result));
         goto unmount;
     }
 
     size_t size = f_size(&file);
     if (size != IPL_SIZE) {
-        printf("File %s is the wrong size %x\n", path, size);
+        iprintf("File %s is the wrong size %x\n", path, size);
         goto unmount;
     }
     u32 unused;
@@ -362,13 +403,13 @@ int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path
     Descrambler(bios_buffer + DECRYPT_START, IPL_ROM_FONT_SJIS - DECRYPT_START);
     memcpy(bs2, bios_buffer + BS2_CODE_OFFSET, bs2_size);
 
-    u32 crc = csp_crc32_memory(bs2, bs2_size);
-    printf("New BS2 crc=%08x\n", crc);
+    // u32 crc = csp_crc32_memory(bs2, bs2_size);
+    // iprintf("New BS2 crc=%08x\n", crc);
 
     res = 1;
 
 unmount:
-    printf("Unmounting %s\n", slot_name);
+    iprintf("Unmounting %s\n", slot_name);
     iface->shutdown();
     iface = NULL;
 
@@ -379,36 +420,36 @@ end:
 int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_) {
     int res = 0;
 
-    printf("Trying %s\n", slot_name);
+    iprintf("Trying %s\n", slot_name);
 
     FATFS fs;
     iface = iface_;
     FRESULT mount_result = f_mount(&fs, "", 1);
     if (mount_result != FR_OK) {
-        printf("Couldn't mount %s: %s\n", slot_name, get_fresult_message(mount_result));
+        iprintf("Couldn't mount %s: %s\n", slot_name, get_fresult_message(mount_result));
         goto end;
     }
 
     char name[256];
     f_getlabel(slot_name, name, NULL);
-    printf("Mounted %s as %s\n", name, slot_name);
+    iprintf("Mounted %s as %s\n", name, slot_name);
 
     for (int f = 0; f < (sizeof(swiss_paths) / sizeof(char *)); f++) {
         char *path = swiss_paths[f];
 
-        printf("Reading %s\n", path);
+        iprintf("Reading %s\n", path);
         FIL file;
         FRESULT open_result = f_open(&file, path, FA_READ);
         if (open_result != FR_OK)
         {
-            printf("Failed to open file: %s\n", get_fresult_message(open_result));
+            iprintf("Failed to open file: %s\n", get_fresult_message(open_result));
             continue;
         }
 
         size_t size = f_size(&file);
         dol_alloc(size);
         if (!dol_buf) {
-            printf("Failed to allocate memory\n");
+            iprintf("Failed to allocate memory\n");
             goto unmount;
         }
 
@@ -416,7 +457,7 @@ int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_) {
         f_read(&file, dol_buf, size, &unused);
         f_close(&file);
 
-        printf("Loaded DOL into %p\n", dol_buf);
+        iprintf("Loaded DOL into %p\n", dol_buf);
 
         DOLtoMRAM(dol_buf);
 
@@ -425,7 +466,7 @@ int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_) {
     }
 
 unmount:
-    printf("Unmounting %s\n", slot_name);
+    iprintf("Unmounting %s\n", slot_name);
     iface->shutdown();
     iface = NULL;
 
@@ -435,19 +476,19 @@ end:
 
 void dol_alloc(int size) {
     int mram_size = (SYS_GetArenaHi() - SYS_GetArenaLo());
-    printf("Memory available: %iB\n", mram_size);
+    iprintf("Memory available: %iB\n", mram_size);
 
-    printf("DOL size is %iB\n", size);
+    iprintf("DOL size is %iB\n", size);
 
     if (size <= 0) {
-        printf("Empty DOL\n");
+        iprintf("Empty DOL\n");
         return;
     }
 
     dol_buf = (u8*)memalign(32, size);
 
     if (!dol_buf) {
-        printf("Couldn't allocate memory\n");
+        iprintf("Couldn't allocate memory\n");
     }
 }
 
@@ -622,7 +663,7 @@ int DOLtoMRAM(unsigned char *dol) {
         }
     }
 
-    printf("LOADCMD entry=%08x, minaddr=%08x, size=%08x\n", dolhdr->entryPoint, minaddress, sizeinbytes);
+    iprintf("LOADCMD entry=%08x, minaddr=%08x, size=%08x\n", dolhdr->entryPoint, minaddress, sizeinbytes);
 
 	_entrypoint = dolhdr->entryPoint;
 	_dst = minaddress;
