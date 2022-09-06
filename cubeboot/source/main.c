@@ -75,7 +75,7 @@ int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_);
 // bios/gc-pal-11.bin
 // bios/gc-pal-12.bin
 
-char *bios_path = "/bios/gc-pal-11.bin";
+char *bios_path = "/bios/gc-pal-12.bin";
 char *swiss_paths[] = {
     "/BOOT.DOL",
     "/BOOT2.DOL",
@@ -188,10 +188,10 @@ ipl_loaded:
     iprintf("IPL loaded...\n");
     current_bios = &bios_table[bios_index];
 
-    // // load program
-    // if (load_fat_swiss("sdb", &__io_gcsdb)) goto load;
-    // if (load_fat_swiss("sda", &__io_gcsda)) goto load;
-    // if (load_fat_swiss("sd2", &__io_gcsd2)) goto load;
+    // load program
+    if (load_fat_swiss("sdb", &__io_gcsdb)) goto load;
+    if (load_fat_swiss("sda", &__io_gcsda)) goto load;
+    if (load_fat_swiss("sd2", &__io_gcsd2)) goto load;
 
 load:
     iprintf("Program loaded... [%08x]\n", *(u32*)prog_buf);
@@ -296,14 +296,6 @@ load:
         }
     }
 
-    // HACK patches are at the same address on NTSC/PAL v1.1
-    // HACK and I don't want to move to OVERLAY linker scripts
-    if (strcmp(current_bios->name, "gc-pal-11") == 0) {
-        iprintf("INSTALLING PAL 1.1 HACK\n");
-        u32 ptr = get_symbol_value(symshdr, syment, symstringdata, "_stub_dvdwait_VER_NTSC_11_address");
-        *(u32*)ptr = PPC_NOP;
-    }
-
     // Copy symbol relocations by region
     iprintf(".reloc section [0x%08x - 0x%08x]\n", reloc_start, reloc_end);
     for (int i = 0; i < (symshdr->sh_size / sizeof(Elf32_Sym)); ++i) {
@@ -314,7 +306,7 @@ load:
         char *current_symname = symstringdata + syment[i].st_name;
         if (syment[i].st_value >= reloc_start && syment[i].st_value < reloc_end) {
             sprintf(stringBuffer, "%s_%s", reloc_region, current_symname);
-            iprintf("reloc: Looking for symbol named %s\n", stringBuffer);
+            // iprintf("reloc: Looking for symbol named %s\n", stringBuffer);
             u32 val = get_symbol_value(symshdr, syment, symstringdata, stringBuffer);
             
             if (val != 0) {
