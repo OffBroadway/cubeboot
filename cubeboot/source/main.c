@@ -68,13 +68,6 @@ void set_patch_value(Elf32_Shdr* symshdr, Elf32_Sym* syment, char* symstringdata
 int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path);
 int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_);
 
-// bios/gc-ntsc-10.bin
-// bios/gc-ntsc-11.bin
-// bios/gc-ntsc-12.bin
-// bios/gc-pal-10.bin
-// bios/gc-pal-11.bin
-// bios/gc-pal-12.bin
-
 char *bios_path = "/ipl.bin";
 char *swiss_paths[] = {
     "/BOOT.DOL",
@@ -97,8 +90,15 @@ typedef struct {
 s8 bios_index = -1;
 bios_item *current_bios;
 
-// NOTE: these are not ipl.bin CRCs, but decoded ipl[0x100:] hashes
+// TODO: detect bad IPL images
+// ipl_bad_ntsc_v10.bin  CRC = 6d740ae7, SHA1 = 015808f637a984acde6a06efa7546e278293c6ee
+// ipl_bad2_ntsc_v10.bin CRC = 8bdabbd4, SHA1 = f1b0ef434cd74fd8fe23698e2fc911d945b45bf1
+// ipl_bad_pal_v10.bin   CRC = dd8cab7c, SHA1 = 6f305c37dc1fbe332883bb8153eee26d3d325629
+// ipl_unknown.bin       CRC = d235e3f9, SHA1 = 96f69a21645de73a5ba61e57951ef303d55788c5
 
+// TODO: Add support for gc-ntsc-12-001
+
+// NOTE: these are not ipl.bin CRCs, but decoded ipl[0x100:] hashes
 bios_item bios_table[] = {
     {"gc-ntsc-10",  "ntsc10",   "VER_NTSC_10",   0xa8325e47},
     {"gc-ntsc-11",  "ntsc11",   "VER_NTSC_11",   0xf1ebeb95},

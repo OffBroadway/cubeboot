@@ -13,8 +13,9 @@ purposes via `make dolphinipl.bin`.  You must provide the original ROM image for
 injection.  Again, this is only necessary for development and debugging.
 
 ## Features
-- [ ] Support all NTSC/PAL IPL revisions
+- [ ] Support all NTSC and PAL IPL revisions
 - [x] Loading an alternative IPL from an SD Card
+- [ ] (temp) Program Loading in bs2start
 - [ ] Settings loaded from an SD Card
 - [ ] Custom GameCube animation colors (tested)
 - [ ] Custom Nintendo logo text replacment
