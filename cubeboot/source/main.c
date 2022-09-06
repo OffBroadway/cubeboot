@@ -75,7 +75,7 @@ int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_);
 // bios/gc-pal-11.bin
 // bios/gc-pal-12.bin
 
-char *bios_path = "/bios/gc-pal-12.bin";
+char *bios_path = "/ipl.bin";
 char *swiss_paths[] = {
     "/BOOT.DOL",
     "/BOOT2.DOL",
