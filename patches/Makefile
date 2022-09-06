@@ -36,13 +36,14 @@ CXXFLAGS	= $(CFLAGS)
 
 LINKER_SCRIPTS	:=
 LINKER_SCRIPTS	+= patch.ld
-LINKER_SCRIPTS	+= $(PROJDIR)/link.ld
-LINKER_SCRIPTS	+= $(PROJDIR)/link_ntsc10.ld
-LINKER_SCRIPTS	+= $(PROJDIR)/link_ntsc11.ld
-LINKER_SCRIPTS	+= $(PROJDIR)/link_ntsc12.ld
-LINKER_SCRIPTS	+= $(PROJDIR)/link_pal10.ld
-LINKER_SCRIPTS	+= $(PROJDIR)/link_pal11.ld
-LINKER_SCRIPTS	+= $(PROJDIR)/link_pal12.ld
+LINKER_SCRIPTS	+= $(PROJDIR)/linker/link.ld
+LINKER_SCRIPTS	+= $(PROJDIR)/linker/link_ntsc10.ld
+LINKER_SCRIPTS	+= $(PROJDIR)/linker/link_ntsc11.ld
+LINKER_SCRIPTS	+= $(PROJDIR)/linker/link_ntsc12_001.ld
+LINKER_SCRIPTS	+= $(PROJDIR)/linker/link_ntsc12_101.ld
+LINKER_SCRIPTS	+= $(PROJDIR)/linker/link_pal10.ld
+LINKER_SCRIPTS	+= $(PROJDIR)/linker/link_pal11.ld
+LINKER_SCRIPTS	+= $(PROJDIR)/linker/link_pal12.ld
 LDFLAGS		= $(MACHDEP) -Wl,-Map,$(notdir $@).map $(foreach script,$(LINKER_SCRIPTS),-T $(script)) -Wl,--gc-keep-exported -nolibc -nostdlib -nodefaultlibs
 
 #---------------------------------------------------------------------------------

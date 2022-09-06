@@ -100,12 +100,13 @@ bios_item *current_bios;
 
 // NOTE: these are not ipl.bin CRCs, but decoded ipl[0x100:] hashes
 bios_item bios_table[] = {
-    {"gc-ntsc-10",  "ntsc10",   "VER_NTSC_10",   0xa8325e47},
-    {"gc-ntsc-11",  "ntsc11",   "VER_NTSC_11",   0xf1ebeb95},
-    {"gc-ntsc-12",  "ntsc12",   "VER_NTSC_12",   0xbf225e4d},
-    {"gc-pal-10",   "pal10",    "VER_PAL_10",    0x5c3445d0},
-    {"gc-pal-11",   "pal11",    "VER_PAL_11",    0x05196b74},
-    {"gc-pal-12",   "pal12",    "VER_PAL_12",    0x1082fbc9},
+    {"gc-ntsc-10",      "ntsc10",       "VER_NTSC_10",      0xa8325e47},
+    {"gc-ntsc-11",      "ntsc11",       "VER_NTSC_11",      0xf1ebeb95},
+    {"gc-ntsc-12_001",  "ntsc12_001",   "VER_NTSC_12_001",  0xc4c5a12a},
+    {"gc-ntsc-12_101",  "ntsc12_101",   "VER_NTSC_12_101",  0xbf225e4d},
+    {"gc-pal-10",       "pal10",        "VER_PAL_10",       0x5c3445d0},
+    {"gc-pal-11",       "pal11",        "VER_PAL_11",       0x05196b74},
+    {"gc-pal-12",       "pal12",        "VER_PAL_12",       0x1082fbc9},
 };
 
 void __SYS_PreInit() {
@@ -241,8 +242,9 @@ load:
     for (int i = 0; i < ehdr->e_shnum; ++i) {
         shdr = (Elf32_Shdr *)(addr + ehdr->e_shoff + (i * sizeof(Elf32_Shdr)));
 
-        if (!(shdr->sh_flags & SHF_ALLOC) || shdr->sh_addr == 0 || shdr->sh_size == 0) {
-            // iprintf("Skipping ALLOC %s!!\n", stringdata + shdr->sh_name);
+        char *sh_name = stringdata + shdr->sh_name;
+        if ((!(shdr->sh_flags & SHF_ALLOC) && strncmp(patch_prefix, sh_name, patch_prefix_len) != 0) || shdr->sh_addr == 0 || shdr->sh_size == 0) {
+            iprintf("Skipping ALLOC %s!!\n", stringdata + shdr->sh_name);
             continue;
         }
 
@@ -256,8 +258,6 @@ load:
         } else {
             // check if this is a patch section
             uint32_t sh_size = 0;
-            char *sh_name = stringdata + shdr->sh_name;
-            uint32_t sh_name_len = strlen(sh_name);
             if (strncmp(patch_prefix, sh_name, patch_prefix_len) == 0) {
                 // check if this patch is for the current IPL
                 if (!ensdwith(sh_name, patch_region_suffix)) {
@@ -266,6 +266,7 @@ load:
                 }
 
                 // create symbol name for section size
+                uint32_t sh_name_len = strlen(sh_name);
                 (sh_name + patch_prefix_len)[sh_name_len - patch_prefix_len - 5] = '\x00';
                 sprintf(&stringBuffer[0], "%s_size", sh_name + patch_prefix_len);
 

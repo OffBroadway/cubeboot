@@ -26,7 +26,7 @@ header_template = '''
 
 section_template = '''
     .patch.{0}_func ABSOLUTE({0}_address) : {{
-        KEEP(*(.patch.{0}_func)); LONG(0);
+        KEEP(*(.patch.{0}_func));
     }} :patch.{0}_func
 '''
 
@@ -38,7 +38,7 @@ overlay_template = '''
 
 overlay_section_template = '''
         .patch.{0}_func {{
-            KEEP(*(.patch.{0}_func)); LONG(0);
+            KEEP(*(.patch.{0}_func));
         }}
 '''
 

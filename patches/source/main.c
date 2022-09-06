@@ -203,6 +203,7 @@ __attribute_used__ void bs2start() {
     __OSStopAudioSystem();
 
     if (prog_len == 0) {
+        OSReport("HALT: No program\n");
         while(1); // block forever
     }
 
