@@ -29,7 +29,7 @@
 #include "helpers.h"
 
 #define VIDEO_ENABLE
-// #define CONSOLE_ENABLE
+#define CONSOLE_ENABLE
 #define PRINT_PATCHES
 
 #define IPL_ROM_FONT_SJIS	0x1AFF00
@@ -182,7 +182,11 @@ found:
     }
 
     if (!valid) {
-        iprintf("Bad IPL image\n");
+#ifndef CONSOLE_ENABLE
+        console_init(xfb,20,20,rmode->fbWidth,rmode->xfbHeight,rmode->fbWidth*VI_DISPLAY_PIX_SZ);
+#endif
+        printf("Bad IPL image\n");
+        ppchalt();
     }
 
 ipl_loaded:
@@ -325,7 +329,7 @@ load:
     set_patch_value(symshdr, syment, symstringdata, "prog_src", _src);
     set_patch_value(symshdr, syment, symstringdata, "prog_len", _len);
 
-    // while(1);
+    while(1);
 
     /*** Shutdown libOGC ***/
     GX_AbortFrame();

@@ -11,6 +11,8 @@ int iprintf(const char *fmt, ...) {
     va_start(args, fmt);
     length = vsprintf((char *)buf, (char *)fmt, args);
 
+    write(2, buf, length);
+
 	int index = 0;
     for (char *s = &buf[0]; *s != '\x00'; s++) {
         if (*s == '\n')
