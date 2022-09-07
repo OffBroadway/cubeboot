@@ -21,7 +21,7 @@
 #include "crc32.h"
 #include "dol.h"
 
-#include "descrambler.h"
+#include "ipl.h"
 #include "patches_elf.h"
 #include "elf.h"
 
@@ -31,14 +31,6 @@
 #define VIDEO_ENABLE
 #define CONSOLE_ENABLE
 #define PRINT_PATCHES
-
-#define IPL_ROM_FONT_SJIS	0x1AFF00
-#define DECRYPT_START		0x100
-
-#define IPL_SIZE 0x200000
-#define BS2_START_OFFSET 0x800
-#define BS2_CODE_OFFSET (BS2_START_OFFSET + 0x20)
-#define BS2_BASE_ADDR 0x81300000
 
 u8 *prog_buf = (u8*)(PROG_ADDR);
 
@@ -50,61 +42,27 @@ extern u32 minaddress;
 extern u32 maxaddress;
 extern u32 _entrypoint, _dst, _src, _len;
 
-extern void __exi_init(void);
-extern void __SYS_ReadROM(void *buf,u32 len,u32 offset);
-
+#define BS2_BASE_ADDR 0x81300000
 static void (*bs2entry)(void) = (void(*)(void))BS2_BASE_ADDR;
 // static void (*stubentry)(void) = (void(*)(void))PROG_ADDR;
 
 static char stringBuffer[0x80];
-static u8 bios_buffer[IPL_SIZE];
 
 // // text logo replacment
 // void *gc_text_tex_data_ptr;
 // extern void render_logo();
 
-int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path);
+GXRModeObj *rmode;
+void *xfb;
+
 int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_);
 
-char *bios_path = "/ipl.bin";
 char *swiss_paths[] = {
     "/BOOT.DOL",
     "/BOOT2.DOL",
     "/IGR.DOL", // used by swiss-gc
     "/IPL.DOL", // used by iplboot
     "/AUTOEXEC.DOL", // used by ActionReplay
-};
-
-static u32 bs2_size = IPL_SIZE - BS2_CODE_OFFSET;
-static u8 *bs2 = (u8*)(BS2_BASE_ADDR);
-
-typedef struct {
-    char *name;
-    char *reloc_prefix;
-    char *patch_suffix;
-    u32 crc;
-} bios_item;
-
-s8 bios_index = -1;
-bios_item *current_bios;
-
-// TODO: detect bad IPL images
-// ipl_bad_ntsc_v10.bin  CRC = 6d740ae7, SHA1 = 015808f637a984acde6a06efa7546e278293c6ee
-// ipl_bad2_ntsc_v10.bin CRC = 8bdabbd4, SHA1 = f1b0ef434cd74fd8fe23698e2fc911d945b45bf1
-// ipl_bad_pal_v10.bin   CRC = dd8cab7c, SHA1 = 6f305c37dc1fbe332883bb8153eee26d3d325629
-// ipl_unknown.bin       CRC = d235e3f9, SHA1 = 96f69a21645de73a5ba61e57951ef303d55788c5
-
-// TODO: Add support for gc-ntsc-12-001
-
-// NOTE: these are not ipl.bin CRCs, but decoded ipl[0x100:] hashes
-bios_item bios_table[] = {
-    {"gc-ntsc-10",      "ntsc10",       "VER_NTSC_10",      0xa8325e47},
-    {"gc-ntsc-11",      "ntsc11",       "VER_NTSC_11",      0xf1ebeb95},
-    {"gc-ntsc-12_001",  "ntsc12_001",   "VER_NTSC_12_001",  0xc4c5a12a},
-    {"gc-ntsc-12_101",  "ntsc12_101",   "VER_NTSC_12_101",  0xbf225e4d},
-    {"gc-pal-10",       "pal10",        "VER_PAL_10",       0x5c3445d0},
-    {"gc-pal-11",       "pal11",        "VER_PAL_11",       0x05196b74},
-    {"gc-pal-12",       "pal12",        "VER_PAL_12",       0x1082fbc9},
 };
 
 void __SYS_PreInit() {
@@ -114,8 +72,8 @@ void __SYS_PreInit() {
 int main() {
 #ifdef VIDEO_ENABLE
 	VIDEO_Init();
-	GXRModeObj *rmode = VIDEO_GetPreferredMode(NULL);
-	void *xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode));
+	rmode = VIDEO_GetPreferredMode(NULL);
+	xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode));
 #ifdef CONSOLE_ENABLE
 	console_init(xfb,20,20,rmode->fbWidth,rmode->xfbHeight,rmode->fbWidth*VI_DISPLAY_PIX_SZ);
 #endif
@@ -136,60 +94,8 @@ int main() {
     CON_EnableGecko(1, true);
 #endif
 
-    __SYS_ReadROM(bs2, bs2_size, BS2_CODE_OFFSET);
-    u32 crc = csp_crc32_memory(bs2, bs2_size);
-    iprintf("Read BS2 crc=%08x\n", crc);
-
-    bool valid = FALSE;
-    for(int i = 0; i < sizeof(bios_table) / sizeof(bios_table[0]); i++) {
-        if(bios_table[i].crc == crc) {
-            bios_index = i;
-            valid = TRUE;
-            break;
-        }
-    }
-
-    iprintf("BS2 is valid? = %d\n", valid);
-
-#ifdef DOLPHIN
-    // TEST ONLY
-    valid = FALSE;
-#endif
-
-    if (!valid) {
-        if (load_fat_ipl("sdb", &__io_gcsdb, bios_path)) goto found;
-        if (load_fat_ipl("sda", &__io_gcsda, bios_path)) goto found;
-        if (load_fat_ipl("sd2", &__io_gcsd2, bios_path)) goto found;
-
-        iprintf("Failed to find %s\n", bios_path);
-    } else {
-        goto ipl_loaded;
-    }
-
-found:
-    crc = csp_crc32_memory(bs2, bs2_size);
-    iprintf("Read IPL crc=%08x\n", crc);
-
-    valid = FALSE;
-    for(int i = 0; i < sizeof(bios_table) / sizeof(bios_table[0]); i++) {
-        if(bios_table[i].crc == crc) {
-            bios_index = i;
-            valid = TRUE;
-            break;
-        }
-    }
-
-    if (!valid) {
-#ifndef CONSOLE_ENABLE
-        console_init(xfb,20,20,rmode->fbWidth,rmode->xfbHeight,rmode->fbWidth*VI_DISPLAY_PIX_SZ);
-#endif
-        printf("Bad IPL image\n");
-        ppchalt();
-    }
-
-ipl_loaded:
-    iprintf("IPL loaded...\n");
-    current_bios = &bios_table[bios_index];
+    // load ipl
+    load_ipl();
 
     // load program
     if (load_fat_swiss("sdb", &__io_gcsdb)) goto load;
@@ -347,57 +253,6 @@ load:
     __lwp_thread_stopmultitasking(bs2entry);
 
     __builtin_unreachable();
-}
-
-int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path) {
-    int res = 0;
-
-    iprintf("Trying %s\n", slot_name);
-
-    FATFS fs;
-    iface = iface_;
-    FRESULT mount_result = f_mount(&fs, "", 1);
-    if (mount_result != FR_OK) {
-        iprintf("Couldn't mount %s: %s\n", slot_name, get_fresult_message(mount_result));
-        goto end;
-    }
-
-    char name[256];
-    f_getlabel(slot_name, name, NULL);
-    iprintf("Mounted %s as %s\n", name, slot_name);
-
-    iprintf("Reading %s\n", path);
-    FIL file;
-    FRESULT open_result = f_open(&file, path, FA_READ);
-    if (open_result != FR_OK) {
-        iprintf("Failed to open file: %s\n", get_fresult_message(open_result));
-        goto unmount;
-    }
-
-    size_t size = f_size(&file);
-    if (size != IPL_SIZE) {
-        iprintf("File %s is the wrong size %x\n", path, size);
-        goto unmount;
-    }
-    u32 unused;
-    f_read(&file, bios_buffer, size, &unused);
-    f_close(&file);
-
-    Descrambler(bios_buffer + DECRYPT_START, IPL_ROM_FONT_SJIS - DECRYPT_START);
-    memcpy(bs2, bios_buffer + BS2_CODE_OFFSET, bs2_size);
-
-    // u32 crc = csp_crc32_memory(bs2, bs2_size);
-    // iprintf("New BS2 crc=%08x\n", crc);
-
-    res = 1;
-
-unmount:
-    iprintf("Unmounting %s\n", slot_name);
-    iface->shutdown();
-    iface = NULL;
-
-end:
-    return res;
 }
 
 int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_) {
