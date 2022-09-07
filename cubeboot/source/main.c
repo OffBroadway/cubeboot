@@ -23,7 +23,7 @@
 
 #include "descrambler.h"
 #include "patches_elf.h"
-#include "elf_abi.h"
+#include "elf.h"
 
 #include "print.h"
 #include "helpers.h"
@@ -45,10 +45,10 @@ u8 *prog_buf = (u8*)(PROG_ADDR);
 void dol_alloc(int size);
 u8 *dol_buf = NULL;
 
-DOLHEADER *dolhdr;
-u32 minaddress = 0;
-u32 maxaddress = 0;
-u32 _entrypoint, _dst, _src, _len;
+extern DOLHEADER *dolhdr;
+extern u32 minaddress;
+extern u32 maxaddress;
+extern u32 _entrypoint, _dst, _src, _len;
 
 extern void __exi_init(void);
 extern void __SYS_ReadROM(void *buf,u32 len,u32 offset);
@@ -59,12 +59,10 @@ static void (*bs2entry)(void) = (void(*)(void))BS2_BASE_ADDR;
 static char stringBuffer[0x80];
 static u8 bios_buffer[IPL_SIZE];
 
-// text logo replacment
-void *gc_text_tex_data_ptr;
-extern void render_logo();
+// // text logo replacment
+// void *gc_text_tex_data_ptr;
+// extern void render_logo();
 
-u32 get_symbol_value(Elf32_Shdr* symshdr, Elf32_Sym* syment, char* symstringdata, char* sym_name);
-void set_patch_value(Elf32_Shdr* symshdr, Elf32_Sym* syment, char* symstringdata, char* sym_name, u32 value);
 int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path);
 int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_);
 
@@ -329,7 +327,11 @@ load:
     set_patch_value(symshdr, syment, symstringdata, "prog_src", _src);
     set_patch_value(symshdr, syment, symstringdata, "prog_len", _len);
 
-    while(1);
+    // while(1);
+
+#ifdef CONSOLE_ENABLE
+    VIDEO_WaitVSync();
+#endif
 
     /*** Shutdown libOGC ***/
     GX_AbortFrame();
@@ -345,45 +347,6 @@ load:
     __lwp_thread_stopmultitasking(bs2entry);
 
     __builtin_unreachable();
-}
-
-u32 get_symbol_value(Elf32_Shdr* symshdr, Elf32_Sym* syment, char* symstringdata, char* sym_name) {
-    uint32_t value = 0;
-
-    // find symbol by name
-    for (int i = 0; i < (symshdr->sh_size / sizeof(Elf32_Sym)); ++i) {
-        if (syment[i].st_name == SHN_UNDEF) {
-            continue;
-        }
-
-        char *current_symname = symstringdata + syment[i].st_name;
-        if (strcmp(current_symname, sym_name) == 0) {
-            value = syment[i].st_value;
-        }
-    }
-
-    return value;
-}
-
-void set_patch_value(Elf32_Shdr* symshdr, Elf32_Sym* syment, char* symstringdata, char* sym_name, u32 value) {
-    u32 ptr = 0;
-    for (int i = 0; i < (symshdr->sh_size / sizeof(Elf32_Sym)); ++i) {
-        if (syment[i].st_name == SHN_UNDEF) {
-            continue;
-        }
-
-        char *symname = symstringdata + syment[i].st_name;
-        if (strcmp(symname, sym_name) == 0) {
-            ptr = syment[i].st_value;
-        }
-    }
-    
-    if (ptr != 0) {
-        iprintf("Found var %s = %08x\n", sym_name, ptr);
-        *(u32*)ptr = value; 
-    } else {
-        iprintf("Could not find symbol %s\n", sym_name);
-    }
 }
 
 int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path) {
