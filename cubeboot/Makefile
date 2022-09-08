@@ -17,7 +17,7 @@ include $(DEVKITPPC)/gamecube_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	source source/fatfs
+SOURCES		:=	source source/fatfs source/boot
 DATA		:=	data  
 INCLUDES	:=	include
 
@@ -38,7 +38,7 @@ PATCHES_PATH := $(PROJDIR)/$(PATCHES)
 CFLAGS	= -O3 -Wno-main -Wall $(MACHDEP) $(INCLUDE)
 CXXFLAGS	=	$(CFLAGS)
 
-LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map -Wl,--section-start,.init=0x80700000 -Wl,--defsym,EXI=0xCC006800
+LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map
 # Allow start function # -Wl,--defsym,__SYS_PreInit=start
 # Allow main not to exist: -Wl,--defsym,main=0x82000000
 

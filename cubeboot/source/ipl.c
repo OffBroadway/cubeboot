@@ -11,8 +11,8 @@
 #include <sdcard/gcsd.h>
 #include "ffshim.h"
 #include "fatfs/ff.h"
-
 #include "utils.h"
+
 #include "print.h"
 
 #include "descrambler.h"
@@ -29,8 +29,8 @@
 
 #define DISABLE_SDA_CHECK
 
-#ifndef DISABLE_SDA_CHECK
 // SDA finding
+#ifndef DISABLE_SDA_CHECK
 #define CLEAR32_INST_CNT 1
 #define LOAD32_INST_CNT 2
 #define INST_SIZE 4

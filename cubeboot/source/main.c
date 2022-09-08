@@ -19,7 +19,6 @@
 #include "fatfs/ff.h"
 #include "utils.h"
 #include "crc32.h"
-#include "dol.h"
 
 #include "ipl.h"
 #include "patches_elf.h"
@@ -27,26 +26,20 @@
 
 #include "print.h"
 #include "helpers.h"
+#include "loader.h"
 
 #define VIDEO_ENABLE
-#define CONSOLE_ENABLE
+// #define CONSOLE_ENABLE
 #define PRINT_PATCHES
 
-u8 *prog_buf = (u8*)(PROG_ADDR);
-
-void dol_alloc(int size);
-u8 *dol_buf = NULL;
-
-extern DOLHEADER *dolhdr;
-extern u32 minaddress;
-extern u32 maxaddress;
-extern u32 _entrypoint, _dst, _src, _len;
+extern u32 _entrypoint;
+static u32 *bs2done = (u32*)0x81700000;
 
 #define BS2_BASE_ADDR 0x81300000
 static void (*bs2entry)(void) = (void(*)(void))BS2_BASE_ADDR;
 // static void (*stubentry)(void) = (void(*)(void))PROG_ADDR;
 
-static char stringBuffer[0x80];
+static char stringBuffer[255];
 
 // // text logo replacment
 // void *gc_text_tex_data_ptr;
@@ -55,18 +48,15 @@ static char stringBuffer[0x80];
 GXRModeObj *rmode;
 void *xfb;
 
-int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_);
-
-char *swiss_paths[] = {
-    "/BOOT.DOL",
-    "/BOOT2.DOL",
-    "/IGR.DOL", // used by swiss-gc
-    "/IPL.DOL", // used by iplboot
-    "/AUTOEXEC.DOL", // used by ActionReplay
-};
+u32 preboot_arenaLO = 0;
+u32 preboot_arenaHI = 0;
 
 void __SYS_PreInit() {
-    SYS_SetArenaHi((void*)0x81300000);
+    preboot_arenaLO = (u32)SYS_GetArenaLo();
+    preboot_arenaHI = (u32)SYS_GetArenaHi();
+    if (*bs2done != 0xCAFEBEEF) {
+        SYS_SetArenaHi((void*)0x81300000);
+    }
 }
 
 int main() {
@@ -94,19 +84,23 @@ int main() {
     CON_EnableGecko(1, true);
 #endif
 
+    iprintf("arenaLO = %08x, arenaHI  = %08x\n", preboot_arenaLO, preboot_arenaHI);
+    iprintf("arenaLO = %08x, arenaHI  = %08x\n", (u32)SYS_GetArenaLo(), (u32)SYS_GetArenaHi());
+
+    iprintf("Checkup, done=%08x\n", *bs2done);
+    if (*bs2done == 0xCAFEBEEF) {
+        iprintf("We did it doc!! We made it back!\n");
+        VIDEO_WaitVSync();
+
+        // load program
+        load_program();
+    }
+
     // load ipl
     load_ipl();
 
-    // load program
-    if (load_fat_swiss("sdb", &__io_gcsdb)) goto load;
-    if (load_fat_swiss("sda", &__io_gcsda)) goto load;
-    if (load_fat_swiss("sd2", &__io_gcsd2)) goto load;
-
-load:
-    iprintf("Program loaded... [%08x]\n", *(u32*)prog_buf);
-
-    iprintf("maxaddress = 0x%08x\n", maxaddress);
-    iprintf("minaddress = 0x%08x\n", minaddress);
+    // load current program
+    load_current_program();
 
     Elf32_Ehdr* ehdr;
     Elf32_Shdr* shdr;
@@ -218,6 +212,11 @@ load:
             // iprintf("reloc: Looking for symbol named %s\n", stringBuffer);
             u32 val = get_symbol_value(symshdr, syment, symstringdata, stringBuffer);
             
+            // if (strcmp(current_symname, "OSReport") == 0) {
+            //     iprintf("OVERRIDE OSReport with iprintf\n");
+            //     val = (u32)&iprintf;
+            // }
+
             if (val != 0) {
                 iprintf("Found reloc %s = %x, val = %08x\n", current_symname, syment[i].st_value, val);
                 *(u32*)syment[i].st_value = val;
@@ -229,9 +228,6 @@ load:
 
     // Copy program metadata into place
     set_patch_value(symshdr, syment, symstringdata, "prog_entrypoint", _entrypoint);
-    set_patch_value(symshdr, syment, symstringdata, "prog_dst", _dst);
-    set_patch_value(symshdr, syment, symstringdata, "prog_src", _src);
-    set_patch_value(symshdr, syment, symstringdata, "prog_len", _len);
 
     // while(1);
 
@@ -253,79 +249,4 @@ load:
     __lwp_thread_stopmultitasking(bs2entry);
 
     __builtin_unreachable();
-}
-
-int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_) {
-    int res = 0;
-
-    iprintf("Trying %s\n", slot_name);
-
-    FATFS fs;
-    iface = iface_;
-    FRESULT mount_result = f_mount(&fs, "", 1);
-    if (mount_result != FR_OK) {
-        iprintf("Couldn't mount %s: %s\n", slot_name, get_fresult_message(mount_result));
-        goto end;
-    }
-
-    char name[256];
-    f_getlabel(slot_name, name, NULL);
-    iprintf("Mounted %s as %s\n", name, slot_name);
-
-    for (int f = 0; f < (sizeof(swiss_paths) / sizeof(char *)); f++) {
-        char *path = swiss_paths[f];
-
-        iprintf("Reading %s\n", path);
-        FIL file;
-        FRESULT open_result = f_open(&file, path, FA_READ);
-        if (open_result != FR_OK)
-        {
-            iprintf("Failed to open file: %s\n", get_fresult_message(open_result));
-            continue;
-        }
-
-        size_t size = f_size(&file);
-        dol_alloc(size);
-        if (!dol_buf) {
-            iprintf("Failed to allocate memory\n");
-            goto unmount;
-        }
-
-        u32 unused;
-        f_read(&file, dol_buf, size, &unused);
-        f_close(&file);
-
-        iprintf("Loaded DOL into %p\n", dol_buf);
-
-        DOLtoMRAM(dol_buf);
-
-        res = 1;
-        break;
-    }
-
-unmount:
-    iprintf("Unmounting %s\n", slot_name);
-    iface->shutdown();
-    iface = NULL;
-
-end:
-    return res;
-}
-
-void dol_alloc(int size) {
-    int mram_size = (SYS_GetArenaHi() - SYS_GetArenaLo());
-    iprintf("Memory available: %iB\n", mram_size);
-
-    iprintf("DOL size is %iB\n", size);
-
-    if (size <= 0) {
-        iprintf("Empty DOL\n");
-        return;
-    }
-
-    dol_buf = (u8*)memalign(32, size);
-
-    if (!dol_buf) {
-        iprintf("Couldn't allocate memory\n");
-    }
 }

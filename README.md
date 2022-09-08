@@ -13,13 +13,16 @@ purposes via `make dolphinipl.bin`.  You must provide the original ROM image for
 injection.  Again, this is only necessary for development and debugging.
 
 ## Features
-- [x] Support all NTSC and PAL IPL revisions
+- [x] Restore boot animation with iplboot features
 - [x] Loading an alternative IPL from an SD Card
-- [ ] (temp) Program Loading in bs2start
+- [x] Support all NTSC and PAL IPL revisions
+
 - [ ] Settings loaded from an SD Card
 - [ ] Custom GameCube animation colors (tested)
+  - [ ] Random color each boot using RTC
 - [ ] Custom Nintendo logo text replacment
 - [ ] Force Progressive video modes
+
 - [ ] Variants for SDGecko A/B and SD2SP2
 - [ ] A burnable firmware for picoboot
 - [ ] A burnable settings file for picoboot
@@ -35,7 +38,7 @@ image suitable for injection over the stock BS2 in the GCN.
 Known compatible IPL versions:
 - NTSC 1.0
 - NTSC 1.1 (sim + hardware verified)
-- NTSC 1.2
+- NTSC 1.2 (DOL-001 and DOL-101)
 - PAL 1.0
-- PAL 1.1
+- MPAL 1.1
 - PAL 1.2

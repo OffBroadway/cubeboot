@@ -194,22 +194,21 @@ __attribute_used__ void pre_cube_init() {
 
 __attribute_used__ void bs2start() {
     OSReport("DONE\n");
+    *(u32*)0x81700000 = 0xCAFEBEEF;
 
-    OSReport("LOADCMD %x, %x, %x, %x\n", prog_entrypoint, prog_dst, prog_src, prog_len);
-    memmove((void*)prog_dst, (void*)prog_src, prog_len);
+    OSReport("LOADCMD %08x\n", prog_entrypoint);
 
     while (!PADSync());
     OSDisableInterrupts();
     __OSStopAudioSystem();
 
-    if (prog_len == 0) {
+    if (prog_entrypoint == 0) {
         OSReport("HALT: No program\n");
         while(1); // block forever
     }
 
-    void (*stubentry)(void) = (void(*)(void))prog_entrypoint;
-    // ppc_set_link_register(stubentry);
-    run(stubentry,0x81300000,0x20000);
+    void (*entry)(void) = (void(*)(void))prog_entrypoint;
+    run(entry, 0x81300000, 0x20000);
 
     return;
 }
