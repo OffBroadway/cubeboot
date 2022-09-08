@@ -18,9 +18,17 @@ include $(DEVKITPPC)/gamecube_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	source/ source/fatfs/
-DATA		:=	data  
-INCLUDES	:=	$(DEVKITPPC)/powerpc-eabi/include
+SOURCES		:=	source
+DATA		:=	data
+INCLUDES	:=	include
+
+ifneq ($(BUILD),$(notdir $(CURDIR)))
+	export PROJDIR	:=	$(CURDIR)
+else
+	export PROJDIR	:=	$(dir $(CURDIR))
+endif
+
+TRAMPOLINE	:=	data/cubeboot.dol
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -29,7 +37,7 @@ INCLUDES	:=	$(DEVKITPPC)/powerpc-eabi/include
 CFLAGS	= -g -O2 -Wall $(MACHDEP) $(INCLUDE) -Wa,-mregnames
 CXXFLAGS	=	$(CFLAGS)
 
-LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map -T$(PWD)/ipl.ld
+LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map -T$(PWD)/ipl.ld -Wl,--defsym,__SYS_PreInit=start
 
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
@@ -52,7 +60,7 @@ ifneq ($(BUILD),$(notdir $(CURDIR)))
 export OUTPUT	:=	$(CURDIR)/$(TARGET)
 
 export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
-			$(foreach dir,$(DATA),$(CURDIR)/$(dir))
+					$(foreach dir,$(DATA),$(CURDIR)/$(dir))
 
 export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
@@ -64,7 +72,7 @@ CFILES		+=	$(foreach file,$(filter %.c,$(SOURCES)),$(notdir $(file)))
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 sFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
-BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
+BINFILES	:=	$(notdir $(TRAMPOLINE))
 
 #---------------------------------------------------------------------------------
 # use CXX for linking C++ projects, CC for standard C
@@ -98,18 +106,25 @@ export OUTPUT	:=	$(CURDIR)/$(TARGET)
 .PHONY: $(BUILD) clean
 
 #---------------------------------------------------------------------------------
-$(BUILD):
+$(BUILD): $(TRAMPOLINE)
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 #---------------------------------------------------------------------------------
+$(TRAMPOLINE):
+	@[ -d $(DATA) ] || mkdir -p $(DATA)
+	@$(MAKE) --no-print-directory -C $(dir $(PROJDIR))/$(basename $(notdir $@))
+	@cp $(dir $(PROJDIR))/$(basename $(notdir $@))/$(notdir $@) $@
+
+#---------------------------------------------------------------------------------
 clean:
-	@echo clean ...
-	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).bin $(OUTPUT).bin.scrambled dolphinipl.bin
+	@$(MAKE) --no-print-directory -C $(dir $(PROJDIR))/$(basename $(notdir $(TRAMPOLINE))) clean
+	@echo clean $(TARGET) ...
+	@rm -fr $(BUILD) $(PROJDIR)/$(DATA) $(OUTPUT).elf $(OUTPUT).bin $(OUTPUT).bin.scrambled dolphinipl.bin
 
 dolphinipl.bin: $(BUILD)
 	@echo packing ipl image dolphinipl.bin ...
-	@cd $(PWD) && python3 iplinject.py NTSCIPL.bin $(OUTPUT).bin.scrambled dolphinipl.bin
+	@cd $(PWD) && python3 scripts/iplinject.py NTSCIPL.bin $(OUTPUT).bin.scrambled dolphinipl.bin
 
 #---------------------------------------------------------------------------------
 else
@@ -127,7 +142,15 @@ $(OUTPUT).elf: $(OFILES)
 	@echo extract binary ... $(notdir $@)
 	@$(OBJCOPY) -O binary $< $@
 	@echo scrambling binary ... $(notdir $@)
-	@cd $(PWD) && python3 iplscramble.py $(@) $(@).scrambled
+	@cd $(PWD) && python3 scripts/iplscramble.py $(@) $(@).scrambled
+
+#---------------------------------------------------------------------------------
+# This rule links in binary data with the .dol extension
+#---------------------------------------------------------------------------------
+%.dol.o	%_dol.h:	%.dol
+#---------------------------------------------------------------------------------
+	@echo $(notdir $<)
+	$(bin2o)
 
 -include $(DEPENDS)
 
