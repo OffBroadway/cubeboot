@@ -29,7 +29,7 @@
 #include "helpers.h"
 #include "loader.h"
 
-#define VIDEO_ENABLE
+// #define VIDEO_ENABLE
 // #define CONSOLE_ENABLE
 // #define PRINT_PATCHES
 
@@ -93,7 +93,10 @@ int main() {
     iprintf("Checkup, done=%08x\n", *bs2done);
     if (*bs2done == 0xCAFEBEEF) {
         iprintf("We did it doc!! We made it back!\n");
+
+#ifdef VIDEO_ENABLE
         VIDEO_WaitVSync();
+#endif
 
         // load program
         load_program();

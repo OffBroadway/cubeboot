@@ -198,6 +198,9 @@ __attribute_used__ void pre_cube_init() {
 void pre_main() {
     OSReport("RUNNING BEFORE MAIN\n");
 
+    // extern GXRModeObj TVNtsc480ProgAa;
+    // memcpy((void*)0x8135dde0, &TVNtsc480ProgAa, sizeof(GXRModeObj));
+
     OSReport("LOADCMD %x, %x, %x, %x\n", prog_entrypoint, prog_dst, prog_src, prog_len);
     memmove((void*)prog_dst, (void*)prog_src, prog_len);
 

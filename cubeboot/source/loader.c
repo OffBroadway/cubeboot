@@ -23,7 +23,7 @@ char *swiss_paths[] = {
 extern const void _start;
 extern const void _edata;
 
-u8 dol_buf[6 * 1024 * 1024];
+u8 *dol_buf;
 u32 *bs2done = (u32*)0x81700000;
 
 int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_);
@@ -39,8 +39,9 @@ load:
     *bs2done = 0x0;
 
     iprintf("BOOTING\n");
+#ifdef VIDEO_ENABLE
     VIDEO_WaitVSync();
-
+#endif
     DOLtoARAM(dol_buf, 0, NULL);
 }
 
@@ -74,9 +75,10 @@ int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_) {
         }
 
         size_t size = f_size(&file);
-        if (size > sizeof(dol_buf)) {
+        dol_buf = memalign(32, size);
+        if (!dol_buf) {
             iprintf("Failed to allocate memory\n");
-            goto unmount;         
+            goto unmount;
         }
 
         u32 unused;
