@@ -17,7 +17,7 @@ include $(DEVKITPPC)/gamecube_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	source source/picolibc
+SOURCES		:=	source source/picolibc source/tinyprintf
 DATA		:=	data
 INCLUDES	:=	include
 
@@ -31,7 +31,7 @@ endif
 # options for code generation
 #---------------------------------------------------------------------------------
 
-CFLAGS		= -O2 -Wall -ffunction-sections -fdata-sections -Wno-unused-function $(MACHDEP) $(INCLUDE)
+CFLAGS		= -O2 -Wall -Wno-main -ffunction-sections -fdata-sections -Wno-unused-function $(MACHDEP) $(INCLUDE)
 CXXFLAGS	= $(CFLAGS)
 
 LINKER_SCRIPTS	:=

@@ -88,7 +88,12 @@ extern u32 diff_msec(s64 start,s64 end);
 int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path);
 
 void load_ipl() {
-    __SYS_ReadROM(bs2, bs2_size, BS2_CODE_OFFSET);
+    __SYS_ReadROM(bios_buffer, IPL_SIZE, 0);
+
+    iprintf("TEST IPL C, %08x\n", *(u32*)(bios_buffer + DECRYPT_START));
+    Descrambler(bios_buffer + DECRYPT_START, IPL_ROM_FONT_SJIS - DECRYPT_START);
+    memcpy(bs2, bios_buffer + BS2_CODE_OFFSET, bs2_size);
+    iprintf("TEST IPL D, %08x\n", *(u32*)bs2);
 
     u32 crc = csp_crc32_memory(bs2, bs2_size);
     iprintf("Read BS2 crc=%08x\n", crc);
@@ -155,8 +160,8 @@ found:
     }
 
 ipl_loaded:
-    iprintf("IPL loaded...\n");
     current_bios = &bios_table[bios_index];
+    iprintf("IPL %s loaded...\n", current_bios->name);
 }
 
 

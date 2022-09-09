@@ -3,6 +3,7 @@ ntsc12_001_OSDisableInterrupts = 0x8135ff68;
 ntsc12_001___OSStopAudioSystem = 0x8135ec60;
 ntsc12_001_run = 0x81300b08;
 
+ntsc12_001_main = 0x81300838;
 ntsc12_001_cube_init = 0x81310b48;
 ntsc12_001_OSReport = 0x81300520;
 

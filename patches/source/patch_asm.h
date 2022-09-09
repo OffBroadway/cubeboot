@@ -66,5 +66,10 @@ patch_inst_ntsc \name \addr_ntsc10 \addr_ntsc11 \addr_ntsc12_001 \addr_ntsc12_10
 patch_inst_pal \name \addr_pal10 \addr_pal11 \addr_pal12 \inst
 .endm
 
+.macro patch_inst_global name:req, addr, inst:vararg
+patch_inst_ntsc \name \addr \addr \addr \addr \inst
+patch_inst_pal \name \addr \addr \addr \inst
+.endm
+
 #endif		//_LANGUAGE_ASSEMBLY
 #endif		//__PATCH_ASM_H__

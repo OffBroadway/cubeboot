@@ -9,6 +9,7 @@ ntsc11_OSDisableInterrupts = 0x8135bc70;
 ntsc11___OSStopAudioSystem = 0x81359580;
 ntsc11_run = 0x813007b8;
 
+ntsc11_main = 0x813004e4;
 ntsc11_cube_init = 0x813107b0;
 ntsc11_OSReport = 0x8135a344;
 

@@ -13,6 +13,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <malloc.h>
 
 #include <sdcard/gcsd.h>
 #include "ffshim.h"
@@ -30,16 +31,21 @@
 
 #define VIDEO_ENABLE
 // #define CONSOLE_ENABLE
-#define PRINT_PATCHES
+// #define PRINT_PATCHES
 
-extern u32 _entrypoint;
+static u32 prog_entrypoint, prog_dst, prog_src, prog_len;
 static u32 *bs2done = (u32*)0x81700000;
 
 #define BS2_BASE_ADDR 0x81300000
 static void (*bs2entry)(void) = (void(*)(void))BS2_BASE_ADDR;
-// static void (*stubentry)(void) = (void(*)(void))PROG_ADDR;
 
 static char stringBuffer[255];
+u8 current_dol_buf[512 * 1024];
+u32 current_dol_len;
+
+extern const void _start;
+extern const void _edata;
+extern const void _end;
 
 // // text logo replacment
 // void *gc_text_tex_data_ptr;
@@ -48,15 +54,13 @@ static char stringBuffer[255];
 GXRModeObj *rmode;
 void *xfb;
 
-u32 preboot_arenaLO = 0;
-u32 preboot_arenaHI = 0;
-
 void __SYS_PreInit() {
-    preboot_arenaLO = (u32)SYS_GetArenaLo();
-    preboot_arenaHI = (u32)SYS_GetArenaHi();
-    if (*bs2done != 0xCAFEBEEF) {
-        SYS_SetArenaHi((void*)0x81300000);
-    }
+    if (*bs2done == 0xCAFEBEEF) return;
+
+    SYS_SetArenaHi((void*)BS2_BASE_ADDR);
+
+    current_dol_len = &_edata - &_start;
+    memcpy(current_dol_buf, &_start, current_dol_len);
 }
 
 int main() {
@@ -81,11 +85,10 @@ int main() {
     InitializeUART();
 #else
     // enable printf
-    CON_EnableGecko(1, true);
+    CON_EnableGecko(EXI_CHANNEL_1, true);
 #endif
 
-    iprintf("arenaLO = %08x, arenaHI  = %08x\n", preboot_arenaLO, preboot_arenaHI);
-    iprintf("arenaLO = %08x, arenaHI  = %08x\n", (u32)SYS_GetArenaLo(), (u32)SYS_GetArenaHi());
+    // iprintf("XFB = %08x [max=%x]\n", (u32)xfb, VIDEO_GetFrameBufferSize(&TVPal576ProgScale));
 
     iprintf("Checkup, done=%08x\n", *bs2done);
     if (*bs2done == 0xCAFEBEEF) {
@@ -98,9 +101,6 @@ int main() {
 
     // load ipl
     load_ipl();
-
-    // load current program
-    load_current_program();
 
     Elf32_Ehdr* ehdr;
     Elf32_Shdr* shdr;
@@ -144,7 +144,7 @@ int main() {
     for (int i = 0; i < ehdr->e_shnum; ++i) {
         shdr = (Elf32_Shdr *)(addr + ehdr->e_shoff + (i * sizeof(Elf32_Shdr)));
 
-        char *sh_name = stringdata + shdr->sh_name;
+        const char *sh_name = stringdata + shdr->sh_name;
         if ((!(shdr->sh_flags & SHF_ALLOC) && strncmp(patch_prefix, sh_name, patch_prefix_len) != 0) || shdr->sh_addr == 0 || shdr->sh_size == 0) {
             iprintf("Skipping ALLOC %s!!\n", stringdata + shdr->sh_name);
             continue;
@@ -169,8 +169,11 @@ int main() {
 
                 // create symbol name for section size
                 uint32_t sh_name_len = strlen(sh_name);
-                (sh_name + patch_prefix_len)[sh_name_len - patch_prefix_len - 5] = '\x00';
-                sprintf(&stringBuffer[0], "%s_size", sh_name + patch_prefix_len);
+ 
+                strcpy(stringBuffer, sh_name);
+                stringBuffer[sh_name_len - 5] = '\x00';
+                strcat(&stringBuffer[0], "_size");
+                char* current_symname = stringBuffer + patch_prefix_len;
 
                 // find symbol by name
                 for (int i = 0; i < (symshdr->sh_size / sizeof(Elf32_Sym)); ++i) {
@@ -179,7 +182,7 @@ int main() {
                     }
 
                     char *symname = symstringdata + syment[i].st_name;
-                    if (strcmp(symname, stringBuffer) == 0) {
+                    if (strcmp(symname, current_symname) == 0) {
                         sh_size = syment[i].st_value;
                     }
                 }
@@ -226,8 +229,19 @@ int main() {
         }
     }
 
+    // load current program
+    prog_entrypoint = (u32)&_start;
+    prog_src = (u32)current_dol_buf;
+    prog_dst = (u32)&_start; // (u32*)0x80600000;
+    prog_len = current_dol_len;
+
+    iprintf("Current program start = %08x\n", prog_entrypoint);
+
     // Copy program metadata into place
-    set_patch_value(symshdr, syment, symstringdata, "prog_entrypoint", _entrypoint);
+    set_patch_value(symshdr, syment, symstringdata, "prog_entrypoint", prog_entrypoint);
+    set_patch_value(symshdr, syment, symstringdata, "prog_src", prog_src);
+    set_patch_value(symshdr, syment, symstringdata, "prog_dst", prog_dst);
+    set_patch_value(symshdr, syment, symstringdata, "prog_len", prog_len);
 
     // while(1);
 
@@ -245,7 +259,9 @@ int main() {
     *(volatile u32*)0x800000F4 = bi2Addr;
     *(volatile u32*)0x800000C0 = osctxphys;
     *(volatile u32*)0x800000D4 = osctxvirt;
+
     /*** Shutdown all threads and exit to this method ***/
+    iprintf("IPL BOOTING\n");
     __lwp_thread_stopmultitasking(bs2entry);
 
     __builtin_unreachable();

@@ -3,6 +3,7 @@ pal10_OSDisableInterrupts = 0x8135f250;
 pal10___OSStopAudioSystem = 0x8135cb60;
 pal10_run = 0x813007b8;
 
+pal10_main = 0x813004e4;
 pal10_cube_init = 0x81310ef0;
 pal10_OSReport = 0x8135d924;
 

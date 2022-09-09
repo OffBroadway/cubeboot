@@ -6,6 +6,8 @@
 #include "util.h"
 #include "os.h"
 
+#include "usbgecko.h"
+
 #define __attribute_used__ __attribute__((used))
 // #define __attribute_himem__ __attribute__((used, section(".himem")))
 #define __attribute_data__ __attribute__((section(".data")))
@@ -36,6 +38,7 @@ __attribute_reloc__ void (*run)(register void* entry_point, register u32 clear_s
 // This is actually BS2Report on IPL rev 1.2
 __attribute_reloc__ void (*OSReport)(const char* text, ...);
 __attribute_reloc__ void (*cube_init)();
+__attribute_reloc__ void (*main)();
 
 __attribute_reloc__ model *bg_outer_model;
 __attribute_reloc__ model *bg_inner_model;
@@ -192,11 +195,20 @@ __attribute_used__ void pre_cube_init() {
     return;
 }
 
+void pre_main() {
+    OSReport("RUNNING BEFORE MAIN\n");
+
+    OSReport("LOADCMD %x, %x, %x, %x\n", prog_entrypoint, prog_dst, prog_src, prog_len);
+    memmove((void*)prog_dst, (void*)prog_src, prog_len);
+
+    main();
+
+    __builtin_unreachable();
+}
+
 __attribute_used__ void bs2start() {
     OSReport("DONE\n");
     *(u32*)0x81700000 = 0xCAFEBEEF;
-
-    OSReport("LOADCMD %08x\n", prog_entrypoint);
 
     while (!PADSync());
     OSDisableInterrupts();
@@ -210,7 +222,7 @@ __attribute_used__ void bs2start() {
     void (*entry)(void) = (void(*)(void))prog_entrypoint;
     run(entry, 0x81300000, 0x20000);
 
-    return;
+    __builtin_unreachable();
 }
 
 // unused

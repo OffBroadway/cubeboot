@@ -9,6 +9,8 @@ PHDRS {
 /* unknown: needed by compiler */
 memset = 0x80000000;
 
+EXI = 0xCC006800;
+
 SECTIONS {
     . = 0x81700000;
 

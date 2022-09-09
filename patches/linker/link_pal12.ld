@@ -3,6 +3,7 @@ pal12_OSDisableInterrupts = 0x813632e0;
 pal12___OSStopAudioSystem = 0x81361fd8;
 pal12_run = 0x813008bc;
 
+pal12_main = 0x813005d4;
 pal12_cube_init = 0x81311030;
 pal12_OSReport = 0x81300520;
 
