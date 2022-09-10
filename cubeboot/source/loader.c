@@ -5,10 +5,11 @@
 #include <sdcard/gcsd.h>
 #include "ffshim.h"
 #include "fatfs/ff.h"
-#include "utils.h"
+#include "ffutils.h"
 
 #include "crc32.h"
 #include "print.h"
+#include "halt.h"
 
 #include "boot/sidestep.h"
 
@@ -34,6 +35,10 @@ void load_program() {
     if (load_fat_swiss("sda", &__io_gcsda)) goto load;
     if (load_fat_swiss("sd2", &__io_gcsd2)) goto load;
 
+    if (dol_buf == NULL) {
+        // ???
+    }
+
 load:
     iprintf("Program loaded...\n");
     *bs2done = 0x0;
@@ -42,6 +47,7 @@ load:
 #ifdef VIDEO_ENABLE
     VIDEO_WaitVSync();
 #endif
+
     DOLtoARAM(dol_buf, 0, NULL);
 }
 
@@ -68,8 +74,7 @@ int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_) {
         iprintf("Reading %s\n", path);
         FIL file;
         FRESULT open_result = f_open(&file, path, FA_READ);
-        if (open_result != FR_OK)
-        {
+        if (open_result != FR_OK) {
             iprintf("Failed to open file: %s\n", get_fresult_message(open_result));
             continue;
         }
@@ -77,12 +82,15 @@ int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_) {
         size_t size = f_size(&file);
         dol_buf = memalign(32, size);
         if (!dol_buf) {
-            iprintf("Failed to allocate memory\n");
-            goto unmount;
+            dol_buf = (u8*)0x81300000;
         }
 
         u32 unused;
-        f_read(&file, dol_buf, size, &unused);
+        FRESULT read_result = f_read(&file, dol_buf, size, &unused);
+        if (read_result != FR_OK) {
+            dol_buf = NULL;
+            goto unmount;
+        }
         f_close(&file);
 
         iprintf("Loaded DOL into %p\n", dol_buf);

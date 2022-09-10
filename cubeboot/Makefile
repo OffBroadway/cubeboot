@@ -38,7 +38,7 @@ PATCHES_PATH := $(PROJDIR)/$(PATCHES)
 CFLAGS	= -O3 -Wno-main -Wall $(MACHDEP) $(INCLUDE)
 CXXFLAGS	=	$(CFLAGS)
 
-LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map
+LDFLAGS	=	$(MACHDEP) -Wl,-Map,$(notdir $@).map
 # Allow start function # -Wl,--defsym,__SYS_PreInit=start
 # Allow main not to exist: -Wl,--defsym,main=0x82000000
 

@@ -11,9 +11,11 @@
 #include <sdcard/gcsd.h>
 #include "ffshim.h"
 #include "fatfs/ff.h"
-#include "utils.h"
+#include "ffutils.h"
 
 #include "print.h"
+#include "helpers.h"
+#include "halt.h"
 
 #include "descrambler.h"
 #include "crc32.h"
@@ -88,18 +90,19 @@ extern u32 diff_msec(s64 start,s64 end);
 int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path);
 
 void load_ipl() {
-#ifdef DOLPHIN_IPL
-    __SYS_ReadROM(bs2, bs2_size, BS2_CODE_OFFSET);
-    iprintf("TEST IPL D, %08x\n", *(u32*)bs2);
-#else
-    __SYS_ReadROM(bios_buffer, IPL_SIZE, 0);
+    if (is_dolphin()) {
+        __SYS_ReadROM(bs2, bs2_size, BS2_CODE_OFFSET);
+        iprintf("TEST IPL D, %08x\n", *(u32*)bs2);
+    } else {
+        __SYS_ReadROM(bios_buffer, IPL_SIZE, 0);
 
-    iprintf("TEST IPL A, %08x\n", *(u32*)bios_buffer);
-    iprintf("TEST IPL C, %08x\n", *(u32*)(bios_buffer + DECRYPT_START));
-    Descrambler(bios_buffer + DECRYPT_START, IPL_ROM_FONT_SJIS - DECRYPT_START);
-    memcpy(bs2, bios_buffer + BS2_CODE_OFFSET, bs2_size);
-    iprintf("TEST IPL D, %08x\n", *(u32*)bs2);
-#endif
+        iprintf("TEST IPL A, %08x\n", *(u32*)bios_buffer);
+        iprintf("TEST IPL C, %08x\n", *(u32*)(bios_buffer + DECRYPT_START));
+        Descrambler(bios_buffer + DECRYPT_START, IPL_ROM_FONT_SJIS - DECRYPT_START);
+        memcpy(bs2, bios_buffer + BS2_CODE_OFFSET, bs2_size);
+        iprintf("TEST IPL D, %08x\n", *(u32*)bs2);
+    }
+
     u32 crc = csp_crc32_memory(bs2, bs2_size);
     iprintf("Read BS2 crc=%08x\n", crc);
 
@@ -156,12 +159,7 @@ found:
     }
 
     if (!valid) {
-#ifndef CONSOLE_ENABLE
-        console_init(xfb,20,20,rmode->fbWidth,rmode->xfbHeight,rmode->fbWidth*VI_DISPLAY_PIX_SZ);
-#endif
-        printf("Bad IPL image\n");
-        VIDEO_WaitVSync();
-        ppchalt();
+        prog_halt("Bad IPL image\n");
     }
 
 ipl_loaded:

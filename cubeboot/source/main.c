@@ -15,10 +15,6 @@
 #include <stdbool.h>
 #include <malloc.h>
 
-#include <sdcard/gcsd.h>
-#include "ffshim.h"
-#include "fatfs/ff.h"
-#include "utils.h"
 #include "crc32.h"
 
 #include "ipl.h"
@@ -27,11 +23,10 @@
 
 #include "print.h"
 #include "helpers.h"
-#include "loader.h"
+#include "halt.h"
 
-// #define VIDEO_ENABLE
-// #define CONSOLE_ENABLE
-// #define PRINT_PATCHES
+#include "config.h"
+#include "loader.h"
 
 static u32 prog_entrypoint, prog_dst, prog_src, prog_len;
 static u32 *bs2done = (u32*)0x81700000;
@@ -224,7 +219,9 @@ int main() {
             // }
 
             if (val != 0) {
+#ifdef PRINT_RELOCS
                 iprintf("Found reloc %s = %x, val = %08x\n", current_symname, syment[i].st_value, val);
+#endif
                 *(u32*)syment[i].st_value = val;
             } else {
                 iprintf("ERROR broken reloc %s = %x\n", current_symname, syment[i].st_value);
@@ -248,7 +245,7 @@ int main() {
 
     // while(1);
 
-#ifdef CONSOLE_ENABLE
+#ifdef VIDEO_ENABLE
     VIDEO_WaitVSync();
 #endif
 
@@ -264,7 +261,10 @@ int main() {
     *(volatile u32*)0x800000D4 = osctxvirt;
 
     /*** Shutdown all threads and exit to this method ***/
-    iprintf("IPL BOOTING\n");
+    // iprintf("IPL BOOTING\n");
+#ifdef VIDEO_ENABLE
+    usleep(1 * 1000 * 1000);
+#endif
     __lwp_thread_stopmultitasking(bs2entry);
 
     __builtin_unreachable();

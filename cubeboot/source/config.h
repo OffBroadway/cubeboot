@@ -1,3 +1,11 @@
-#define DOLPHIN_IPL 1
 // #define DOLPHIN 1
 // #define TESTING 1
+
+#define VIDEO_ENABLE
+#define CONSOLE_ENABLE
+// #define PRINT_PATCHES
+// #define PRINT_RELOCS
+
+#if defined(CONSOLE_ENABLE) && !defined(VIDEO_ENABLE)
+#define VIDEO_ENABLE
+#endif
