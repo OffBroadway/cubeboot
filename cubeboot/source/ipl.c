@@ -54,7 +54,7 @@ s8 bios_index = -1;
 bios_item *current_bios;
 
 
-#ifdef DOLPHIN
+#ifdef TESTING
 char *bios_path = "/bios/gc-ntsc-11.bin";
 #else
 char *bios_path = "/ipl.bin";
@@ -88,17 +88,22 @@ extern u32 diff_msec(s64 start,s64 end);
 int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path);
 
 void load_ipl() {
+#ifdef DOLPHIN_IPL
+    __SYS_ReadROM(bs2, bs2_size, BS2_CODE_OFFSET);
+    iprintf("TEST IPL D, %08x\n", *(u32*)bs2);
+#else
     __SYS_ReadROM(bios_buffer, IPL_SIZE, 0);
 
+    iprintf("TEST IPL A, %08x\n", *(u32*)bios_buffer);
     iprintf("TEST IPL C, %08x\n", *(u32*)(bios_buffer + DECRYPT_START));
     Descrambler(bios_buffer + DECRYPT_START, IPL_ROM_FONT_SJIS - DECRYPT_START);
     memcpy(bs2, bios_buffer + BS2_CODE_OFFSET, bs2_size);
     iprintf("TEST IPL D, %08x\n", *(u32*)bs2);
-
+#endif
     u32 crc = csp_crc32_memory(bs2, bs2_size);
     iprintf("Read BS2 crc=%08x\n", crc);
 
-    // put SDA check here
+    // TODO: put SDA check here
 
     bool valid = FALSE;
     for(int i = 0; i < sizeof(bios_table) / sizeof(bios_table[0]); i++) {
@@ -111,7 +116,7 @@ void load_ipl() {
 
     iprintf("BS2 is valid? = %d\n", valid);
 
-#ifdef DOLPHIN
+#ifdef TESTING
     // TEST ONLY
     valid = FALSE;
 #endif
@@ -163,7 +168,6 @@ ipl_loaded:
     current_bios = &bios_table[bios_index];
     iprintf("IPL %s loaded...\n", current_bios->name);
 }
-
 
 int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path) {
     int res = 0;

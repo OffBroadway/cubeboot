@@ -34,15 +34,14 @@ TRAMPOLINE	:=	data/cubeboot.dol
 # options for code generation
 #---------------------------------------------------------------------------------
 
-CFLAGS	= -g -O2 -Wall $(MACHDEP) $(INCLUDE) -Wa,-mregnames
+CFLAGS	= -O3 -Wall $(MACHDEP) $(INCLUDE) -Wa,-mregnames
 CXXFLAGS	=	$(CFLAGS)
 
-LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map -T$(PWD)/ipl.ld -Wl,--defsym,__SYS_PreInit=start
-
+LDFLAGS	=	$(DEVKITPPC)/powerpc-eabi/lib/crt0.o $(MACHDEP) -Wl,-Map,$(notdir $@).map -T$(PWD)/ipl.ld --specs=nosys.specs -Wl,--print-gc-section  -Wl,--defsym,memset=_memset -nostdlib
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
 #---------------------------------------------------------------------------------
-LIBS	:=	-logc -lm
+LIBS	:= 
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
@@ -134,15 +133,16 @@ DEPENDS	:=	$(OFILES:.o=.d)
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
-all: $(OUTPUT).bin
+# all: $(OUTPUT).bin
 
+$(OUTPUT).dol: $(OUTPUT).elf
 $(OUTPUT).elf: $(OFILES)
 
-%.bin: %.elf
-	@echo extract binary ... $(notdir $@)
-	@$(OBJCOPY) -O binary $< $@
-	@echo scrambling binary ... $(notdir $@)
-	@cd $(PWD) && python3 scripts/iplscramble.py $(@) $(@).scrambled
+# %.bin: %.elf
+# 	@echo extract binary ... $(notdir $@)
+# 	@$(OBJCOPY) -O binary $< $@
+# 	@echo scrambling binary ... $(notdir $@)
+# 	@cd $(PWD) && python3 scripts/iplscramble.py $(@) $(@).scrambled
 
 #---------------------------------------------------------------------------------
 # This rule links in binary data with the .dol extension

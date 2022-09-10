@@ -85,7 +85,7 @@ int main() {
     InitializeUART();
 #else
     // enable printf
-    CON_EnableGecko(EXI_CHANNEL_1, true);
+    CON_EnableGecko(EXI_CHANNEL_1, FALSE);
 #endif
 
     // iprintf("XFB = %08x [max=%x]\n", (u32)xfb, VIDEO_GetFrameBufferSize(&TVPal576ProgScale));

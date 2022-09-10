@@ -1,7 +1,8 @@
 # Flippyboot IPL
 
-This project is a patching framework for 
-Port of the marvelous iplboot - A minimal GameCube IPL, for the Flippyboot.
+This project is a patching framework for the GameCube IPL which is called BS2
+The project was originally intended to restore the Boot Animation on Flippyboot.
+Now the project has been generalized and works on both Flippyboot and PicoBoot.
 
 cubeboot acts as a patching harness for BS2 and is capable of mounting external
 FAT devices and chainloading a DOL. The essential copyrighted BS1 and Font ROM 
@@ -17,7 +18,7 @@ and debugging.
 - [x] Restore boot animation with iplboot features
 - [x] Loading an alternative IPL from an SD Card
 - [x] Support all NTSC and PAL IPL revisions
-- [ ] Variants for SDGecko A/B and SD2SP2
+- [x] Support booting SDGecko A/B and SD2SP2
 
 - [ ] Settings loaded from an SD Card
 - [ ] Custom GameCube animation colors (tested)
@@ -43,5 +44,6 @@ Known compatible IPL versions:
 
 ## TODO
 - [ ] Create GitHub Actions for CI/CD
-- [ ] Flashale firmware image for picoboot
-- [ ] Flashale settings files for picoboot
+- [ ] Create builds for SDGecko A/B and SD2SP2 only
+- [ ] Flashable firmware image for picoboot
+- [ ] Flashable settings files for picoboot
