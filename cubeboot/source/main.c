@@ -83,7 +83,7 @@ int main() {
     CON_EnableGecko(EXI_CHANNEL_1, FALSE);
 #endif
 
-    // iprintf("XFB = %08x [max=%x]\n", (u32)xfb, VIDEO_GetFrameBufferSize(&TVPal576ProgScale));
+    iprintf("XFB = %08x [max=%x]\n", (u32)xfb, VIDEO_GetFrameBufferSize(&TVPal576ProgScale));
 
     iprintf("Checkup, done=%08x\n", *bs2done);
     if (*bs2done == 0xCAFEBEEF) {

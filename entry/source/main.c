@@ -4,7 +4,7 @@
 #include "cache.h"
 #include "usbgecko.h"
 
-#include "cubeboot_dol_gz.h"
+#include "cubeboot_gz.h"
 #include "tinf/tinf.h"
 
 #include <ogc/machine/processor.h>
@@ -47,7 +47,7 @@ void _main() {
     gprintf("dolloader\n");
 
 
-    u32 dlen = bswap32(*(u32*)(&cubeboot_dol_gz[cubeboot_dol_gz_size - 4]));
+    u32 dlen = bswap32(*(u32*)(&cubeboot_gz[cubeboot_gz_size - 4]));
     gprintf("output size = %d\n", dlen);
 
     u8 *dol_buf = (void*)&_end;
@@ -56,7 +56,7 @@ void _main() {
     u32 outlen = (0x817C0000 - (u32)dol_buf);
 
     gprintf("aaa\n");
-    int res = tinf_gzip_uncompress(dol_buf, &outlen, cubeboot_dol_gz, cubeboot_dol_gz_size);
+    int res = tinf_gzip_uncompress(dol_buf, &outlen, cubeboot_gz, cubeboot_gz_size);
     gprintf("bbb\n");
 	if ((res != TINF_OK) || (outlen != dlen)) {
 		gprintf("decompression failed (%d)\n", res);

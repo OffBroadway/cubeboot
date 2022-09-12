@@ -11,13 +11,17 @@ the Gamecube's U10 ROM.
 
 cubeboot can inject the BS2 into an existing scrambled ROM image for simulation
 purposes via `make dolphinipl.bin` in the ipl directory. You must provide the
-original ROM image for injection. Again, this is only necessary for development 
-and debugging.
+original ROM image for injection. Again, this is only necessary for development
+ and debugging.
 
 ## Usage
 
-cubeboot also includes a fallback mode where it can load your DOL file before the
-boot animation.
+If you are using cubeboot with an IPL replacement that is loaded with iplboot
+(like PicoBoot) you can simple install cubeboot to an SD card by following the
+[SD Booting](./docs/SD_Boot.md) tutorial.
+
+cubeboot also includes a fallback mode where it can load your DOL file before
+the boot animation.
 
 ## Compiling
 
@@ -35,7 +39,7 @@ image suitable for injection over the stock BS2 in the GCN.
 - [ ] Settings loaded from an SD Card
 - [ ] Custom GameCube animation colors (tested)
   - [ ] Random color each boot using RTC
-- [ ] Custom Nintendo logo text replacment
+- [ ] Custom Nintendo logo text replacement
 - [ ] Force Progressive video modes
 
 ## Compatibility

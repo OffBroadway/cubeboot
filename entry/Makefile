@@ -27,6 +27,8 @@ else
 	export PROJDIR	:=	$(dir $(CURDIR))
 endif
 
+CUBEBOOT	:=	data/cubeboot.gz
+
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
@@ -69,7 +71,7 @@ CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 sFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
-BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
+BINFILES	:=	$(notdir $(CUBEBOOT))
 
 #---------------------------------------------------------------------------------
 # use CXX for linking C++ projects, CC for standard C
@@ -103,14 +105,21 @@ export OUTPUT	:=	$(CURDIR)/$(TARGET)
 .PHONY: $(BUILD) clean
 
 #---------------------------------------------------------------------------------
-$(BUILD):
+$(BUILD): $(CUBEBOOT)
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 #---------------------------------------------------------------------------------
+$(CUBEBOOT):
+	@[ -d $(DATA) ] || mkdir -p $(DATA)
+	@$(MAKE) --no-print-directory -C $(dir $(PROJDIR))/$(basename $(notdir $@))
+	@gzip -k -v -c $(dir $(PROJDIR))/$(basename $(notdir $@))/cubeboot.dol > $@
+
+#---------------------------------------------------------------------------------
 clean:
-	@echo clean ...
-	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).dol
+	@$(MAKE) --no-print-directory -C $(dir $(PROJDIR))/$(basename $(notdir $(CUBEBOOT))) clean
+	@echo clean $(TARGET) ...
+	@rm -fr $(BUILD) $(PROJDIR)/$(DATA) $(OUTPUT).elf $(OUTPUT).dol
 
 #---------------------------------------------------------------------------------
 else
