@@ -22,7 +22,7 @@ __attribute_used__ u32 bs2tick() {
     return 0x10; // end state is 0x10?? (start game)
 }
 
-__attribute_aligned_data__ u8 img_data[CUBE_TEX_WIDTH * CUBE_TEX_HEIGHT * 4];
+// __attribute_aligned_data__ u8 img_data[CUBE_TEX_WIDTH * CUBE_TEX_HEIGHT * 4];
 
 __attribute_data__ u32 prog_entrypoint;
 __attribute_data__ u32 prog_dst;

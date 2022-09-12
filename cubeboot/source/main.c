@@ -87,7 +87,7 @@ int main() {
 
     iprintf("Checkup, done=%08x\n", *bs2done);
     if (*bs2done == 0xCAFEBEEF) {
-        iprintf("We did it doc!! We made it back!\n");
+        iprintf("He's alive! The doc's alive! He's in the old west, but he's alive!!\n");
 
 #ifdef VIDEO_ENABLE
         VIDEO_WaitVSync();

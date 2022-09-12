@@ -14,23 +14,29 @@ purposes via `make dolphinipl.bin` in the ipl directory. You must provide the
 original ROM image for injection. Again, this is only necessary for development 
 and debugging.
 
+## Usage
+
+cubeboot also includes a fallback mode where it can load your DOL file before the
+boot animation.
+
+## Compiling
+
+This project contains all the scripts to build cubeboot using the latest 
+devkitPPC and GCC.  Additionally, scripts are provided which scramble the BS2
+image suitable for injection over the stock BS2 in the GCN.
+
 ## Features
-- [x] Restore boot animation with iplboot features
+- [x] Restore boot animation
+  - [ ] with iplboot features
 - [x] Loading an alternative IPL from an SD Card
 - [x] Support all NTSC and PAL IPL revisions
 - [x] Support booting SDGecko A/B and SD2SP2
-
+- [ ] Flashable firmware image for picoboot
 - [ ] Settings loaded from an SD Card
 - [ ] Custom GameCube animation colors (tested)
   - [ ] Random color each boot using RTC
 - [ ] Custom Nintendo logo text replacment
 - [ ] Force Progressive video modes
-
-## Usage
-
-This project contains all the scripts to build cubeboot using the latest 
-devkitPPC and GCC.  Additionally, scripts are provided which scramble the BS2
-image suitable for injection over the stock BS2 in the GCN.
 
 ## Compatibility
 
@@ -45,5 +51,4 @@ Known compatible IPL versions:
 ## TODO
 - [ ] Create GitHub Actions for CI/CD
 - [ ] Create builds for SDGecko A/B and SD2SP2 only
-- [ ] Flashable firmware image for picoboot
 - [ ] Flashable settings files for picoboot
