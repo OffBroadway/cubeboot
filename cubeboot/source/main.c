@@ -101,8 +101,13 @@ int main() {
         return 1;
     }
 
-    iprintf("config_size = %d\n", get_file_size("/cubeboot.ini"));
-    iprintf("config: \n%s\n", (char*)config_buf);
+    int size = get_file_size("/cubeboot.ini");
+    iprintf("config_size = %d\n", size);
+
+    char b[255];
+    memset(b, 0, sizeof(b));
+    strncpy(b, config_buf, size);
+    iprintf("config: \n%s\n", b);
 
     free(config_buf);
 

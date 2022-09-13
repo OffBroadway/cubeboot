@@ -81,9 +81,7 @@ const DISC_INTERFACE *get_current_device() {
 }
 
 int get_file_size(char *path) {
-    for (char *p = path; *p; ++p)
-        *p = (*p >= 'a' && *p <= 'z') ? *p - 0x20 : *p;
-
+    PATH_FIX(path);
     iprintf("Checking %s\n", path);
 
     FRESULT open_result = uf_open(path);
@@ -97,9 +95,7 @@ int get_file_size(char *path) {
 }
 
 int load_file_dynamic(char *path, void **buf_ptr) {
-    for (char *p = path; *p; ++p)
-        *p = (*p >= 'a' && *p <= 'z') ? *p - 0x20 : *p;
-
+    PATH_FIX(path);
     iprintf("Reading %s\n", path);
     FRESULT open_result = uf_open(path);
     if (open_result != FR_OK) {
@@ -122,15 +118,10 @@ int load_file_dynamic(char *path, void **buf_ptr) {
         return SD_FAIL;
     }
 
-    iprintf((char*)buf);
-
     return SD_OK;
 }
 
 int load_file_buffer(char *path, void* buf) {
-    for (char *p = path; *p; ++p)
-        *p = (*p >= 'a' && *p <= 'z') ? *p - 0x20 : *p;
-
     iprintf("Reading %s\n", path);
 
     FRESULT open_result = uf_open(path);

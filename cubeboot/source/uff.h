@@ -4,6 +4,8 @@
 
 #ifndef USE_SMALL_FATFS
 
+#define PATH_FIX(var)
+
 typedef u32 UINT;
 typedef u32 DWORD;
 typedef u32 FATFS;
@@ -27,6 +29,8 @@ DWORD   uf_size ();											/* Get size from the open file */
 
 #else
 #include "fatfs/pff.h"
+
+#define PATH_FIX(var) { for (char *p = var; *p; ++p) *p = (*p >= 'a' && *p <= 'z') ? *p - 0x20 : *p; }
 
 #define uf_mount pf_mount
 #define uf_open pf_open
