@@ -93,6 +93,11 @@ int main() {
         return 1;
     }
 
+    void *config_buf;
+    if (load_file_dynamic("cubeboot.ini", &config_buf) != SD_OK) {
+        prog_halt("Could not find config file\n");
+        return 1;
+    }
 
 //// Old flow
     
@@ -256,6 +261,8 @@ int main() {
 
     // while(1);
 
+    unmount_current_device();
+
 #ifdef VIDEO_ENABLE
     VIDEO_WaitVSync();
 #endif
@@ -272,9 +279,9 @@ int main() {
     *(volatile u32*)0x800000D4 = osctxvirt;
 
     /*** Shutdown all threads and exit to this method ***/
-    // iprintf("IPL BOOTING\n");
-#ifdef VIDEO_ENABLE
-    usleep(1 * 1000 * 1000);
+    iprintf("IPL BOOTING\n");
+#ifdef CONSOLE_ENABLE
+    udelay(3 * 1000 * 1000);
 #endif
     __lwp_thread_stopmultitasking(bs2entry);
 

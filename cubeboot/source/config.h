@@ -1,8 +1,9 @@
 // #define DOLPHIN
-#define TESTING
+// #define TESTING
+// #define FORCE_IPL_LOAD
 
 #define VIDEO_ENABLE
-#define CONSOLE_ENABLE
+// #define CONSOLE_ENABLE
 // #define PRINT_PATCHES
 // #define PRINT_RELOCS
 

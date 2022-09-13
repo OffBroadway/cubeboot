@@ -54,7 +54,7 @@ bios_item *current_bios;
 
 
 #ifdef TESTING
-char *bios_path = "/bios/gc-ntsc-11.bin";
+char *bios_path = "/bios-sfn/ntsc11.bin";
 #else
 char *bios_path = "/ipl.bin";
 #endif
@@ -116,7 +116,7 @@ void load_ipl() {
 
     iprintf("BS2 is valid? = %d\n", valid);
 
-#ifdef TESTING
+#ifdef FORCE_IPL_LOAD
     // TEST ONLY
     valid = FALSE;
 #endif

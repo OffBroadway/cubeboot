@@ -2,10 +2,7 @@
 
 #include <malloc.h>
 
-#include <sdcard/gcsd.h>
-#include "ffshim.h"
-#include "fatfs/ff.h"
-#include "ffutils.h"
+#include "sd.h"
 
 #include "crc32.h"
 #include "print.h"
@@ -31,15 +28,36 @@ int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_);
 
 void load_program() {
     // load program
-    if (load_fat_swiss("sdb", &__io_gcsdb)) goto load;
-    if (load_fat_swiss("sda", &__io_gcsda)) goto load;
-    if (load_fat_swiss("sd2", &__io_gcsd2)) goto load;
+    for (int f = 0; f < (sizeof(swiss_paths) / sizeof(char *)); f++) {
+        char *path = swiss_paths[f];
 
-    if (dol_buf == NULL) {
-        // ???
+        iprintf("Reading %s\n", path);
+
+        int size = get_file_size(path);
+        if (size == SD_FAIL) {
+            iprintf("Failed to open file: %s\n", path);
+            continue;
+        }
+
+        dol_buf = memalign(32, size);
+        if (!dol_buf) {
+            dol_buf = (u8*)0x81300000;
+        }
+
+        if (load_file_buffer(path, dol_buf) != SD_OK) {
+            iprintf("Failed to DOL read file: %s\n", path);
+            dol_buf = NULL;
+        }
+
+        iprintf("Loaded DOL into %p\n", dol_buf);
+        break;
     }
 
-load:
+    if (dol_buf == NULL) {
+        prog_halt("No program loaded!\n");
+        return;
+    }
+
     iprintf("Program loaded...\n");
     *bs2done = 0x0;
 
@@ -48,65 +66,8 @@ load:
     VIDEO_WaitVSync();
 #endif
 
+    // No stack - we need it all
+    AR_Init(NULL, 0);    
+
     DOLtoARAM(dol_buf, 0, NULL);
-}
-
-int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_) {
-    int res = 0;
-
-    iprintf("Trying %s\n", slot_name);
-
-    FATFS fs;
-    iface = iface_;
-    FRESULT mount_result = f_mount(&fs, "", 1);
-    if (mount_result != FR_OK) {
-        iprintf("Couldn't mount %s: %s\n", slot_name, get_fresult_message(mount_result));
-        goto end;
-    }
-
-    char name[256];
-    f_getlabel(slot_name, name, NULL);
-    iprintf("Mounted %s as %s\n", name, slot_name);
-
-    for (int f = 0; f < (sizeof(swiss_paths) / sizeof(char *)); f++) {
-        char *path = swiss_paths[f];
-
-        iprintf("Reading %s\n", path);
-        FIL file;
-        FRESULT open_result = f_open(&file, path, FA_READ);
-        if (open_result != FR_OK) {
-            iprintf("Failed to open file: %s\n", get_fresult_message(open_result));
-            continue;
-        }
-
-        size_t size = f_size(&file);
-        dol_buf = memalign(32, size);
-        if (!dol_buf) {
-            dol_buf = (u8*)0x81300000;
-        }
-
-        u32 unused;
-        FRESULT read_result = f_read(&file, dol_buf, size, &unused);
-        if (read_result != FR_OK) {
-            dol_buf = NULL;
-            goto unmount;
-        }
-        f_close(&file);
-
-        iprintf("Loaded DOL into %p\n", dol_buf);
-
-        // No stack - we need it all
-        AR_Init(NULL, 0);
-
-        res = 1;
-        break;
-    }
-
-unmount:
-    iprintf("Unmounting %s\n", slot_name);
-    iface->shutdown();
-    iface = NULL;
-
-end:
-    return res;
 }
