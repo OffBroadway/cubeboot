@@ -1,17 +1,25 @@
-`entry/source/start.S` credit to dolxz
-`entry/source/system_asm.S` credit to dolxz
-`entry/source/cache_asm.S` credit to dolxz
-`entry/source/exception_handler.S` credit to dolxz
-`entry/source/asm.h` credit to dolxz
-`entry/source/cache.h` credit to dolxz
-`entry/source/tinf` credit to tinf
+`entry/source/start.S` credit to dolxz <br/>
+`entry/source/system_asm.S` credit to dolxz <br/>
+`entry/source/cache_asm.S` credit to dolxz <br/>
+`entry/source/exception_handler.S` credit to dolxz <br/>
+`entry/source/asm.h` credit to dolxz <br/>
+`entry/source/cache.h` credit to dolxz <br/>
+`entry/source/tinf` credit to tinf <br/>
 
-`patches/source/asm.h`: credit to swiss-gc
-`patches/source/os.c`: credit to swiss-gc
-`patches/source/usbgecko.c`: credit to swiss-gc
-`patches/source/picolibc`: credit to picolibc and newlib
-`patches/source/tinyprintf`: credit to tinyprintf
+<hr/>
 
-`cubeboot/source/boot` credit to iplboot
-`cubeboot/source/fatfs` credit to iplboot
-`cubeboot/data/GameCube.ttf` credit to Q Manning <bleutuna@yahoo.com>
+`patches/source/asm.h`: credit to swiss-gc <br/>
+`patches/source/os.c`: credit to swiss-gc <br/>
+`patches/source/usbgecko.c`: credit to swiss-gc <br/>
+`patches/source/picolibc`: credit to picolibc and newlib <br/>
+`patches/source/tinyprintf`: credit to tinyprintf <br/>
+
+<hr/>
+
+`cubeboot/source/boot` credit to iplboot <br/>
+`cubeboot/source/fatfs` credit to iplboot <br/>
+`cubeboot/source/pff` credit to swiss-gc <br/>
+`cubeboot/source/gcode.c` credit to libogc2 <br/>
+`cubeboot/source/gcode.h` credit to libogc2 <br/>
+`cubeboot/source/lwp_queue.inl` credit to libogc <br/>
+`cubeboot/data/GameCube.ttf` credit to Q Manning <bleutuna@yahoo.com> <br/>

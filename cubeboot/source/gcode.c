@@ -347,12 +347,7 @@ static const u8 __gcode_patchcodeQ08[] =
 };
 
 static vu32* const _piReg = (u32*)0xCC003000;
-
-#if defined(HW_RVL)
-	static vu32* const _diReg = (u32*)0xCD806000;
-#elif defined(HW_DOL)
-	static vu32* const _diReg = (u32*)0xCC006000;
-#endif
+static vu32* const _diReg = (u32*)0xCC006000;
 
 static const u8 __gcode_unlockcmd$221[12] = {0xff,0x01,'M','A','T','S','H','I','T','A',0x02,0x00};
 static const u8 __gcode_unlockcmd$222[12] = {0xff,0x00,'D','V','D','-','G','A','M','E',0x03,0x00};
