@@ -1,6 +1,6 @@
 #include "uff.h"
 
-#ifndef USE_SMALL_FATFS
+#ifdef USE_FAT_LIBFAT
 #include <stdio.h>
 #include <string.h>
 
@@ -64,6 +64,41 @@ DWORD uf_size() {
 
     fclose(file);
     return size;
+}
+
+#endif
+
+#ifdef USE_FAT_FATFS
+#include "fatfs/ff.h"
+#include "ffshim.h"
+
+#include "sd.h"
+
+static FIL __current_file = {};
+
+FRESULT uf_mount(FATFS* fs) {
+    iface = get_current_device();
+	return f_mount(fs, "", 1);
+}
+
+FRESULT uf_open(const char* path) {
+    return f_open(&__current_file, path, FA_READ);
+}
+
+FRESULT uf_read(void* buff, UINT btr, UINT* br) {
+    return f_read(&__current_file, buff, btr, br);
+}
+
+FRESULT uf_write(const void* buff, UINT btw, UINT* bw) {
+    return FR_DISK_ERR;
+}
+
+FRESULT uf_lseek(DWORD ofs) {
+    return FR_DISK_ERR;
+}
+
+DWORD uf_size() {
+    return f_size(&__current_file);
 }
 
 #endif

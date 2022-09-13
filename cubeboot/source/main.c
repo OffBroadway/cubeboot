@@ -92,6 +92,8 @@ int main() {
     // setup config device
     if (mount_available_device() != SD_OK) {
         prog_halt("Could not find an inserted SD card\n");
+        // VIDEO_WaitVSync();
+        // ppchalt();
         return 1;
     }
 

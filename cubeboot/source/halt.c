@@ -7,6 +7,7 @@
 #include <gccore.h>
 #include <ogc/machine/processor.h>
 
+#include "config.h"
 #include "print.h"
 
 extern GXRModeObj *rmode;
@@ -15,9 +16,11 @@ static void *exception_xfb = (void*)0xC1700000;
 extern void VIDEO_SetFramebuffer(void *);
 
 void prog_halt(char *msg) {
+#ifndef CONSOLE_ENABLE
 	VIDEO_SetFramebuffer(exception_xfb);
     console_init(exception_xfb,20,20,rmode->fbWidth,rmode->xfbHeight,rmode->fbWidth*VI_DISPLAY_PIX_SZ);
     CON_EnableGecko(EXI_CHANNEL_1, false);
+#endif
     printf(msg);
     VIDEO_WaitVSync();
     ppchalt();

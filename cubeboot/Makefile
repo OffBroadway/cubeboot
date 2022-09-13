@@ -17,7 +17,7 @@ include $(DEVKITPPC)/gamecube_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	source source/fatfs source/boot
+SOURCES		:=	source source/fatfs source/pff source/boot
 DATA		:=	data  
 INCLUDES	:=	include
 

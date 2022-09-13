@@ -446,10 +446,10 @@ static CLUST get_fat (	/* 1:IO error, Else:Cluster status */
 		bc = (UINT)clst; bc += bc / 2;
 		ofs = bc % 512; bc /= 512;
 		if (ofs != 511) {
-			if (disk_readp(buf, fs->fatbase + bc, ofs, 2)) break;
+			if (disk_readp_pff(buf, fs->fatbase + bc, ofs, 2)) break;
 		} else {
-			if (disk_readp(buf, fs->fatbase + bc, 511, 1)) break;
-			if (disk_readp(buf+1, fs->fatbase + bc + 1, 0, 1)) break;
+			if (disk_readp_pff(buf, fs->fatbase + bc, 511, 1)) break;
+			if (disk_readp_pff(buf+1, fs->fatbase + bc + 1, 0, 1)) break;
 		}
 		wc = ld_word(buf);
 		return (clst & 1) ? (wc >> 4) : (wc & 0xFFF);
@@ -457,12 +457,12 @@ static CLUST get_fat (	/* 1:IO error, Else:Cluster status */
 #endif
 #if PF_FS_FAT16
 	case FS_FAT16 :
-		if (disk_readp(buf, fs->fatbase + clst / 256, ((UINT)clst % 256) * 2, 2)) break;
+		if (disk_readp_pff(buf, fs->fatbase + clst / 256, ((UINT)clst % 256) * 2, 2)) break;
 		return ld_word(buf);
 #endif
 #if PF_FS_FAT32
 	case FS_FAT32 :
-		if (disk_readp(buf, fs->fatbase + clst / 128, ((UINT)clst % 128) * 4, 4)) break;
+		if (disk_readp_pff(buf, fs->fatbase + clst / 128, ((UINT)clst % 128) * 4, 4)) break;
 		return ld_dword(buf) & 0x0FFFFFFF;
 #endif
 	}
@@ -593,7 +593,7 @@ static FRESULT dir_find (
 	if (res != FR_OK) return res;
 
 	do {
-		res = disk_readp(dir, dj->sect, (dj->index % 16) * 32, 32)	/* Read an entry */
+		res = disk_readp_pff(dir, dj->sect, (dj->index % 16) * 32, 32)	/* Read an entry */
 			? FR_DISK_ERR : FR_OK;
 		if (res != FR_OK) break;
 		c = dir[DIR_Name];	/* First character */
@@ -623,7 +623,7 @@ static FRESULT dir_read (
 
 	res = FR_NO_FILE;
 	while (dj->sect) {
-		res = disk_readp(dir, dj->sect, (dj->index % 16) * 32, 32)	/* Read an entry */
+		res = disk_readp_pff(dir, dj->sect, (dj->index % 16) * 32, 32)	/* Read an entry */
 			? FR_DISK_ERR : FR_OK;
 		if (res != FR_OK) break;
 		c = dir[DIR_Name];
@@ -784,17 +784,17 @@ static BYTE check_fs (	/* 0:The FAT boot record, 1:Valid boot record but not an 
 	DWORD sect	/* Sector# (lba) to check if it is an FAT boot record or not */
 )
 {
-	if (disk_readp(buf, sect, 510, 2)) {	/* Read the boot record */
+	if (disk_readp_pff(buf, sect, 510, 2)) {	/* Read the boot record */
 		return 3;
 	}
 	if (ld_word(buf) != 0xAA55) {			/* Check record signature */
 		return 2;
 	}
 
-	if (!_FS_32ONLY && !disk_readp(buf, sect, BS_FilSysType, 2) && ld_word(buf) == 0x4146) {	/* Check FAT12/16 */
+	if (!_FS_32ONLY && !disk_readp_pff(buf, sect, BS_FilSysType, 2) && ld_word(buf) == 0x4146) {	/* Check FAT12/16 */
 		return 0;
 	}
-	if (PF_FS_FAT32 && !disk_readp(buf, sect, BS_FilSysType32, 2) && ld_word(buf) == 0x4146) {	/* Check FAT32 */
+	if (PF_FS_FAT32 && !disk_readp_pff(buf, sect, BS_FilSysType32, 2) && ld_word(buf) == 0x4146) {	/* Check FAT32 */
 		return 0;
 	}
 	return 1;
@@ -825,7 +825,7 @@ FRESULT pf_mount (
 
 	FatFs = 0;
 
-	if (disk_initialize() & STA_NOINIT) {	/* Check if the drive is ready or not */
+	if (disk_initialize_pff() & STA_NOINIT) {	/* Check if the drive is ready or not */
 		return FR_NOT_READY;
 	}
 
@@ -834,7 +834,7 @@ FRESULT pf_mount (
 	fmt = check_fs(buf, bsect);			/* Check sector 0 as an SFD format */
 	if (fmt == 1) {						/* Not an FAT boot record, it may be FDISK format */
 		/* Check a partition listed in top of the partition table */
-		if (disk_readp(buf, bsect, MBR_Table, 16)) {	/* 1st partition entry */
+		if (disk_readp_pff(buf, bsect, MBR_Table, 16)) {	/* 1st partition entry */
 			fmt = 3;
 		} else {
 			if (buf[4]) {					/* Is the partition existing? */
@@ -847,7 +847,7 @@ FRESULT pf_mount (
 	if (fmt) return FR_NO_FILESYSTEM;	/* No valid FAT patition is found */
 
 	/* Initialize the file system object */
-	if (disk_readp(buf, bsect, 13, sizeof (buf))) return FR_DISK_ERR;
+	if (disk_readp_pff(buf, bsect, 13, sizeof (buf))) return FR_DISK_ERR;
 
 	fsize = ld_word(buf+BPB_FATSz16-13);				/* Number of sectors per FAT */
 	if (!fsize) fsize = ld_dword(buf+BPB_FATSz32-13);
@@ -976,7 +976,7 @@ FRESULT pf_read (
 		}
 		rcnt = 512 - (UINT)fs->fptr % 512;			/* Get partial sector data from sector buffer */
 		if (rcnt > btr) rcnt = btr;
-		dr = disk_readp(rbuff, fs->dsect, (UINT)fs->fptr % 512, rcnt);
+		dr = disk_readp_pff(rbuff, fs->dsect, (UINT)fs->fptr % 512, rcnt);
 		if (dr) ABORT(FR_DISK_ERR);
 		fs->fptr += rcnt;							/* Advances file read pointer */
 		btr -= rcnt; *br += rcnt;					/* Update read counter */

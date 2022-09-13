@@ -8,12 +8,12 @@
 
 static const DISC_INTERFACE *dev = NULL;
 
-DSTATUS disk_initialize() {
+DSTATUS disk_initialize_pff () {
     dev = get_current_device();
     return (dev != NULL) ? 0 : STA_NOINIT;
 }
 
-DRESULT disk_readp (
+DRESULT disk_readp_pff (
 	BYTE *buff,		/* Pointer to the read buffer (NULL:Read bytes are forwarded to the stream) */
 	DWORD sector,	/* Sector number (LBA) */
 	UINT offset,	/* Byte offset to read from (0..511) */
