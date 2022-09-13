@@ -1,6 +1,7 @@
 #include <sdcard/card_cmn.h>
 #include <sdcard/card_io.h>
 #include <sdcard/gcsd.h>
+#include "gcode.h"
 
 #include "uff.h"
 
@@ -9,8 +10,8 @@
 
 #define countof(a) (sizeof(a)/sizeof(a[0]))
 
-const char *dev_names[] = {"sda", "sdb", "sd2"};
-const DISC_INTERFACE *drivers[] = {&__io_gcsda, &__io_gcsdb, &__io_gcsd2};
+const char *dev_names[] = {"sda", "sdb", "sd2", "gcldr"};
+const DISC_INTERFACE *drivers[] = {&__io_gcsda, &__io_gcsdb, &__io_gcsd2, &__io_gcode};
 
 static const char *current_dev_name = NULL;
 static const DISC_INTERFACE *current_device = NULL;

@@ -35,7 +35,7 @@ PATCHES_PATH := $(PROJDIR)/$(PATCHES)
 # options for code generation
 #---------------------------------------------------------------------------------
 
-CFLAGS	= -O3 -Wno-main -Wall $(MACHDEP) $(INCLUDE)
+CFLAGS	= -O3 -Wno-unused-function -Wall $(MACHDEP) $(INCLUDE)
 CXXFLAGS	=	$(CFLAGS)
 
 LDFLAGS	=	$(MACHDEP) -Wl,-Map,$(notdir $@).map
