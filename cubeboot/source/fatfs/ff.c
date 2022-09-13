@@ -3046,6 +3046,7 @@ static FRESULT follow_path (	/* FR_OK(0): successful, !=0: error code */
 #endif
 #endif
 
+
 	if ((UINT)*path < ' ') {				/* Null path name is the origin directory itself */
 		dp->fn[NSFLAG] = NS_NONAME;
 		res = dir_sdi(dp, 0);
@@ -3530,6 +3531,7 @@ FRESULT f_open (
 #endif
 	DEF_NAMBUF
 
+	iprintf("bopA\n");
 
 	if (!fp) return FR_INVALID_OBJECT;
 
@@ -3540,6 +3542,7 @@ FRESULT f_open (
 		dj.obj.fs = fs;
 		INIT_NAMBUF(fs);
 		res = follow_path(&dj, path);	/* Follow the file path */
+		iprintf("bopK, %d\n", res);
 #if !FF_FS_READONLY	/* Read/Write configuration */
 		if (res == FR_OK) {
 			if (dj.fn[NSFLAG] & NS_NONAME) {	/* Origin directory itself? */
@@ -3638,6 +3641,7 @@ FRESULT f_open (
 				}
 			}
 		}
+		iprintf("bopB, %d\n", res);
 #endif
 
 		if (res == FR_OK) {
@@ -3650,14 +3654,17 @@ FRESULT f_open (
 			} else
 #endif
 			{
+				iprintf("bopJJ\n");
 				fp->obj.sclust = ld_clust(fs, dj.dir);					/* Get object allocation info */
 				fp->obj.objsize = ld_dword(dj.dir + DIR_FileSize);
+				iprintf("bopHH\n");
 			}
 #if FF_USE_FASTSEEK
 			fp->cltbl = 0;			/* Disable fast seek mode */
 #endif
 			fp->obj.fs = fs;	 	/* Validate the file object */
 			fp->obj.id = fs->id;
+			iprintf("bopGG\n");
 			fp->flag = mode;		/* Set file access mode */
 			fp->err = 0;			/* Clear error flag */
 			fp->sect = 0;			/* Invalidate current data sector */
@@ -3666,6 +3673,7 @@ FRESULT f_open (
 #if !FF_FS_TINY
 			mem_set(fp->buf, 0, FF_MAX_SS);	/* Clear sector buffer */
 #endif
+			iprintf("bopGG\n");
 			if ((mode & FA_SEEKEND) && fp->obj.objsize > 0) {	/* Seek to end of file if FA_OPEN_APPEND is specified */
 				fp->fptr = fp->obj.objsize;			/* Offset to seek */
 				bcs = (DWORD)fs->csize * SS(fs);	/* Cluster size in byte */
@@ -3682,12 +3690,14 @@ FRESULT f_open (
 					} else {
 						fp->sect = sc + (DWORD)(ofs / SS(fs));
 #if !FF_FS_TINY
+						iprintf("bopGG\n");
 						if (disk_read(fs->pdrv, fp->buf, fp->sect, 1) != RES_OK) res = FR_DISK_ERR;
 #endif
 					}
 				}
 			}
 #endif
+		iprintf("bopC\n");
 		}
 
 		FREE_NAMBUF();

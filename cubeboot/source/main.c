@@ -21,6 +21,8 @@
 #include "patches_elf.h"
 #include "elf.h"
 
+#include "sd.h"
+
 #include "print.h"
 #include "helpers.h"
 #include "halt.h"
@@ -85,6 +87,15 @@ int main() {
 
     iprintf("XFB = %08x [max=%x]\n", (u32)xfb, VIDEO_GetFrameBufferSize(&TVPal576ProgScale));
 
+    // setup config device
+    if (mount_available_device() != SD_OK) {
+        prog_halt("Could not find an inserted SD card\n");
+        return 1;
+    }
+
+
+//// Old flow
+    
     iprintf("Checkup, done=%08x\n", *bs2done);
     if (*bs2done == 0xCAFEBEEF) {
         iprintf("He's alive! The doc's alive! He's in the old west, but he's alive!!\n");

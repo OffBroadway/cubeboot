@@ -8,10 +8,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include <sdcard/gcsd.h>
-#include "ffshim.h"
-#include "fatfs/ff.h"
-#include "ffutils.h"
+#include "sd.h"
 
 #include "print.h"
 #include "helpers.h"
@@ -125,16 +122,34 @@ void load_ipl() {
 #endif
 
     if (!valid) {
-        if (load_fat_ipl("sdb", &__io_gcsdb, bios_path)) goto found;
-        if (load_fat_ipl("sda", &__io_gcsda, bios_path)) goto found;
-        if (load_fat_ipl("sd2", &__io_gcsd2, bios_path)) goto found;
+        int size = get_file_size(bios_path);
+        if (size == SD_FAIL) {
+            char err_buf[255];
+            sprintf(err_buf, "Failed to find %s\n", bios_path);
+            prog_halt(err_buf);
+            return;
+        }
 
-        iprintf("Failed to find %s\n", bios_path);
+        if (size != IPL_SIZE) {
+            char err_buf[255];
+            sprintf(err_buf, "File %s is the wrong size %x\n", bios_path, size);
+            prog_halt(err_buf);
+            return;
+        }
+
+        if (load_file_buffer(bios_path, bios_buffer)) {
+            char err_buf[255];
+            sprintf(err_buf, "Failed to load %s\n", bios_path);
+            prog_halt(err_buf);
+            return;
+        }
+
+        Descrambler(bios_buffer + DECRYPT_START, IPL_ROM_FONT_SJIS - DECRYPT_START);
+        memcpy(bs2, bios_buffer + BS2_CODE_OFFSET, bs2_size);
     } else {
         goto ipl_loaded;
     }
 
-found:
     crc = csp_crc32_memory(bs2, bs2_size);
     iprintf("Read IPL crc=%08x\n", crc);
 
@@ -165,55 +180,4 @@ found:
 ipl_loaded:
     current_bios = &bios_table[bios_index];
     iprintf("IPL %s loaded...\n", current_bios->name);
-}
-
-int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path) {
-    int res = 0;
-
-    iprintf("Trying %s\n", slot_name);
-
-    FATFS fs;
-    iface = iface_;
-    FRESULT mount_result = f_mount(&fs, "", 1);
-    if (mount_result != FR_OK) {
-        iprintf("Couldn't mount %s: %s\n", slot_name, get_fresult_message(mount_result));
-        goto end;
-    }
-
-    char name[256];
-    f_getlabel(slot_name, name, NULL);
-    iprintf("Mounted %s as %s\n", name, slot_name);
-
-    iprintf("Reading %s\n", path);
-    FIL file;
-    FRESULT open_result = f_open(&file, path, FA_READ);
-    if (open_result != FR_OK) {
-        iprintf("Failed to open file: %s\n", get_fresult_message(open_result));
-        goto unmount;
-    }
-
-    size_t size = f_size(&file);
-    if (size != IPL_SIZE) {
-        iprintf("File %s is the wrong size %x\n", path, size);
-        goto unmount;
-    }
-    u32 unused;
-    f_read(&file, bios_buffer, size, &unused);
-    f_close(&file);
-
-    Descrambler(bios_buffer + DECRYPT_START, IPL_ROM_FONT_SJIS - DECRYPT_START);
-    memcpy(bs2, bios_buffer + BS2_CODE_OFFSET, bs2_size);
-
-    // u32 crc = csp_crc32_memory(bs2, bs2_size);
-    // iprintf("New BS2 crc=%08x\n", crc);
-
-    res = 1;
-
-unmount:
-    iprintf("Unmounting %s\n", slot_name);
-    iface->shutdown();
-    iface = NULL;
-
-end:
-    return res;
 }

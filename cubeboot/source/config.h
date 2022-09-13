@@ -1,5 +1,5 @@
-// #define DOLPHIN 1
-// #define TESTING 1
+// #define DOLPHIN
+#define TESTING
 
 #define VIDEO_ENABLE
 #define CONSOLE_ENABLE
