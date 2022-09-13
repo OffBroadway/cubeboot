@@ -1,6 +1,7 @@
 // #define DOLPHIN
 // #define TESTING
 // #define FORCE_IPL_LOAD
+// #define USE_SMALL_FATFS
 
 #define VIDEO_ENABLE
 // #define CONSOLE_ENABLE

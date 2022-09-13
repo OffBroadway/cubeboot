@@ -3,11 +3,14 @@
 #include <string.h>
 #include <sdcard/gcsd.h>
 
+#include "../sd.h"
 #include "../print.h"
 
+static const DISC_INTERFACE *dev = NULL;
+
 DSTATUS disk_initialize() {
-    int ready = 1;
-    return ready ? 0 : STA_NOINIT;
+    dev = get_current_device();
+    return (dev != NULL) ? 0 : STA_NOINIT;
 }
 
 DRESULT disk_readp (
@@ -19,7 +22,7 @@ DRESULT disk_readp (
     // iprintf("disk_readp 0x%08x, %u, %u, %u\n", (u32)buff, sector, offset, count);
 
     static u8 sec_buf[512];
-    if (!__io_gcsd2.readSectors(sector, 1, sec_buf)) {
+    if (!dev->readSectors(sector, 1, sec_buf)) {
         return RES_ERROR;
     }
 

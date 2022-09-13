@@ -1,3 +1,5 @@
+#include <sdcard/gcsd.h>
+
 typedef enum {
 	SD_OK         =  0, // Success
     SD_FAIL       = -1, // Failed
@@ -16,6 +18,7 @@ typedef enum {
 int mount_available_device();
 int unmount_current_device();
 const char *get_current_dev_name();
+const DISC_INTERFACE *get_current_device();
 
 int get_file_size(char *path);
 int load_file_dynamic(char *path, void **buf_ptr);

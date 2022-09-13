@@ -30,6 +30,8 @@
 #include "config.h"
 #include "loader.h"
 
+extern void udelay(int us);
+
 static u32 prog_entrypoint, prog_dst, prog_src, prog_len;
 static u32 *bs2done = (u32*)0x81700000;
 
@@ -94,10 +96,15 @@ int main() {
     }
 
     void *config_buf;
-    if (load_file_dynamic("cubeboot.ini", &config_buf) != SD_OK) {
+    if (load_file_dynamic("/cubeboot.ini", &config_buf) != SD_OK) {
         prog_halt("Could not find config file\n");
         return 1;
     }
+
+    iprintf("config_size = %d\n", get_file_size("/cubeboot.ini"));
+    iprintf("config: \n%s\n", (char*)config_buf);
+
+    free(config_buf);
 
 //// Old flow
     
@@ -280,7 +287,7 @@ int main() {
 
     /*** Shutdown all threads and exit to this method ***/
     iprintf("IPL BOOTING\n");
-#ifdef CONSOLE_ENABLE
+#ifdef DOLPHIN
     udelay(3 * 1000 * 1000);
 #endif
     __lwp_thread_stopmultitasking(bs2entry);
