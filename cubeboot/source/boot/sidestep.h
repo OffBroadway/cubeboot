@@ -6,7 +6,6 @@
 *
 * softdev March 2007
 ***************************************************************************/
-#ifndef HW_RVL
 #ifndef __SIDESTEP__
 #define __SIDESTEP__
 
@@ -35,5 +34,4 @@ typedef struct {
 
 int DOLtoARAM(unsigned char *dol, int argc, char *argv[]);
 
-#endif
 #endif

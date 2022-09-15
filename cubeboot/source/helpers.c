@@ -4,7 +4,11 @@
 
 #include <stdbool.h>
 #include <gcbool.h>
+#include <ogc/system.h>
+#include <ogc/lwp_watchdog.h>
 #include <ogc/machine/processor.h>
+
+#include "pcg_basic.h"
 
 // Special purpose register indices
 #define SPR_ECID_U 924
@@ -21,6 +25,12 @@ bool is_dolphin() {
     if (mfspr(SPR_ECID_M) != DOLPHIN_ECID_M) return FALSE;
     if (mfspr(SPR_ECID_L) != DOLPHIN_ECID_L) return FALSE;
     return TRUE;
+}
+
+u32 generate_random_color() {
+    u32 seq = gettick() % 0x20;
+    pcg32_srandom(SYS_Time(), 0x97e6 + seq);
+    return pcg32_boundedrand(0x00FFFFFF) & 0x00FFFFFF;
 }
 
 // credit to https://stackoverflow.com/a/744822/652487

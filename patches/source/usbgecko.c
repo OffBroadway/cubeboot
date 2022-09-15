@@ -24,6 +24,9 @@
 #include "tinyprintf/tinyprintf.h"
 #include "usbgecko.h"
 
+#include "config.h"
+
+#ifdef DEBUG
 extern volatile u32 EXI[3][5];
 
 static void exi_select(void)
@@ -160,3 +163,11 @@ void usb_OSReport(const char *fmt, ...) {
 
     va_end(args);
 }
+
+#else
+
+void usb_OSReport(const char *fmt, ...) {
+	(void)fmt;
+}
+
+#endif

@@ -82,6 +82,7 @@ FRESULT uf_mount(FATFS* fs) {
 }
 
 FRESULT uf_open(const char* path) {
+    if (__current_file.flag == 0x00) f_close(&__current_file);
     return f_open(&__current_file, path, FA_READ);
 }
 

@@ -18,9 +18,8 @@
 #define CUBE_TEX_WIDTH 84
 #define CUBE_TEX_HEIGHT 84
 
-__attribute_used__ u32 bs2tick() {
-    return 0x10; // end state is 0x10?? (start game)
-}
+#define STATE_START_GAME 0x10
+#define STATE_NO_DISC 0x12
 
 // __attribute_aligned_data__ u8 img_data[CUBE_TEX_WIDTH * CUBE_TEX_HEIGHT * 4];
 
@@ -28,6 +27,17 @@ __attribute_data__ u32 prog_entrypoint;
 __attribute_data__ u32 prog_dst;
 __attribute_data__ u32 prog_src;
 __attribute_data__ u32 prog_len;
+
+__attribute_data__ u32 cube_color;
+__attribute_data__ u32 start_game;
+
+__attribute_used__ u32 bs2tick() {
+    if (start_game) {
+        return STATE_START_GAME;
+    }
+
+    return STATE_NO_DISC;
+}
 
 // used to start game
 __attribute_reloc__ u32 (*PADSync)();
@@ -56,7 +66,7 @@ __attribute_used__ void pre_cube_init() {
     cube_init();
 
     rgb_color target_color;
-    target_color.color = (0xe11915 << 8) | 0xFF;
+    target_color.color = (cube_color << 8) | 0xFF;
 
     // tough colors: 252850 A18594 763C28
 

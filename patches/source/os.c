@@ -1,5 +1,6 @@
 #include "os.h"
 
+#if 0
 void DCInvalidateRange(void *addr, u32 nBytes)
 {
 	if (!nBytes) return;
@@ -11,6 +12,7 @@ void DCInvalidateRange(void *addr, u32 nBytes)
 		addr += 32;
 	} while (--i);
 }
+#endif
 
 void DCFlushRange(void *addr, u32 nBytes)
 {
@@ -26,6 +28,7 @@ void DCFlushRange(void *addr, u32 nBytes)
 	asm volatile("sc" ::: "r9", "r10");
 }
 
+#if 0
 void DCFlushRangeNoSync(void *addr, u32 nBytes)
 {
 	if (!nBytes) return;
@@ -73,3 +76,4 @@ void ICInvalidateRange(void *addr, u32 nBytes)
 		addr += 32;
 	} while (--i);
 }
+#endif

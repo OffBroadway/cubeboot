@@ -24,7 +24,25 @@ extern const void _edata;
 u8 *dol_buf;
 u32 *bs2done = (u32*)0x81700000;
 
-int load_fat_swiss(const char *slot_name, const DISC_INTERFACE *iface_);
+bool check_load_program() {
+    // check if we can even load files
+    if (get_current_dev_name() == 0) return false;
+
+    bool found_file = false;
+    for (int f = 0; f < (sizeof(swiss_paths) / sizeof(char *)); f++) {
+        char *path = swiss_paths[f];
+        int size = get_file_size(path);
+        if (size == SD_FAIL) {
+            iprintf("Failed to open file: %s\n", path);
+            continue;
+        } else {
+            found_file = true;
+            break;
+        }
+    }
+
+    return found_file;
+}
 
 void load_program() {
     // load program

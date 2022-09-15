@@ -35,7 +35,7 @@ image suitable for injection over the stock BS2 in the GCN.
 - [x] Loading an alternative IPL from an SD Card
 - [x] Support all NTSC and PAL IPL revisions
 - [x] Support booting SDGecko A/B and SD2SP2
-- [ ] Flashable firmware image for picoboot
+- [ ] Flashable firmware image for picoboot (gzip)
 - [ ] Settings loaded from an SD Card
 - [ ] Custom GameCube animation colors (tested)
   - [ ] Random color each boot using RTC
@@ -56,3 +56,8 @@ Known compatible IPL versions:
 - [ ] Create GitHub Actions for CI/CD
 - [ ] Create builds for SDGecko A/B and SD2SP2 only
 - [ ] Flashable settings files for picoboot
+- [ ] Add support for Memory Card boot.dol and ipl.bin
+
+## Pre-release TODO
+- [ ] Write tutorial documentation (Fiverr spanish translation)
+- [ ] 

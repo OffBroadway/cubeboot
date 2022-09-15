@@ -22,4 +22,6 @@
 `cubeboot/source/gcode.c` credit to libogc2 <br/>
 `cubeboot/source/gcode.h` credit to libogc2 <br/>
 `cubeboot/source/lwp_queue.inl` credit to libogc <br/>
+`cubeboot/source/pcg_basic.c` credit to pcg-random.org <br/>
+`cubeboot/source/pcg_basic.h` credit to pcg-random.org <br/>
 `cubeboot/data/GameCube.ttf` credit to Q Manning <bleutuna@yahoo.com> <br/>

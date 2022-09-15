@@ -1,6 +1,6 @@
 #include "print.h"
 
-#ifdef DOLPHIN
+#ifdef DOLPHIN_PRINT_ENABLE
 int iprintf(const char *fmt, ...) {
     va_list args;
     unsigned long length;

@@ -50,7 +50,7 @@ distribution.
 
 #include "print.h"
 
-#define _GCODE_DEBUG
+// #define _GCODE_DEBUG
 
 #define GCODE_BRK							(1<<0)
 #define GCODE_DE_MSK						(1<<1)

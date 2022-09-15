@@ -1,4 +1,4 @@
-// #define DOLPHIN
+
 // #define TESTING
 // #define FORCE_IPL_LOAD
 
@@ -23,6 +23,10 @@
 
 #define VIDEO_ENABLE
 // #define CONSOLE_ENABLE
+
+#define GECKO_PRINT_ENABLE
+// #define DOLPHIN_PRINT_ENABLE
+
 // #define PRINT_PATCHES
 // #define PRINT_RELOCS
 

@@ -21,14 +21,19 @@
 #include "patches_elf.h"
 #include "elf.h"
 
+#include "boot/sidestep.h"
 #include "sd.h"
 
 #include "print.h"
 #include "helpers.h"
 #include "halt.h"
 
+#include "pcg_basic.h"
+
 #include "config.h"
 #include "loader.h"
+
+#define is_fallback_enabled() 0
 
 extern void udelay(int us);
 
@@ -50,8 +55,12 @@ extern const void _end;
 // void *gc_text_tex_data_ptr;
 // extern void render_logo();
 
+u32 can_load_dol = 0;
+
 GXRModeObj *rmode;
 void *xfb;
+
+// u8 xfb[0xb4000];
 
 void __SYS_PreInit() {
     if (*bs2done == 0xCAFEBEEF) return;
@@ -66,7 +75,7 @@ int main() {
 #ifdef VIDEO_ENABLE
 	VIDEO_Init();
 	rmode = VIDEO_GetPreferredMode(NULL);
-	xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode));
+	xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode)); // heap
 #ifdef CONSOLE_ENABLE
 	console_init(xfb,20,20,rmode->fbWidth,rmode->xfbHeight,rmode->fbWidth*VI_DISPLAY_PIX_SZ);
 #endif
@@ -80,9 +89,11 @@ int main() {
     // // debug above
 #endif
 
-#ifdef DOLPHIN
+#ifdef DOLPHIN_PRINT_ENABLE
     InitializeUART();
-#else
+#endif
+
+#ifdef GECKO_PRINT_ENABLE
     // enable printf
     CON_EnableGecko(EXI_CHANNEL_1, FALSE);
 #endif
@@ -91,12 +102,17 @@ int main() {
 
     // setup config device
     if (mount_available_device() != SD_OK) {
-        prog_halt("Could not find an inserted SD card\n");
+        iprintf("Could not find an inserted SD card\n");
         // VIDEO_WaitVSync();
         // ppchalt();
-        return 1;
     }
 
+    // check if we have a bootable dol
+    if (check_load_program()) {
+        can_load_dol = true;
+    }
+
+#if 0
     void *config_buf;
     if (load_file_dynamic("/cubeboot.ini", &config_buf) != SD_OK) {
         prog_halt("Could not find config file\n");
@@ -112,9 +128,65 @@ int main() {
     iprintf("config: \n%s\n", b);
 
     free(config_buf);
+#endif
 
-//// Old flow
-    
+#if 0
+    if(is_fallback_enabled()) {
+        void *dol_raw_buf = NULL;
+        if (load_file_dynamic("/fallback.dol", &dol_raw_buf) != SD_OK) {
+            prog_halt("Could not load fallback file\n");
+            return 1;
+        }
+
+        DOLHEADER *hdr = (DOLHEADER *)dol_raw_buf;
+
+        u32 fallback_start_addr = 0x80003100;
+        u32 max = 0x80003000;
+
+        // Inspect text sections to see if what we found lies in here
+        for (int i = 0; i < MAXTEXTSECTION; i++) {
+            if (hdr->textAddress[i] && hdr->textLength[i]) {
+                u32 dst = (u32)current_dol_buf + hdr->textAddress[i] - fallback_start_addr;
+                iprintf("Text section %08x\n", (u32)dst);
+                memcpy((void*)dst, ((unsigned char*)dol_raw_buf) + hdr->textOffset[i], hdr->textLength[i]);
+                u32 _max = hdr->textAddress[i] + hdr->textLength[i];
+                if (_max > max) max = _max;
+            }
+        }
+
+        // Inspect data sections (shouldn't really need to unless someone was sneaky..)
+        for (int i = 0; i < MAXDATASECTION; i++) {
+            if (hdr->dataAddress[i] && hdr->dataLength[i]) {
+                u32 dst = (u32)current_dol_buf + hdr->dataAddress[i] - fallback_start_addr;
+                iprintf("Data section %08x\n", (u32)dst);
+                memcpy((void*)dst, ((unsigned char*)dol_raw_buf) + hdr->dataOffset[i], hdr->dataLength[i]);
+                u32 _max = hdr->dataAddress[i] + hdr->dataLength[i];
+                if (_max > max) max = _max;
+            }
+        }
+
+        free(dol_raw_buf);
+
+        current_dol_len = (u32)dol_raw_buf + max - fallback_start_addr;
+    }
+#endif
+
+#if 0
+    if(is_fallback_enabled()) {
+        int fallback_size = get_file_size("/fallback.bin");
+        iprintf("fallback size = %d\n", fallback_size);
+
+        if (load_file_buffer("/fallback.bin", current_dol_buf) != SD_OK) {
+            prog_halt("Could not load fallback file\n");
+            return 1;
+        }
+
+        current_dol_len = fallback_size;
+    }
+#endif
+
+    u32 random_color = generate_random_color();
+
     iprintf("Checkup, done=%08x\n", *bs2done);
     if (*bs2done == 0xCAFEBEEF) {
         iprintf("He's alive! The doc's alive! He's in the old west, but he's alive!!\n");
@@ -129,6 +201,8 @@ int main() {
 
     // load ipl
     load_ipl();
+
+//// elf world
 
     Elf32_Ehdr* ehdr;
     Elf32_Shdr* shdr;
@@ -273,6 +347,9 @@ int main() {
     set_patch_value(symshdr, syment, symstringdata, "prog_dst", prog_dst);
     set_patch_value(symshdr, syment, symstringdata, "prog_len", prog_len);
 
+    set_patch_value(symshdr, syment, symstringdata, "start_game", can_load_dol);
+    set_patch_value(symshdr, syment, symstringdata, "cube_color", random_color);
+
     // while(1);
 
     unmount_current_device();
@@ -294,9 +371,13 @@ int main() {
 
     /*** Shutdown all threads and exit to this method ***/
     iprintf("IPL BOOTING\n");
-#ifdef DOLPHIN
-    udelay(3 * 1000 * 1000);
-#endif
+
+// #ifdef VIDEO_ENABLE
+//     if (is_dolphin()) {
+//         udelay(3 * 1000 * 1000);
+//     }
+// #endif
+
     __lwp_thread_stopmultitasking(bs2entry);
 
     __builtin_unreachable();
