@@ -28,6 +28,7 @@
 #include "helpers.h"
 #include "halt.h"
 
+#include "settings.h"
 #include "pcg_basic.h"
 #include "ini.h"
 
@@ -57,9 +58,6 @@ extern const void _end;
 // extern void render_logo();
 
 u32 can_load_dol = 0;
-
-bool use_random_color = 0;
-u32 cube_color = 0;
 
 GXRModeObj *rmode;
 void *xfb = MEM_K0_TO_K1(0x81708000); // somewhere above patches
@@ -113,33 +111,7 @@ int main() {
     }
 
     if (is_device_mounted()) {
-        int config_size = get_file_size("/cubeboot.ini");
-        void *config_buf = malloc(config_size + 1);
-        if (config_buf == NULL) {
-            prog_halt("Could not allocate buffer for config file\n");
-            return 1;
-        }
-
-        if (load_file_buffer("/cubeboot.ini", config_buf) != SD_OK) {
-            prog_halt("Could not find config file\n");
-            return 1;
-        }
-
-        ((u8*)config_buf)[config_size - 1] = '\0';
-
-        ini_t *conf = ini_load(config_buf, config_size);
-
-        const char *cube_color_raw = ini_get(conf, "", "cube_color");
-        if (cube_color_raw != NULL) {
-            if (strcmp(cube_color_raw, "random") == 0) {
-                cube_color = generate_random_color();
-            } else {
-                int vars = sscanf(cube_color_raw, "%x", &cube_color);
-                if (vars == EOF) cube_color = 0;
-            }
-        }
-
-        free(config_buf);
+        load_settings();
     }
 
 #if 0
@@ -317,7 +289,7 @@ int main() {
     set_patch_value(symshdr, syment, symstringdata, "prog_len", prog_len);
 
     set_patch_value(symshdr, syment, symstringdata, "start_game", can_load_dol);
-    set_patch_value(symshdr, syment, symstringdata, "cube_color", cube_color);
+    set_patch_value(symshdr, syment, symstringdata, "cube_color", settings.cube_color);
 
     // while(1);
 

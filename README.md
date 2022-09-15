@@ -36,9 +36,9 @@ image suitable for injection over the stock BS2 in the GCN.
 - [x] Support all NTSC and PAL IPL revisions
 - [x] Support booting SDGecko A/B and SD2SP2
 - [ ] Flashable firmware image for picoboot (gzip)
-- [ ] Settings loaded from an SD Card
-- [ ] Custom GameCube animation colors (tested)
-  - [ ] Random color each boot using RTC
+- [x] Settings loaded from an SD Card
+- [x] Custom GameCube animation colors (tested)
+  - [x] Random color each boot using RTC
 - [ ] Custom Nintendo logo text replacement
 - [ ] Force Progressive video modes
 
@@ -60,4 +60,6 @@ Known compatible IPL versions:
 
 ## Pre-release TODO
 - [ ] Write tutorial documentation (Fiverr spanish translation)
-
+- [ ] Add config value for loading fallback
+- [ ] Add config for forced 480p
+- [ ] Add config for cube_text
