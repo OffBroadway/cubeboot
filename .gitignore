@@ -5,6 +5,7 @@ entry/data/
 *.dol
 *.elf
 *.iso
+*.gz
 
 ipl.rom
 *.bin
