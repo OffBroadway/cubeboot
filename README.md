@@ -1,6 +1,6 @@
 # Flippyboot IPL
 
-This project is a patching framework for the GameCube IPL which is called BS2
+This project is a patching framework for the GameCube IPL which is called BS2.
 The project was originally intended to restore the Boot Animation on Flippyboot.
 Now the project has been generalized and works on both Flippyboot and PicoBoot.
 
