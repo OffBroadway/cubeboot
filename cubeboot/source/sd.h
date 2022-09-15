@@ -19,6 +19,7 @@ int mount_available_device();
 int unmount_current_device();
 const char *get_current_dev_name();
 const DISC_INTERFACE *get_current_device();
+bool is_device_mounted();
 
 int get_file_size(char *path);
 int load_file_dynamic(char *path, void **buf_ptr);

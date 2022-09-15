@@ -24,4 +24,6 @@
 `cubeboot/source/lwp_queue.inl` credit to libogc <br/>
 `cubeboot/source/pcg_basic.c` credit to pcg-random.org <br/>
 `cubeboot/source/pcg_basic.h` credit to pcg-random.org <br/>
+`cubeboot/source/ini.c` credit to github.com/rxi/ini <br/>
+`cubeboot/source/ini.h` credit to github.com/rxi/ini <br/>
 `cubeboot/data/GameCube.ttf` credit to Q Manning <bleutuna@yahoo.com> <br/>

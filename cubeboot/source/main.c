@@ -29,6 +29,7 @@
 #include "halt.h"
 
 #include "pcg_basic.h"
+#include "ini.h"
 
 #include "config.h"
 #include "loader.h"
@@ -57,10 +58,11 @@ extern const void _end;
 
 u32 can_load_dol = 0;
 
-GXRModeObj *rmode;
-void *xfb;
+bool use_random_color = 0;
+u32 cube_color = 0;
 
-// u8 xfb[0xb4000];
+GXRModeObj *rmode;
+void *xfb = MEM_K0_TO_K1(0x81708000); // somewhere above patches
 
 void __SYS_PreInit() {
     if (*bs2done == 0xCAFEBEEF) return;
@@ -75,7 +77,7 @@ int main() {
 #ifdef VIDEO_ENABLE
 	VIDEO_Init();
 	rmode = VIDEO_GetPreferredMode(NULL);
-	xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode)); // heap
+    // void *xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode)); // heap
 #ifdef CONSOLE_ENABLE
 	console_init(xfb,20,20,rmode->fbWidth,rmode->xfbHeight,rmode->fbWidth*VI_DISPLAY_PIX_SZ);
 #endif
@@ -103,8 +105,6 @@ int main() {
     // setup config device
     if (mount_available_device() != SD_OK) {
         iprintf("Could not find an inserted SD card\n");
-        // VIDEO_WaitVSync();
-        // ppchalt();
     }
 
     // check if we have a bootable dol
@@ -112,64 +112,35 @@ int main() {
         can_load_dol = true;
     }
 
-#if 0
-    void *config_buf;
-    if (load_file_dynamic("/cubeboot.ini", &config_buf) != SD_OK) {
-        prog_halt("Could not find config file\n");
-        return 1;
-    }
-
-    int size = get_file_size("/cubeboot.ini");
-    iprintf("config_size = %d\n", size);
-
-    char b[255];
-    memset(b, 0, sizeof(b));
-    strncpy(b, config_buf, size);
-    iprintf("config: \n%s\n", b);
-
-    free(config_buf);
-#endif
-
-#if 0
-    if(is_fallback_enabled()) {
-        void *dol_raw_buf = NULL;
-        if (load_file_dynamic("/fallback.dol", &dol_raw_buf) != SD_OK) {
-            prog_halt("Could not load fallback file\n");
+    if (is_device_mounted()) {
+        int config_size = get_file_size("/cubeboot.ini");
+        void *config_buf = malloc(config_size + 1);
+        if (config_buf == NULL) {
+            prog_halt("Could not allocate buffer for config file\n");
             return 1;
         }
 
-        DOLHEADER *hdr = (DOLHEADER *)dol_raw_buf;
+        if (load_file_buffer("/cubeboot.ini", config_buf) != SD_OK) {
+            prog_halt("Could not find config file\n");
+            return 1;
+        }
 
-        u32 fallback_start_addr = 0x80003100;
-        u32 max = 0x80003000;
+        ((u8*)config_buf)[config_size - 1] = '\0';
 
-        // Inspect text sections to see if what we found lies in here
-        for (int i = 0; i < MAXTEXTSECTION; i++) {
-            if (hdr->textAddress[i] && hdr->textLength[i]) {
-                u32 dst = (u32)current_dol_buf + hdr->textAddress[i] - fallback_start_addr;
-                iprintf("Text section %08x\n", (u32)dst);
-                memcpy((void*)dst, ((unsigned char*)dol_raw_buf) + hdr->textOffset[i], hdr->textLength[i]);
-                u32 _max = hdr->textAddress[i] + hdr->textLength[i];
-                if (_max > max) max = _max;
+        ini_t *conf = ini_load(config_buf, config_size);
+
+        const char *cube_color_raw = ini_get(conf, "", "cube_color");
+        if (cube_color_raw != NULL) {
+            if (strcmp(cube_color_raw, "random") == 0) {
+                cube_color = generate_random_color();
+            } else {
+                int vars = sscanf(cube_color_raw, "%x", &cube_color);
+                if (vars == EOF) cube_color = 0;
             }
         }
 
-        // Inspect data sections (shouldn't really need to unless someone was sneaky..)
-        for (int i = 0; i < MAXDATASECTION; i++) {
-            if (hdr->dataAddress[i] && hdr->dataLength[i]) {
-                u32 dst = (u32)current_dol_buf + hdr->dataAddress[i] - fallback_start_addr;
-                iprintf("Data section %08x\n", (u32)dst);
-                memcpy((void*)dst, ((unsigned char*)dol_raw_buf) + hdr->dataOffset[i], hdr->dataLength[i]);
-                u32 _max = hdr->dataAddress[i] + hdr->dataLength[i];
-                if (_max > max) max = _max;
-            }
-        }
-
-        free(dol_raw_buf);
-
-        current_dol_len = (u32)dol_raw_buf + max - fallback_start_addr;
+        free(config_buf);
     }
-#endif
 
 #if 0
     if(is_fallback_enabled()) {
@@ -184,8 +155,6 @@ int main() {
         current_dol_len = fallback_size;
     }
 #endif
-
-    u32 random_color = generate_random_color();
 
     iprintf("Checkup, done=%08x\n", *bs2done);
     if (*bs2done == 0xCAFEBEEF) {
@@ -348,7 +317,7 @@ int main() {
     set_patch_value(symshdr, syment, symstringdata, "prog_len", prog_len);
 
     set_patch_value(symshdr, syment, symstringdata, "start_game", can_load_dol);
-    set_patch_value(symshdr, syment, symstringdata, "cube_color", random_color);
+    set_patch_value(symshdr, syment, symstringdata, "cube_color", cube_color);
 
     // while(1);
 
@@ -371,12 +340,6 @@ int main() {
 
     /*** Shutdown all threads and exit to this method ***/
     iprintf("IPL BOOTING\n");
-
-// #ifdef VIDEO_ENABLE
-//     if (is_dolphin()) {
-//         udelay(3 * 1000 * 1000);
-//     }
-// #endif
 
     __lwp_thread_stopmultitasking(bs2entry);
 

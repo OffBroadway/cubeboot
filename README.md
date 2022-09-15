@@ -54,10 +54,10 @@ Known compatible IPL versions:
 
 ## TODO
 - [ ] Create GitHub Actions for CI/CD
-- [ ] Create builds for SDGecko A/B and SD2SP2 only
+- [ ] Add GCLoader support
 - [ ] Flashable settings files for picoboot
 - [ ] Add support for Memory Card boot.dol and ipl.bin
 
 ## Pre-release TODO
 - [ ] Write tutorial documentation (Fiverr spanish translation)
-- [ ] 
+

@@ -26,7 +26,7 @@ u32 *bs2done = (u32*)0x81700000;
 
 bool check_load_program() {
     // check if we can even load files
-    if (get_current_dev_name() == 0) return false;
+    if (!is_device_mounted()) return false;
 
     bool found_file = false;
     for (int f = 0; f < (sizeof(swiss_paths) / sizeof(char *)); f++) {

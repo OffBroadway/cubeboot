@@ -74,7 +74,7 @@ DWORD uf_size() {
 
 #include "sd.h"
 
-static FIL __current_file = {};
+ATTRIBUTE_ALIGN(32) static FIL __current_file = {};
 
 FRESULT uf_mount(FATFS* fs) {
     iface = get_current_device();

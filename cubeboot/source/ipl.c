@@ -44,7 +44,7 @@
 #define SDA_LOAD_ADDR_B (SDA_LOAD_ADDR_A + NUM_GPR_CLEARS)
 #endif
 
-static u8 bios_buffer[IPL_SIZE];
+ATTRIBUTE_ALIGN(32) static u8 bios_buffer[IPL_SIZE];
 
 static u32 bs2_size = IPL_SIZE - BS2_CODE_OFFSET;
 static u8 *bs2 = (u8*)(BS2_BASE_ADDR);
@@ -76,15 +76,12 @@ bios_item bios_table[] = {
     {"gc-pal-12",       "pal12",        "VER_PAL_12",       0x1082fbc9}, // SDA = 814b7280
 };
 
-extern GXRModeObj *rmode;
-extern void *xfb;
-
 extern void __SYS_ReadROM(void *buf,u32 len,u32 offset);
 
 extern u64 gettime(void);
 extern u32 diff_msec(s64 start,s64 end);
 
-int load_fat_ipl(const char *slot_name, const DISC_INTERFACE *iface_, char *path);
+static bool valid = false;
 
 void load_ipl() {
     if (is_dolphin()) {
@@ -103,13 +100,11 @@ void load_ipl() {
     u32 crc = csp_crc32_memory(bs2, bs2_size);
     iprintf("Read BS2 crc=%08x\n", crc);
 
-    // TODO: put SDA check here
-
-    bool valid = FALSE;
+    valid = false;
     for(int i = 0; i < sizeof(bios_table) / sizeof(bios_table[0]); i++) {
         if(bios_table[i].crc == crc) {
             bios_index = i;
-            valid = TRUE;
+            valid = true;
             break;
         }
     }
@@ -118,7 +113,7 @@ void load_ipl() {
 
 #ifdef FORCE_IPL_LOAD
     // TEST ONLY
-    valid = FALSE;
+    valid = false;
 #endif
 
     if (!valid) {
@@ -153,17 +148,6 @@ void load_ipl() {
     crc = csp_crc32_memory(bs2, bs2_size);
     iprintf("Read IPL crc=%08x\n", crc);
 
-#ifndef DISABLE_SDA_CHECK
-    u32 *sda_load = (u32*)SDA_LOAD_ADDR_A;
-    if (*(u32*)STACK_SETUP_ADDR == 0x38000000) {
-        sda_load = (u32*)SDA_LOAD_ADDR_B;
-    }
-    u32 sda_high = (sda_load[0] & 0xFFFF) << 16;
-    u32 sda_low = sda_load[1] & 0xFFFF;
-    u32 sda = sda_high | sda_low;
-    iprintf("Read BS2 sda=%08x\n", sda);
-#endif
-
     valid = FALSE;
     for(int i = 0; i < sizeof(bios_table) / sizeof(bios_table[0]); i++) {
         if(bios_table[i].crc == crc) {
@@ -181,3 +165,14 @@ ipl_loaded:
     current_bios = &bios_table[bios_index];
     iprintf("IPL %s loaded...\n", current_bios->name);
 }
+
+// #ifndef DISABLE_SDA_CHECK
+//     u32 *sda_load = (u32*)SDA_LOAD_ADDR_A;
+//     if (*(u32*)STACK_SETUP_ADDR == 0x38000000) {
+//         sda_load = (u32*)SDA_LOAD_ADDR_B;
+//     }
+//     u32 sda_high = (sda_load[0] & 0xFFFF) << 16;
+//     u32 sda_low = sda_load[1] & 0xFFFF;
+//     u32 sda = sda_high | sda_low;
+//     iprintf("Read BS2 sda=%08x\n", sda);
+// #endif

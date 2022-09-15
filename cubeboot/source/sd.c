@@ -16,6 +16,7 @@ const DISC_INTERFACE *drivers[] = {&__io_gcsda, &__io_gcsdb, &__io_gcsd2}; // an
 static const char *current_dev_name = NULL;
 static const DISC_INTERFACE *current_device = NULL;
 static int current_device_index = -1;
+static bool is_mounted = FALSE;
 
 // check for inserted
 static int check_available_devices() {
@@ -55,6 +56,7 @@ int mount_available_device() {
         return SD_FAIL;
     }
 
+    is_mounted = TRUE;
     iprintf("Mounted %s\n", current_dev_name);
 
     return SD_OK;
@@ -69,8 +71,13 @@ int unmount_current_device() {
     current_device = NULL;
     current_device_index = -1;
     current_dev_name = NULL;
+    is_mounted = FALSE;
 
     return SD_OK;
+}
+
+bool is_device_mounted() {
+    return is_mounted;
 }
 
 const char *get_current_dev_name() {

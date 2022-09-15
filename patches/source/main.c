@@ -64,6 +64,7 @@ __attribute_data__ static GXColorS10 color_bg_outer_0;
 __attribute_data__ static GXColorS10 color_bg_outer_1;
 __attribute_used__ void pre_cube_init() {
     cube_init();
+    if (cube_color == 0) return;
 
     rgb_color target_color;
     target_color.color = (cube_color << 8) | 0xFF;
