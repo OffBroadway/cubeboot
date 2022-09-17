@@ -29,8 +29,8 @@
 #include "halt.h"
 
 #include "settings.h"
-#include "pcg_basic.h"
-#include "ini.h"
+#include "logo.h"
+#include "GameCube_ttf.h"
 
 #include "config.h"
 #include "loader.h"
@@ -46,21 +46,17 @@ static u32 *bs2done = (u32*)0x81700000;
 static void (*bs2entry)(void) = (void(*)(void))BS2_BASE_ADDR;
 
 static char stringBuffer[255];
-u8 current_dol_buf[512 * 1024];
+u8 current_dol_buf[1500 * 1024];
 u32 current_dol_len;
 
 extern const void _start;
 extern const void _edata;
 extern const void _end;
 
-// // text logo replacment
-// void *gc_text_tex_data_ptr;
-// extern void render_logo();
-
 u32 can_load_dol = 0;
 
 GXRModeObj *rmode;
-void *xfb = MEM_K0_TO_K1(0x81708000); // somewhere above patches
+void *xfb = MEM_K0_TO_K1(0x8170b000); // somewhere above patches
 
 void __SYS_PreInit() {
     if (*bs2done == 0xCAFEBEEF) return;
@@ -98,7 +94,10 @@ int main() {
     CON_EnableGecko(EXI_CHANNEL_1, FALSE);
 #endif
 
+#ifdef VIDEO_ENABLE
     iprintf("XFB = %08x [max=%x]\n", (u32)xfb, VIDEO_GetFrameBufferSize(&TVPal576ProgScale));
+#endif
+    iprintf("current_dol_len = %d\n", current_dol_len);
 
     // setup config device
     if (mount_available_device() != SD_OK) {
@@ -139,6 +138,8 @@ int main() {
         // load program
         load_program();
     }
+
+//// fun stuff
 
     // load ipl
     load_ipl();
@@ -274,6 +275,18 @@ int main() {
         }
     }
 
+
+    u8 *image_data = NULL;
+    if (settings.cube_text != NULL) {
+        int image_size;
+        image_data = texture_render_logo(settings.cube_text, settings.cube_text_size, &image_size);
+        iprintf("img can be found at %08x[%x]\n", (u32)image_data, image_size);
+        iprintf("img crc before = %08x\n", csp_crc32_memory(image_data, image_size));
+        void *patch_image_data = (void*)get_symbol_value(symshdr, syment, symstringdata, "cube_text_tex");
+        iprintf("patch_image_data = %p\n", patch_image_data);
+        memcpy(patch_image_data, image_data, image_size);
+    }
+
     // load current program
     prog_entrypoint = (u32)&_start;
     prog_src = (u32)current_dol_buf;
@@ -290,6 +303,7 @@ int main() {
 
     set_patch_value(symshdr, syment, symstringdata, "start_game", can_load_dol);
     set_patch_value(symshdr, syment, symstringdata, "cube_color", settings.cube_color);
+    // set_patch_value(symshdr, syment, symstringdata, "cube_text_tex", (u32)image_data);
 
     // while(1);
 
@@ -312,6 +326,9 @@ int main() {
 
     /*** Shutdown all threads and exit to this method ***/
     iprintf("IPL BOOTING\n");
+
+    // // fix for dolphin cache
+    // udelay(10 * 1000 * 1000);
 
     __lwp_thread_stopmultitasking(bs2entry);
 

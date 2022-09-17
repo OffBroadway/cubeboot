@@ -31,6 +31,8 @@ __attribute_data__ u32 prog_len;
 __attribute_data__ u32 cube_color;
 __attribute_data__ u32 start_game;
 
+__attribute_aligned_data__ u8 cube_text_tex[CUBE_TEX_WIDTH * CUBE_TEX_HEIGHT * 4] = { 0 };
+
 __attribute_used__ u32 bs2tick() {
     if (start_game) {
         return STATE_START_GAME;
@@ -62,8 +64,8 @@ __attribute_data__ static GXColorS10 color_cube_low;
 __attribute_data__ static GXColorS10 color_bg_inner;
 __attribute_data__ static GXColorS10 color_bg_outer_0;
 __attribute_data__ static GXColorS10 color_bg_outer_1;
-__attribute_used__ void pre_cube_init() {
-    cube_init();
+
+__attribute_used__ void mod_cube_colors() {
     if (cube_color == 0) {
         OSReport("Using default colors\n");
         return;
@@ -131,7 +133,7 @@ __attribute_used__ void pre_cube_init() {
         void *img_ptr = (void*)((u8*)base + p->offset + (i * 0x20));
         OSReport("FOUND TEX: %dx%d @ %p\n", wd, ht, img_ptr);
 
-#if 1
+        // change hue of cube textures
         for (int y = 0; y < ht; y++) {
             for (int x = 0; x < wd; x++) {
                 u32 color = GRRLIB_GetPixelFromtexImg(x, y, img_ptr, wd);
@@ -152,36 +154,6 @@ __attribute_used__ void pre_cube_init() {
 
         uint32_t buffer_size = (wd * ht) << 2;
         DCFlushRange(img_ptr, buffer_size);
-#else
-        // decode_tex_data((u32*)img_data, (u32*)img_ptr, wd, ht);
-
-        u32 *pix_data = (u32*)img_data;
-        // for (int i = 0; i < wd * ht; i++) {
-        //     u32 color = pix_data[i];
-        //     // ...
-        //     pix_data[i] = color;
-        // }
-
-        for (int y = 0; y < ht; y++) {
-            for (int x = 0; x < wd; x++) {
-                u32 color = GRRLIB_GetPixelFromtexImg(x, y, img_ptr, wd);
-
-                // hsl
-                {
-                    u32 hsl = GRRLIB_RGBToHSL(color);
-                    u32 sat = round((float)L(hsl) * sat_mult);
-                    if (sat > 0xFF) sat = 0xFF;
-                    u32 lum = round((float)L(hsl) * lum_mult);
-                    if (lum > 0xFF) lum = 0xFF;
-                    color = GRRLIB_HSLToRGB(HSLA(target_hue, (u8)sat, (u8)lum, A(hsl)));
-                }
-
-                pix_data[(y * wd) + x] = color;
-            }
-        }
-
-        Metaphrasis_convertBufferToRGBA8(img_data, img_ptr, wd, ht);
-#endif
     }
 
     // copy over colors
@@ -209,7 +181,36 @@ __attribute_used__ void pre_cube_init() {
     return;
 }
 
-void pre_main() {
+void _memset(void* s, int c, int count) {
+	char* xs = (char*)s;
+	while (count--)
+		*xs++ = c;
+}
+
+__attribute_used__ void mod_cube_text() {
+        tex_data *gc_text_tex = gc_text_model->data->tex->dat;
+        u16 wd = gc_text_tex->width;
+        u16 ht = gc_text_tex->height;
+        void *img_ptr = (void*)((u8*)gc_text_tex + gc_text_tex->offset);
+        // gc_text_tex->format = GX_TF_RGBA8;
+        OSReport("CUBE TEXT TEX: %dx%d[%d] @ %p\n", wd, ht, gc_text_tex->format, img_ptr);
+        OSReport("PTR = %08x\n", (u32)cube_text_tex);
+        // if ((void*)cube_text_tex != NULL) {
+        //     OSReport("img crc after = %08x\n", csp_crc32_memory(img_ptr, wd * ht));
+        //     memcpy(img_ptr, (void*)cube_text_tex, wd * ht);
+        // }
+        memcpy(img_ptr, cube_text_tex, wd * ht);
+        DCFlushRange(img_ptr, wd * ht);
+}
+
+__attribute_used__ void pre_cube_init() {
+    cube_init();
+
+    mod_cube_colors();
+    mod_cube_text();
+}
+
+__attribute_used__ void pre_main() {
     OSReport("RUNNING BEFORE MAIN\n");
 
     // extern GXRModeObj TVNtsc480ProgAa;
