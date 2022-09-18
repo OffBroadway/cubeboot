@@ -13,7 +13,7 @@
 #include "pngu/pngu.h"
 #include "halt.h"
 
-// ATTRIBUTE_ALIGN(32) static u8 image_buffer[GAMECUBE_LOGO_WIDTH * GAMECUBE_LOGO_HEIGHT * 4];
+ATTRIBUTE_ALIGN(32) static u8 color_image_buffer[GAMECUBE_LOGO_WIDTH * GAMECUBE_LOGO_HEIGHT * 4];
 
 u8 *load_logo_texture(char *path) {
     // int width = GAMECUBE_LOGO_WIDTH;
@@ -44,10 +44,10 @@ u8 *load_logo_texture(char *path) {
 
     int width = 0;
     int height = 0;
-    u8 *image = PNGU_DecodeTo4x4RGBA8(ctx, imgProp.imgWidth, imgProp.imgHeight, &width, &height, NULL);
+    u8 *image = PNGU_DecodeTo4x4RGBA8(ctx, imgProp.imgWidth, imgProp.imgHeight, &width, &height, color_image_buffer);
 
     iprintf("bopD?\n");
     PNGU_ReleaseImageContext(ctx);
 
-    return image;
+    return (u8*)image;
 }

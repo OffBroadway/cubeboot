@@ -187,15 +187,22 @@ __attribute_used__ void mod_cube_text() {
         void *img_ptr = (void*)((u8*)gc_text_tex + gc_text_tex->offset);
         u32 img_size = wd * ht;
 
+        OSReport("CUBE TEXT TEX: %dx%d[%d] (type=%d) @ %p\n", wd, ht, img_size, gc_text_tex->format, img_ptr);
+        OSReport("PTR = %08x\n", (u32)cube_text_tex);
+        OSReport("ORIG_PTR_PARTS = %08x, %08x\n", (u32)gc_text_tex, gc_text_tex->offset);
+
+        s32 desired_offset = gc_text_tex->offset;
+        if ((u32)gc_text_tex > (u32)cube_text_tex) {
+            desired_offset = -1 * (s32)((u32)gc_text_tex - (u32)cube_text_tex);
+        } else {
+            desired_offset = (s32)((u32)cube_text_tex - (u32)gc_text_tex);
+        }
+
+        OSReport("DESIRED = %d\n", desired_offset);
+
         // change the texture format
         gc_text_tex->format = GX_TF_RGBA8;
-
-        OSReport("CUBE TEXT TEX: %dx%d[%d] @ %p\n", wd, ht, gc_text_tex->format, img_ptr);
-        OSReport("PTR = %08x\n", (u32)cube_text_tex);
-        if (cube_text_tex != NULL) {
-            memcpy(img_ptr, cube_text_tex, img_size);
-        }
-        DCFlushRange(img_ptr, img_size);
+        gc_text_tex->offset = desired_offset;
 }
 
 __attribute_used__ void pre_cube_init() {
