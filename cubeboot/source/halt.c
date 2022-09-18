@@ -24,6 +24,8 @@ void prog_halt(char *msg) {
     // CON_EnableGecko(EXI_CHANNEL_1, false);
 #endif
     printf(msg);
+#ifdef VIDEO_ENABLE
     VIDEO_WaitVSync();
+#endif
     ppchalt();
 }

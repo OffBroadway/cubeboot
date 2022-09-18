@@ -53,7 +53,7 @@ s8 bios_index = -1;
 bios_item *current_bios;
 
 
-#ifdef TESTING
+#ifdef TEST_IPL_PATH
 char *bios_path = "/bios-sfn/ntsc11.bin";
 #else
 char *bios_path = "/ipl.bin";

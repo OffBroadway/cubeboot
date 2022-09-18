@@ -12,6 +12,7 @@
 #define uf_write pf_write
 #define uf_lseek pf_lseek
 #define uf_size pf_size
+#define uf_unmount()
 #endif
 
 #ifdef USE_FAT_FATFS
@@ -51,5 +52,6 @@ FRESULT uf_read (void* buff, UINT btr, UINT* br);			/* Read data from the open f
 FRESULT uf_write (const void* buff, UINT btw, UINT* bw);	/* Write data to the open file */
 FRESULT uf_lseek (DWORD ofs);								/* Move file pointer of the open file */
 DWORD   uf_size ();											/* Get size from the open file */
+FRESULT uf_unmount ();										/* Mount/Unmount a logical drive */
 
 #endif

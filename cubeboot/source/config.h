@@ -1,6 +1,7 @@
 
-// #define TESTING
+// #define TEST_IPL_PATH
 // #define FORCE_IPL_LOAD
+#define DOLPHIN_DELAY_ENABLE
 
 // #define USE_FAT_LIBFAT
 #define USE_FAT_FATFS

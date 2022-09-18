@@ -36,8 +36,7 @@ CUBEBOOT	:=	data/cubeboot.gz
 CFLAGS		= -Os -Wall $(MACHDEP) $(INCLUDE)
 CXXFLAGS	= $(CFLAGS)
 
-LDFLAGS		= $(MACHDEP) -Wl,-Map,$(notdir $@).map --specs=nosys.specs -T $(PROJDIR)/nosys.ld 
-# -nolibc
+LDFLAGS		= $(MACHDEP) -Wl,-Map,$(notdir $@).map --specs=nosys.specs -T $(PROJDIR)/nosys.ld
 
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project

@@ -9,9 +9,10 @@
 #include "ini.h"
 #include "settings.h"
 
-settings_t settings = {};
+settings_t settings;
 
 void load_settings() {
+    memset(&settings, 0, sizeof(settings));
     int config_size = get_file_size("/cubeboot.ini");
     if (config_size == SD_FAIL) return;
 
@@ -30,6 +31,7 @@ void load_settings() {
 
     ini_t *conf = ini_load(config_buf, config_size);
 
+    // cube color
     const char *cube_color_raw = ini_get(conf, "", "cube_color");
     if (cube_color_raw != NULL) {
         if (strcmp(cube_color_raw, "random") == 0) {
@@ -38,6 +40,22 @@ void load_settings() {
             int vars = sscanf(cube_color_raw, "%x", &settings.cube_color);
             if (vars == EOF) settings.cube_color = 0;
         }
+    }
+
+    // cube logo
+    const char *cube_logo = ini_get(conf, "", "cube_logo");
+    if (cube_logo != NULL) {
+        iprintf("Found cube_logo = %s\n", cube_logo);
+        settings.cube_logo = (char*)cube_logo;
+    }
+
+    // fallback enable
+    int fallback_enabled = 0;
+    if (!ini_sget(conf, "", "force_fallback", "%d", &fallback_enabled)) {
+        settings.fallback_enabled = 0;
+    } else {
+        iprintf("Found force_fallback = %d\n", fallback_enabled);
+        settings.fallback_enabled = fallback_enabled;
     }
 
     free(config_buf);

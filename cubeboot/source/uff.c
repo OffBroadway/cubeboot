@@ -66,6 +66,11 @@ DWORD uf_size() {
     return size;
 }
 
+FRESULT uf_unmount() {
+    __current_file_path = NULL;
+    return FR_OK;
+}
+
 #endif
 
 #ifdef USE_FAT_FATFS
@@ -100,6 +105,11 @@ FRESULT uf_lseek(DWORD ofs) {
 
 DWORD uf_size() {
     return f_size(&__current_file);
+}
+
+FRESULT uf_unmount() {
+    if (__current_file.flag == 0x00) f_close(&__current_file);
+    return f_unmount("");
 }
 
 #endif

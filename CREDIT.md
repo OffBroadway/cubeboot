@@ -19,6 +19,7 @@
 `cubeboot/source/boot` credit to iplboot <br/>
 `cubeboot/source/fatfs` credit to iplboot <br/>
 `cubeboot/source/pff` credit to swiss-gc <br/>
+`cubeboot/source/pngu` credit to GRRLIB <br/>
 `cubeboot/source/gcode.c` credit to libogc2 <br/>
 `cubeboot/source/gcode.h` credit to libogc2 <br/>
 `cubeboot/source/lwp_queue.inl` credit to libogc <br/>
@@ -26,4 +27,3 @@
 `cubeboot/source/pcg_basic.h` credit to pcg-random.org <br/>
 `cubeboot/source/ini.c` credit to github.com/rxi/ini <br/>
 `cubeboot/source/ini.h` credit to github.com/rxi/ini <br/>
-`cubeboot/data/GameCube.ttf` credit to Q Manning <bleutuna@yahoo.com> <br/>

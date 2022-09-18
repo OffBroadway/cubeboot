@@ -26,4 +26,6 @@ SECTIONS {
         *(.reloc*);
         . = ALIGN(32);
     } :text
+
+    _patches_end = .;
 }

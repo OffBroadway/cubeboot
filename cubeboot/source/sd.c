@@ -65,6 +65,13 @@ int mount_available_device() {
 // unmount current
 int unmount_current_device() {
     iprintf("Unmounting %s\n", current_dev_name);
+    if (is_device_mounted()) {
+        FRESULT unmount_result = uf_unmount();
+        if (unmount_result != FR_OK) {
+            iprintf("Couldn't unmount %s\n", current_dev_name);
+            return SD_FAIL;
+        }
+    }
     if (current_device != NULL && !current_device->shutdown()) {
         iprintf("Failed to unmount %s\n", current_dev_name);
     }

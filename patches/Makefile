@@ -96,7 +96,7 @@ export OFILES := $(OFILES_BIN) $(OFILES_SOURCES) fake.o
 export HFILES := $(addsuffix .h,$(subst .,_,$(BINFILES)))
 
 #---------------------------------------------------------------------------------
-# build PowerPC defines really don't belong in here,a list of include paths
+# build a list of include paths
 #---------------------------------------------------------------------------------
 export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 			$(foreach dir,$(LIBDIRS),-I$(dir)/include) \

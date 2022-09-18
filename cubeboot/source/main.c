@@ -29,15 +29,10 @@
 #include "halt.h"
 
 #include "settings.h"
-#include "pcg_basic.h"
-#include "ini.h"
+#include "logo.h"
 
 #include "config.h"
 #include "loader.h"
-
-#define is_fallback_enabled() 0
-
-extern void udelay(int us);
 
 static u32 prog_entrypoint, prog_dst, prog_src, prog_len;
 static u32 *bs2done = (u32*)0x81700000;
@@ -46,21 +41,16 @@ static u32 *bs2done = (u32*)0x81700000;
 static void (*bs2entry)(void) = (void(*)(void))BS2_BASE_ADDR;
 
 static char stringBuffer[255];
-u8 current_dol_buf[512 * 1024];
+u8 current_dol_buf[600 * 1024];
 u32 current_dol_len;
 
 extern const void _start;
 extern const void _edata;
 extern const void _end;
 
-// // text logo replacment
-// void *gc_text_tex_data_ptr;
-// extern void render_logo();
-
 u32 can_load_dol = 0;
 
 GXRModeObj *rmode;
-void *xfb = MEM_K0_TO_K1(0x81708000); // somewhere above patches
 
 void __SYS_PreInit() {
     if (*bs2done == 0xCAFEBEEF) return;
@@ -72,77 +62,6 @@ void __SYS_PreInit() {
 }
 
 int main() {
-#ifdef VIDEO_ENABLE
-	VIDEO_Init();
-	rmode = VIDEO_GetPreferredMode(NULL);
-    // void *xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode)); // heap
-#ifdef CONSOLE_ENABLE
-	console_init(xfb,20,20,rmode->fbWidth,rmode->xfbHeight,rmode->fbWidth*VI_DISPLAY_PIX_SZ);
-#endif
-	VIDEO_Configure(rmode);
-	VIDEO_SetNextFramebuffer(xfb);
-    VIDEO_ClearFrameBuffer(rmode, xfb, COLOR_BLACK);
-	VIDEO_SetBlack(FALSE);
-	VIDEO_Flush();
-	VIDEO_WaitVSync();
-	if(rmode->viTVMode&VI_NON_INTERLACE) VIDEO_WaitVSync();
-    // // debug above
-#endif
-
-#ifdef DOLPHIN_PRINT_ENABLE
-    InitializeUART();
-#endif
-
-#ifdef GECKO_PRINT_ENABLE
-    // enable printf
-    CON_EnableGecko(EXI_CHANNEL_1, FALSE);
-#endif
-
-    iprintf("XFB = %08x [max=%x]\n", (u32)xfb, VIDEO_GetFrameBufferSize(&TVPal576ProgScale));
-
-    // setup config device
-    if (mount_available_device() != SD_OK) {
-        iprintf("Could not find an inserted SD card\n");
-    }
-
-    // check if we have a bootable dol
-    if (check_load_program()) {
-        can_load_dol = true;
-    }
-
-    if (is_device_mounted()) {
-        load_settings();
-    }
-
-#if 0
-    if(is_fallback_enabled()) {
-        int fallback_size = get_file_size("/fallback.bin");
-        iprintf("fallback size = %d\n", fallback_size);
-
-        if (load_file_buffer("/fallback.bin", current_dol_buf) != SD_OK) {
-            prog_halt("Could not load fallback file\n");
-            return 1;
-        }
-
-        current_dol_len = fallback_size;
-    }
-#endif
-
-    iprintf("Checkup, done=%08x\n", *bs2done);
-    if (*bs2done == 0xCAFEBEEF) {
-        iprintf("He's alive! The doc's alive! He's in the old west, but he's alive!!\n");
-
-#ifdef VIDEO_ENABLE
-        VIDEO_WaitVSync();
-#endif
-
-        // load program
-        load_program();
-    }
-
-    // load ipl
-    load_ipl();
-
 //// elf world
 
     Elf32_Ehdr* ehdr;
@@ -171,6 +90,83 @@ int main() {
 
     // get symbols
     Elf32_Sym* syment = (Elf32_Sym*) (addr + symshdr->sh_offset);
+
+#ifdef VIDEO_ENABLE
+	VIDEO_Init();
+	rmode = VIDEO_GetPreferredMode(NULL);
+    void *xfb = MEM_K0_TO_K1(ROUND_UP_1K(get_symbol_value(symshdr, syment, symstringdata, "_patches_end"))); // above patches, below stack
+    // void *xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode)); // heap
+#ifdef CONSOLE_ENABLE
+	console_init(xfb,20,20,rmode->fbWidth,rmode->xfbHeight,rmode->fbWidth*VI_DISPLAY_PIX_SZ);
+#endif
+	VIDEO_Configure(rmode);
+	VIDEO_SetNextFramebuffer(xfb);
+    VIDEO_ClearFrameBuffer(rmode, xfb, COLOR_BLACK);
+	VIDEO_SetBlack(FALSE);
+	VIDEO_Flush();
+	VIDEO_WaitVSync();
+	if(rmode->viTVMode&VI_NON_INTERLACE) VIDEO_WaitVSync();
+    // // debug above
+#endif
+
+#ifdef DOLPHIN_PRINT_ENABLE
+    InitializeUART();
+#endif
+
+#ifdef GECKO_PRINT_ENABLE
+    // enable printf
+    CON_EnableGecko(EXI_CHANNEL_1, FALSE);
+#endif
+
+#ifdef VIDEO_ENABLE
+    iprintf("XFB = %08x [max=%x]\n", (u32)xfb, VIDEO_GetFrameBufferSize(&TVPal576ProgScale));
+#endif
+    iprintf("current_dol_len = %d\n", current_dol_len);
+
+    // setup config device
+    if (mount_available_device() != SD_OK) {
+        iprintf("Could not find an inserted SD card\n");
+    }
+
+    // check if we have a bootable dol
+    if (check_load_program()) {
+        can_load_dol = true;
+    }
+
+    if (is_device_mounted()) {
+        load_settings();
+    }
+
+    iprintf("Checkup, done=%08x\n", *bs2done);
+    if (*bs2done == 0xCAFEBEEF) {
+        iprintf("He's alive! The doc's alive! He's in the old west, but he's alive!!\n");
+
+#ifdef VIDEO_ENABLE
+        VIDEO_WaitVSync();
+#endif
+
+        // load program
+        load_program();
+    }
+
+    if(settings.fallback_enabled) {
+        int fallback_size = get_file_size("/fallback.bin");
+        iprintf("fallback size = %d\n", fallback_size);
+
+        if (load_file_buffer("/fallback.bin", current_dol_buf) != SD_OK) {
+            prog_halt("Could not load fallback file\n");
+            return 1;
+        }
+
+        current_dol_len = fallback_size;
+    }
+
+//// fun stuff
+
+    // load ipl
+    load_ipl();
+
+//// elf world pt2
 
     // setup local vars
     char *patch_prefix = ".patch.";
@@ -274,6 +270,13 @@ int main() {
         }
     }
 
+
+    u8 *image_data = NULL;
+    if (settings.cube_logo != NULL) {
+        image_data = load_logo_texture(settings.cube_logo);
+        iprintf("img can be found at %08x\n", (u32)image_data);
+    }
+
     // load current program
     prog_entrypoint = (u32)&_start;
     prog_src = (u32)current_dol_buf;
@@ -290,6 +293,7 @@ int main() {
 
     set_patch_value(symshdr, syment, symstringdata, "start_game", can_load_dol);
     set_patch_value(symshdr, syment, symstringdata, "cube_color", settings.cube_color);
+    set_patch_value(symshdr, syment, symstringdata, "cube_text_tex", (u32)image_data);
 
     // while(1);
 
@@ -312,6 +316,11 @@ int main() {
 
     /*** Shutdown all threads and exit to this method ***/
     iprintf("IPL BOOTING\n");
+
+#ifdef DOLPHIN_DELAY_ENABLE
+    // fix for dolphin cache
+    udelay(5 * 1000 * 1000);
+#endif
 
     __lwp_thread_stopmultitasking(bs2entry);
 
