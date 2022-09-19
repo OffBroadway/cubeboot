@@ -1,8 +1,14 @@
+.vscode
 __pycache__
-/build
+build/
+entry/data/
 *.dol
 *.elf
+*.iso
+*.gz
 
 ipl.rom
 *.bin
 *.bin.scrambled
+
+patches/include/secret.h
