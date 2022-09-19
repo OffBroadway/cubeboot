@@ -7,6 +7,8 @@ pal11_main = 0x813004e4;
 pal11_cube_init = 0x813106dc;
 pal11_OSReport = 0x8135a264;
 
+pal11_rmode = 0x8137d910;
+
 pal11_cube_state = 0x81484b18;
 pal11_cube_model = 0x81484be8;
 

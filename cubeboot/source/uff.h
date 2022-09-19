@@ -12,7 +12,7 @@
 #define uf_write pf_write
 #define uf_lseek pf_lseek
 #define uf_size pf_size
-#define uf_unmount()
+#define uf_unmount() FR_OK
 #endif
 
 #ifdef USE_FAT_FATFS

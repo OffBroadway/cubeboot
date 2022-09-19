@@ -33,7 +33,7 @@ extern  void _memset(void* s, int c, int count);
 // 		*xs++ = c;
 // }
 
-extern u8 systemcallhandler_start[],systemcallhandler_end[];
+extern u8 systemcallhandler_start[], systemcallhandler_end[];
 
 void _main() {
 	//make sure "sc" handler is installed

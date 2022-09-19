@@ -7,6 +7,8 @@ pal12_main = 0x813005d4;
 pal12_cube_init = 0x81311030;
 pal12_OSReport = 0x81300520;
 
+pal12_rmode = 0x81382470;
+
 pal12_cube_state = 0x814b7518;
 pal12_cube_model = 0x814b75e8;
 

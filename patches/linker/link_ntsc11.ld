@@ -13,6 +13,8 @@ ntsc11_main = 0x813004e4;
 ntsc11_cube_init = 0x813107b0;
 ntsc11_OSReport = 0x8135a344;
 
+ntsc11_rmode = 0x8137d9f0;
+
 ntsc11_cube_state = 0x81489e58;
 ntsc11_cube_model = 0x81489f28;
 

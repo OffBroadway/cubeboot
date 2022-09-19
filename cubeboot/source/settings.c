@@ -58,5 +58,14 @@ void load_settings() {
         settings.fallback_enabled = fallback_enabled;
     }
 
+    // progressive enable
+    int progressive_enabled = 0;
+    if (!ini_sget(conf, "", "force_progressive", "%d", &progressive_enabled)) {
+        settings.progressive_enabled = 0;
+    } else {
+        iprintf("Found progressive_enabled = %d\n", progressive_enabled);
+        settings.progressive_enabled = progressive_enabled;
+    }
+
     free(config_buf);
 }

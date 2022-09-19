@@ -42,11 +42,15 @@ u8 *load_logo_texture(char *path) {
     int res = PNGU_GetImageProperties(ctx, &imgProp);
     iprintf("parsed image res = %d, size = %ux%u\n", res, imgProp.imgWidth, imgProp.imgHeight);
 
+    if (imgProp.imgWidth != GAMECUBE_LOGO_WIDTH || imgProp.imgHeight != GAMECUBE_LOGO_HEIGHT) {
+        prog_halt("The logo image is not the correct size (352x40px)\n");
+        return NULL;
+    }
+
     int width = 0;
     int height = 0;
     u8 *image = PNGU_DecodeTo4x4RGBA8(ctx, imgProp.imgWidth, imgProp.imgHeight, &width, &height, color_image_buffer);
 
-    iprintf("bopD?\n");
     PNGU_ReleaseImageContext(ctx);
 
     return (u8*)image;

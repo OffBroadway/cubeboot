@@ -7,6 +7,8 @@ ntsc10_main = 0x813006d4;
 ntsc10_cube_init = 0x813105b8;
 ntsc10_OSReport = 0x8133491c;
 
+ntsc10_rmode = 0x8135dde0;
+
 ntsc10_cube_state = 0x81465728;
 ntsc10_cube_model = 0x814657f8;
 

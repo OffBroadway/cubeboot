@@ -26,10 +26,11 @@ __attribute_data__ u32 prog_dst;
 __attribute_data__ u32 prog_src;
 __attribute_data__ u32 prog_len;
 
-__attribute_data__ u32 cube_color;
-__attribute_data__ u32 start_game;
+__attribute_data__ u32 cube_color = 0;
+__attribute_data__ u32 start_game = 0;
 
-__attribute_data__ u8 *cube_text_tex;
+__attribute_data__ u8 *cube_text_tex = NULL;
+__attribute_data__ u32 force_progressive = 0;
 
 __attribute_used__ u32 bs2tick() {
     if (start_game) {
@@ -45,10 +46,14 @@ __attribute_reloc__ u32 (*OSDisableInterrupts)();
 __attribute_reloc__ void (*__OSStopAudioSystem)();
 __attribute_reloc__ void (*run)(register void* entry_point, register u32 clear_start, register u32 clear_size);
 
+#ifdef DEBUG
 // This is actually BS2Report on IPL rev 1.2
 __attribute_reloc__ void (*OSReport)(const char* text, ...);
+#endif
 __attribute_reloc__ void (*cube_init)();
 __attribute_reloc__ void (*main)();
+
+__attribute_reloc__ GXRModeObj *rmode;
 
 __attribute_reloc__ model *bg_outer_model;
 __attribute_reloc__ model *bg_inner_model;
@@ -191,18 +196,20 @@ __attribute_used__ void mod_cube_text() {
         OSReport("PTR = %08x\n", (u32)cube_text_tex);
         OSReport("ORIG_PTR_PARTS = %08x, %08x\n", (u32)gc_text_tex, gc_text_tex->offset);
 
-        s32 desired_offset = gc_text_tex->offset;
-        if ((u32)gc_text_tex > (u32)cube_text_tex) {
-            desired_offset = -1 * (s32)((u32)gc_text_tex - (u32)cube_text_tex);
-        } else {
-            desired_offset = (s32)((u32)cube_text_tex - (u32)gc_text_tex);
+        if (cube_text_tex != NULL) {
+            s32 desired_offset = gc_text_tex->offset;
+            if ((u32)gc_text_tex > (u32)cube_text_tex) {
+                desired_offset = -1 * (s32)((u32)gc_text_tex - (u32)cube_text_tex);
+            } else {
+                desired_offset = (s32)((u32)cube_text_tex - (u32)gc_text_tex);
+            }
+
+            OSReport("DESIRED = %d\n", desired_offset);
+
+            // change the texture format
+            gc_text_tex->format = GX_TF_RGBA8;
+            gc_text_tex->offset = desired_offset;
         }
-
-        OSReport("DESIRED = %d\n", desired_offset);
-
-        // change the texture format
-        gc_text_tex->format = GX_TF_RGBA8;
-        gc_text_tex->offset = desired_offset;
 }
 
 __attribute_used__ void pre_cube_init() {
@@ -215,8 +222,14 @@ __attribute_used__ void pre_cube_init() {
 __attribute_used__ void pre_main() {
     OSReport("RUNNING BEFORE MAIN\n");
 
-    // extern GXRModeObj TVNtsc480ProgAa;
-    // memcpy((void*)0x8135dde0, &TVNtsc480ProgAa, sizeof(GXRModeObj));
+    if (force_progressive) {
+        OSReport("Patching video mode to Progressive Scan\n");
+        rmode->viTVMode |= VI_PROGRESSIVE;
+        rmode->xfbMode = VI_XFBMODE_SF;
+
+        static u8 progressive_vfilter[7] = {0, 0, 21, 22, 21, 0, 0};
+        memcpy(rmode->vfilter, progressive_vfilter, sizeof(progressive_vfilter));
+    }
 
     OSReport("LOADCMD %x, %x, %x, %x\n", prog_entrypoint, prog_dst, prog_src, prog_len);
     memmove((void*)prog_dst, (void*)prog_src, prog_len);

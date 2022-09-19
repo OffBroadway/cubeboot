@@ -294,6 +294,7 @@ int main() {
     set_patch_value(symshdr, syment, symstringdata, "start_game", can_load_dol);
     set_patch_value(symshdr, syment, symstringdata, "cube_color", settings.cube_color);
     set_patch_value(symshdr, syment, symstringdata, "cube_text_tex", (u32)image_data);
+    set_patch_value(symshdr, syment, symstringdata, "force_progressive", settings.progressive_enabled);
 
     // while(1);
 
@@ -319,7 +320,7 @@ int main() {
 
 #ifdef DOLPHIN_DELAY_ENABLE
     // fix for dolphin cache
-    udelay(5 * 1000 * 1000);
+    udelay(10 * 1000 * 1000);
 #endif
 
     __lwp_thread_stopmultitasking(bs2entry);

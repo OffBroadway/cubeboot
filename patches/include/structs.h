@@ -1,5 +1,7 @@
 #include <stdint.h>
 #include <ogc/gx.h>
+#include <ogc/gx_struct.h>
+#include <ogc/video_types.h>
 
 typedef struct state_t {
     s32 unk0;
