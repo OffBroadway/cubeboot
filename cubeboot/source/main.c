@@ -181,6 +181,11 @@ int main() {
     // load ipl
     load_ipl();
 
+    // disable progressive on unsupported IPLs
+    if (current_bios->version == IPL_NTSC_10 || current_bios->version == IPL_PAL_10) {
+        settings.progressive_enabled = FALSE;
+    }
+
 //// elf world pt2
 
     // setup local vars

@@ -69,13 +69,13 @@ char *bios_path = "/ipl.bin";
 
 // NOTE: these are not ipl.bin CRCs, but decoded ipl[0x100:] hashes
 bios_item bios_table[] = {
-    {"gc-ntsc-10",      "ntsc10",       "VER_NTSC_10",      0xa8325e47}, // SDA = 81465320
-    {"gc-ntsc-11",      "ntsc11",       "VER_NTSC_11",      0xf1ebeb95}, // SDA = 81489120
-    {"gc-ntsc-12_001",  "ntsc12_001",   "VER_NTSC_12_001",  0xc4c5a12a}, // SDA = 8148b1c0
-    {"gc-ntsc-12_101",  "ntsc12_101",   "VER_NTSC_12_101",  0xbf225e4d}, // SDA = 8148b640
-    {"gc-pal-10",       "pal10",        "VER_PAL_10",       0x5c3445d0}, // SDA = 814b4fc0
-    {"gc-pal-11",       "pal11",        "VER_PAL_11",       0x05196b74}, // SDA = 81483de0
-    {"gc-pal-12",       "pal12",        "VER_PAL_12",       0x1082fbc9}, // SDA = 814b7280
+    {IPL_NTSC_10,      "gc-ntsc-10",      "ntsc10",       "VER_NTSC_10",      CRC(0xa8325e47), SDA(0x81465320)},
+    {IPL_NTSC_11,      "gc-ntsc-11",      "ntsc11",       "VER_NTSC_11",      CRC(0xf1ebeb95), SDA(0x81489120)},
+    {IPL_NTSC_12_001,  "gc-ntsc-12_001",  "ntsc12_001",   "VER_NTSC_12_001",  CRC(0xc4c5a12a), SDA(0x8148b1c0)},
+    {IPL_NTSC_12_101,  "gc-ntsc-12_101",  "ntsc12_101",   "VER_NTSC_12_101",  CRC(0xbf225e4d), SDA(0x8148b640)},
+    {IPL_PAL_10,       "gc-pal-10",       "pal10",        "VER_PAL_10",       CRC(0x5c3445d0), SDA(0x814b4fc0)},
+    {IPL_PAL_11,       "gc-pal-11",       "pal11",        "VER_PAL_11",       CRC(0x05196b74), SDA(0x81483de0)},
+    {IPL_PAL_12,       "gc-pal-12",       "pal12",        "VER_PAL_12",       CRC(0x1082fbc9), SDA(0x814b7280)},
 };
 
 extern void __SYS_ReadROM(void *buf,u32 len,u32 offset);
