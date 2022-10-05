@@ -1,17 +1,21 @@
+#include <malloc.h>
+
 #include <sdcard/card_cmn.h>
 #include <sdcard/card_io.h>
 #include <sdcard/gcsd.h>
-// #include "gcode.h"
+#include "gcode.h"
 
 #include "uff.h"
 
 #include "sd.h"
 #include "print.h"
 
+#include "fatfs/diskio.h"
+
 #define countof(a) (sizeof(a)/sizeof(a[0]))
 
-const char *dev_names[] = {"sda", "sdb", "sd2"}; // and "gcldr"
-const DISC_INTERFACE *drivers[] = {&__io_gcsda, &__io_gcsdb, &__io_gcsd2}; // and &__io_gcode
+const char *dev_names[] = {"sda", "sdb", "sd2", "gcldr"};
+const DISC_INTERFACE *drivers[] = {&__io_gcsda, &__io_gcsdb, &__io_gcsd2, &__io_gcode};
 
 static const char *current_dev_name = NULL;
 static const DISC_INTERFACE *current_device = NULL;
@@ -20,12 +24,13 @@ static bool is_mounted = FALSE;
 
 // check for inserted
 static int check_available_devices() {
-    for (int i = 0; i < countof(drivers); i++) {
+    for (int i = countof(drivers) - 1; i >= 0; i--) {
         const DISC_INTERFACE *driver = drivers[i];
         const char *dev_name = dev_names[i];
 
         iprintf("Trying mount %s\n", dev_name);
-        sdgecko_setSpeed(i, EXI_SPEED32MHZ);
+        if (i < MAX_DRIVE)
+            sdgecko_setSpeed(i, EXI_SPEED32MHZ);
 
         if (driver->startup() && driver->isInserted()) {
             // set driver for fatfs
@@ -52,7 +57,7 @@ int mount_available_device() {
     static FATFS fs; // don't leave this on the stack kids
     FRESULT mount_result = uf_mount(&fs);
     if (mount_result != FR_OK) {
-        iprintf("Couldn't mount %s\n", current_dev_name);
+        iprintf("Couldn't mount %s (err=%d)\n", current_dev_name, mount_result);
         return SD_FAIL;
     }
 
@@ -119,7 +124,7 @@ int load_file_dynamic(char *path, void **buf_ptr) {
     }
 
     size_t size = uf_size();
-    void *buf = malloc(size);
+    void *buf = memalign(32, size);
     if (buf == NULL) {
         iprintf("Could not allocate space to read %s (len=%d)\n", path, size);
         return SD_FAIL;
@@ -129,7 +134,7 @@ int load_file_dynamic(char *path, void **buf_ptr) {
     u32 _unused;
     FRESULT read_result = uf_read(buf, size, &_unused);
     if (read_result != FR_OK) {
-        iprintf("Could not read %s\n", path);
+        iprintf("[D] Could not read %s\n", path);
         return SD_FAIL;
     }
 
@@ -150,7 +155,7 @@ int load_file_buffer(char *path, void* buf) {
     u32 _unused;
     FRESULT read_result = uf_read(buf, size, &_unused);
     if (read_result != FR_OK) {
-        iprintf("Could not read %s\n", path);
+        iprintf("Could not read %s (err=%d)\n", path, read_result);
         return SD_FAIL;
     }
 

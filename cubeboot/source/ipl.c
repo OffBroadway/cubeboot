@@ -18,6 +18,9 @@
 #include "crc32.h"
 #include "ipl.h"
 
+extern GXRModeObj *rmode;
+extern void *xfb;
+
 #define IPL_ROM_FONT_SJIS	0x1AFF00
 #define DECRYPT_START		0x100
 
@@ -52,9 +55,8 @@ static u8 *bs2 = (u8*)(BS2_BASE_ADDR);
 s8 bios_index = -1;
 bios_item *current_bios;
 
-
 #ifdef TEST_IPL_PATH
-char *bios_path = "/bios-sfn/ntsc11.bin";
+char *bios_path = "/bios/gc-ntsc-10.bin";
 #else
 char *bios_path = "/ipl.bin";
 #endif

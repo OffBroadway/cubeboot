@@ -41,7 +41,7 @@ static u32 *bs2done = (u32*)0x81700000;
 static void (*bs2entry)(void) = (void(*)(void))BS2_BASE_ADDR;
 
 static char stringBuffer[255];
-u8 current_dol_buf[600 * 1024];
+ATTRIBUTE_ALIGN(32) u8 current_dol_buf[750 * 1024];
 u32 current_dol_len;
 
 extern const void _start;
@@ -50,6 +50,7 @@ extern const void _end;
 
 u32 can_load_dol = 0;
 
+void *xfb;
 GXRModeObj *rmode;
 
 void __SYS_PreInit() {
@@ -93,9 +94,23 @@ int main() {
 
 #ifdef VIDEO_ENABLE
 	VIDEO_Init();
-	rmode = VIDEO_GetPreferredMode(NULL);
-    void *xfb = MEM_K0_TO_K1(ROUND_UP_1K(get_symbol_value(symshdr, syment, symstringdata, "_patches_end"))); // above patches, below stack
-    // void *xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode)); // heap
+    // rmode = VIDEO_GetPreferredMode(NULL);
+    u32 tvmode = VIDEO_GetCurrentTvMode();
+    switch (tvmode) {
+        case VI_NTSC:
+            rmode = &TVNtsc480IntDf;
+            break;
+        case VI_PAL:
+            rmode = &TVPal528IntDf; // libogc uses TVPal576IntDfScale
+            break;
+        case VI_MPAL:
+            rmode = &TVMpal480IntDf;
+            break;
+        case VI_EURGB60:
+            rmode = &TVEurgb60Hz480IntDf;
+            break;
+    }
+    xfb = MEM_K0_TO_K1(ROUND_UP_1K(get_symbol_value(symshdr, syment, symstringdata, "_patches_end"))); // above patches, below stack
 #ifdef CONSOLE_ENABLE
 	console_init(xfb,20,20,rmode->fbWidth,rmode->xfbHeight,rmode->fbWidth*VI_DISPLAY_PIX_SZ);
 #endif
@@ -291,6 +306,7 @@ int main() {
     set_patch_value(symshdr, syment, symstringdata, "prog_dst", prog_dst);
     set_patch_value(symshdr, syment, symstringdata, "prog_len", prog_len);
 
+    // Copy settings into place
     set_patch_value(symshdr, syment, symstringdata, "start_game", can_load_dol);
     set_patch_value(symshdr, syment, symstringdata, "cube_color", settings.cube_color);
     set_patch_value(symshdr, syment, symstringdata, "cube_text_tex", (u32)image_data);
@@ -320,8 +336,10 @@ int main() {
 
 #ifdef DOLPHIN_DELAY_ENABLE
     // fix for dolphin cache
-    udelay(10 * 1000 * 1000);
+    udelay(3 * 1000 * 1000);
 #endif
+
+    iprintf("DONE\n");
 
     __lwp_thread_stopmultitasking(bs2entry);
 

@@ -2,6 +2,15 @@
 #include "fatfs/diskio.h"
 #include "ffshim.h"
 
+#include "print.h"
+
+// TODO: swtich to a single sector overflow buffer then memmove the aligned read
+// TODO: SD cards can usually handle unaligned reads but GCLoader can't, should we check ioType == 'GCSD'
+
+#define SECTOR_SIZE 512
+#define MAX_UNALIGNED 10
+static u8 sector_buf[SECTOR_SIZE * MAX_UNALIGNED];
+
 const DISC_INTERFACE *iface = NULL;
 
 DSTATUS disk_status(BYTE pdrv)
@@ -42,11 +51,25 @@ DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count)
 {
     (void) pdrv;
 
+    // iprintf("(A=%d) READING SECTORS sect=%x, count=%u, buff=%08x\n", (u32)buff % 0x20 == 0, (u32)sector, count, (u32)buff);
+
     if (iface == NULL)
         return RES_NOTRDY;
 
-    if (iface->readSectors(sector, count, buff))
+    if ((u32)buff % 0x20 == 0) {
+        if (iface->readSectors(sector, count, buff))
+            return RES_OK;
+        else
+            return RES_ERROR;
+    } else {
+        if (count > MAX_UNALIGNED) return RES_ERROR;
+
+        if (!iface->readSectors(sector, count, sector_buf))
+            return RES_ERROR;
+
+        memcpy(buff, sector_buf, count * SECTOR_SIZE);
         return RES_OK;
-    else
-        return RES_ERROR;
+    }
+
+    return RES_NOTRDY;
 }

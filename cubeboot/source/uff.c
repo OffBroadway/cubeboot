@@ -21,6 +21,7 @@ static char *abs_path(char *path) {
 }
 
 FRESULT uf_mount(FATFS* fs) {
+    iprintf("Device ptr = %08x\n", (u32)get_current_device());
     if (!fatMountSimple("sd", get_current_device())) {
         return FR_DISK_ERR;
     }
