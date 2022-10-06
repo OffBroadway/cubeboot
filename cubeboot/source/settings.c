@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <malloc.h>
 
 #include "sd.h"
 #include "halt.h"
@@ -16,7 +17,7 @@ void load_settings() {
     int config_size = get_file_size("/cubeboot.ini");
     if (config_size == SD_FAIL) return;
 
-    void *config_buf = malloc(config_size + 1);
+    void *config_buf = memalign(32, config_size + 1);
     if (config_buf == NULL) {
         prog_halt("Could not allocate buffer for config file\n");
         return;

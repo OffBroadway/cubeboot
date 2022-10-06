@@ -77,6 +77,7 @@ __attribute_used__ void mod_cube_colors() {
     rgb_color target_color;
     target_color.color = (cube_color << 8) | 0xFF;
 
+    // TODO: the HSL calculations do not render good results for darker inputs, I still need to tune SAT/LUM scaling
     // tough colors: 252850 A18594 763C28
 
     u32 target_hsl = GRRLIB_RGBToHSL(target_color.color);
@@ -229,6 +230,11 @@ __attribute_used__ void pre_main() {
 
         static u8 progressive_vfilter[7] = {0, 0, 21, 22, 21, 0, 0};
         memcpy(rmode->vfilter, progressive_vfilter, sizeof(progressive_vfilter));
+    }
+
+    // can't boot dol
+    if (!start_game) {
+        cube_color = 0x4A412A; // or 0x0000FF
     }
 
     OSReport("LOADCMD %x, %x, %x, %x\n", prog_entrypoint, prog_dst, prog_src, prog_len);

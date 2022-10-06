@@ -1,5 +1,12 @@
 # Flippyboot IPL
 
+This project provides a program called cubeboot which is able to play the GameCube
+boot animation. This is useful for some modchips like PicoBoot which skip the boot
+sequence. This project allows you to restore and customize the boot animation with
+custom colors and logos.
+
+## Technical Details
+
 This project is a patching framework for the GameCube IPL which is called BS2.
 The project was originally intended to restore the Boot Animation on Flippyboot.
 Now the project has been generalized and works on both Flippyboot and PicoBoot.
