@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - PAL Progressive Scan hotfix
+### Details
+
+This is a small code change to allow Progressive Scan on all PAL IPL revisions.
+It fixes a regression introduced in v0.1.2
+
 ## [0.1.2] - GCLoader Support
 ### Details
 
