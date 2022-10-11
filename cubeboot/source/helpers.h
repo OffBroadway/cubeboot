@@ -10,3 +10,4 @@ extern void udelay(int us);
 u32 generate_random_color();
 bool is_dolphin();
 int ensdwith(const char *str, const char *suffix);
+size_t memlen(char **arr);

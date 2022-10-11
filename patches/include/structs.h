@@ -3,6 +3,9 @@
 #include <ogc/gx_struct.h>
 #include <ogc/video_types.h>
 
+#define TEXT_ALIGN_CENTER 0
+#define TEXT_ALIGN_TOP 2
+
 typedef struct state_t {
     s32 unk0;
     s32 unk1;
@@ -159,3 +162,49 @@ typedef struct model_t {
     void *unk1;
     void *unk2;
 } model;
+
+
+typedef struct text_draw_group {
+	u32 type;
+
+	u32 unk0_offset;
+	u32 metadata_offset;
+	u32 unk1_offset;
+
+	u16 unk2;
+	u16 unk3;
+	u16 unk4;
+} text_draw_group;
+
+typedef struct text_draw_metadata {
+	u32 type;
+
+    // positions use some weird (0 -> 10240) range with ~400 being underscan/overscan
+	u16 x;
+	u16 y;
+
+	u16 unk0; // maybe max_width
+	u16 unk1; // maybe max_height
+	u32 unk2;
+	u32 unk3;
+
+	u8 y_align;
+	u8 x_align;
+	s16 letter_spacing;
+	s16 line_spacing;
+	u16 size;
+	u16 border_obj;
+} text_draw_metadata;
+
+typedef struct text_group {
+	u32 type;
+
+	u16 arr_size;
+	u16 padding;
+} text_group;
+
+typedef struct text_metadata {
+	u16 draw_metadata_index;
+	u16 length;
+	u32 text_data_offset;
+} text_metadata;

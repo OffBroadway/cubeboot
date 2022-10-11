@@ -3,6 +3,7 @@
 #include <malloc.h>
 
 #include "sd.h"
+#include "helpers.h"
 
 #include "crc32.h"
 #include "print.h"
@@ -87,5 +88,13 @@ void load_program() {
     // No stack - we need it all
     AR_Init(NULL, 0);    
 
-    DOLtoARAM(dol_buf, 0, NULL);
+    static char *argv[] = {
+        "boot.dol",
+        // "Autoload=gcldr:/XD.iso",
+        // "Autoboot=Yes",
+        NULL,
+    };
+
+    size_t argc = memlen(argv);
+    DOLtoARAM(dol_buf, argc, argv);
 }

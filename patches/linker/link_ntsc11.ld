@@ -22,3 +22,5 @@ ntsc11_logo_model = 0x81483c18;
 ntsc11_bg_outer_model = 0x81483cc8;
 ntsc11_bg_inner_model = 0x81483ab8;
 ntsc11_gc_text_model = 0x81483d40;
+
+ntsc11_gx_draw_text = 0x8130a6b8;

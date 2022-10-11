@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include <stdbool.h>
-#include <gcbool.h>
 #include <ogc/system.h>
 #include <ogc/lwp_watchdog.h>
 #include <ogc/machine/processor.h>
@@ -42,4 +41,10 @@ int ensdwith(const char *str, const char *suffix) {
     if (lensuffix >  lenstr)
         return 0;
     return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
+}
+
+size_t memlen(char **arr) {
+    size_t k;
+    for(k = 0; arr[k] != NULL; k++);
+    return k;
 }
