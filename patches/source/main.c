@@ -16,13 +16,17 @@
 #define __attribute_reloc__ __attribute__((section(".reloc")))
 #define __attribute_aligned_data__ __attribute__((aligned(32), section(".data"))) 
 #define countof(a) (sizeof(a)/sizeof(a[0]))
+#define make_type(a,b,c,d) (((u32)a)<<24 | ((u32)b)<<16 | ((u32)c)<<8 | ((u32)d))
 
 #define CUBE_TEX_WIDTH 84
 #define CUBE_TEX_HEIGHT 84
 
-#define STATE_WAIT_LOAD  0x0f
-#define STATE_START_GAME 0x10
-#define STATE_NO_DISC 0x12
+#define STATE_WAIT_LOAD  0x0f // delay after animation
+#define STATE_START_GAME 0x10 // play full animation and start game
+#define STATE_NO_DISC    0x12 // play full animation before menu
+#define STATE_COVER_OPEN 0x13 // force direct to menu
+
+#define force_boot_menu 1
 
 __attribute_data__ u32 prog_entrypoint;
 __attribute_data__ u32 prog_dst;
@@ -52,6 +56,9 @@ __attribute_reloc__ u32 (*OSDisableInterrupts)();
 __attribute_reloc__ void (*__OSStopAudioSystem)();
 __attribute_reloc__ void (*run)(register void* entry_point, register u32 clear_start, register u32 clear_size);
 
+// for custom menus
+__attribute_reloc__ void (*gx_draw_text)(u16 index, text_group* text, text_draw_group* text_draw, GXColor* color);
+
 #ifdef DEBUG
 // This is actually BS2Report on IPL rev 1.2
 __attribute_reloc__ void (*OSReport)(const char* text, ...);
@@ -74,6 +81,58 @@ __attribute_data__ static GXColorS10 color_cube_low;
 __attribute_data__ static GXColorS10 color_bg_inner;
 __attribute_data__ static GXColorS10 color_bg_outer_0;
 __attribute_data__ static GXColorS10 color_bg_outer_1;
+
+void draw_text(char *s, u16 x, u16 y, u8 alpha) {
+    static struct {
+        text_group group;
+        text_metadata metadata;
+        char contents[255];
+    } text = {
+        .group = {
+            .type = make_type('S','T','H','0'),
+            .arr_size = 1, // arr size
+        },
+        .metadata = {
+            .draw_metadata_index = 0,
+            .text_data_offset = sizeof(text_metadata),
+        },
+    };
+
+    static struct {
+        text_draw_group group;
+        text_draw_metadata metadata;
+    } draw = {
+        .group = {
+            .type = make_type('G','L','H','0'),
+            .metadata_offset = sizeof(text_draw_group),
+        },
+        .metadata = {
+            .type = make_type('m','e','s','g'),
+            .x = 0, // x position
+            .y = 0, // y position
+            .y_align = TEXT_ALIGN_CENTER,
+            .x_align = TEXT_ALIGN_TOP,
+            .letter_spacing = -1,
+            .line_spacing = 20,
+            .size = 20,
+            .border_obj = 0xffff,
+        }
+    };
+
+    strcpy(text.contents, s);
+
+    draw.metadata.x = (x + 64) * 20;
+    draw.metadata.y = (y + 64) * 10;
+
+    GXColor white = {0xFF, 0xFF, 0xFF, alpha};
+    gx_draw_text(0, &text.group, &draw.group, &white);
+}
+
+__attribute_used__ u32 custom_options_menu(u8 alpha) {
+    draw_text("hello, world", 10, 10, alpha);
+
+    return 0;
+}
 
 __attribute_used__ void mod_cube_colors() {
     if (cube_color == 0) {
@@ -328,7 +387,7 @@ __attribute_used__ u32 bs2tick() {
         completed_time = gettime();
     }
 
-    if (start_game) {
+    if (start_game && !force_boot_menu) {
         if (postboot_delay_ms) {
             u64 elapsed = diff_msec(completed_time, gettime());
             if (completed_time > 0 && elapsed > postboot_delay_ms) {

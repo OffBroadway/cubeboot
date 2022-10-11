@@ -13,6 +13,14 @@
 #define vPAL_11(x) x##_VER_PAL_11
 #define vPAL_12(x) x##_VER_PAL_12
 
+.set vNTSC_10(_SDA_BASE_), 0x81465320
+.set vNTSC_11(_SDA_BASE_), 0x81489120
+.set vNTSC_12_001(_SDA_BASE_), 0x8148b1c0
+.set vNTSC_12_101(_SDA_BASE_), 0x8148b640
+.set vPAL_10(_SDA_BASE_), 0x814b4fc0
+.set vPAL_11(_SDA_BASE_), 0x81483de0
+.set vPAL_12(_SDA_BASE_), 0x814b7280
+
 .macro patch_routine name, addr
 .section .patch.\name\()_func
 	.set \name\()_address, \addr

@@ -5,6 +5,7 @@
 #include "sd.h"
 #include "settings.h"
 #include "state.h"
+#include "helpers.h"
 
 #include "crc32.h"
 #include "print.h"
@@ -179,5 +180,13 @@ void boot_program(char *alternative_path) {
     VIDEO_WaitVSync();
 #endif
 
-    DOLtoARAM(dol_buf, params.argc, params.argv);
+    static char *argv[] = {
+        "boot.dol",
+        // "Autoload=gcldr:/XD.iso",
+        // "Autoboot=Yes",
+        NULL,
+    };
+
+    size_t argc = arrlen(argv);
+    DOLtoARAM(dol_buf, argc, argv);
 }
