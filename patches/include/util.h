@@ -121,6 +121,10 @@ inline void dump_color(char *line, GXColorS10 *input) {
     rgb_color rgb_temp;
     u32 hsl_temp;
 
+#ifndef DEBUG
+    (void)hsl_temp;
+#endif
+
     if (input == NULL) {
         OSReport("COLOR: %s = NULL\n", line);
         return;

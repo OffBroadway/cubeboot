@@ -8,6 +8,7 @@ ntsc12_001_cube_init = 0x81310b48;
 ntsc12_001_OSReport = 0x81300520;
 
 ntsc12_001_rmode = 0x8137ecb8;
+ntsc12_001_pad_status = 0x81484cec;
 
 ntsc12_001_cube_state = 0x8148b438;
 ntsc12_001_cube_model = 0x8148b508;

@@ -10,7 +10,7 @@
 
 #include "boot/sidestep.h"
 
-char *swiss_paths[] = {
+char *boot_paths[] = {
     "/BOOT.DOL",
     "/BOOT2.DOL",
     "/IGR.DOL", // used by swiss-gc
@@ -29,8 +29,8 @@ bool check_load_program() {
     if (!is_device_mounted()) return false;
 
     bool found_file = false;
-    for (int f = 0; f < (sizeof(swiss_paths) / sizeof(char *)); f++) {
-        char *path = swiss_paths[f];
+    for (int f = 0; f < (sizeof(boot_paths) / sizeof(char *)); f++) {
+        char *path = boot_paths[f];
         int size = get_file_size(path);
         if (size == SD_FAIL) {
             iprintf("Failed to open file: %s\n", path);
@@ -44,31 +44,40 @@ bool check_load_program() {
     return found_file;
 }
 
-void load_program() {
-    // load program
-    for (int f = 0; f < (sizeof(swiss_paths) / sizeof(char *)); f++) {
-        char *path = swiss_paths[f];
+bool load_program(char *path) {
+    iprintf("Reading %s\n", path);
 
-        iprintf("Reading %s\n", path);
+    int size = get_file_size(path);
+    if (size == SD_FAIL) {
+        iprintf("Failed to open file: %s\n", path);
+        return false;
+    }
 
-        int size = get_file_size(path);
-        if (size == SD_FAIL) {
-            iprintf("Failed to open file: %s\n", path);
-            continue;
+    dol_buf = memalign(32, size);
+    if (!dol_buf) {
+        dol_buf = (u8*)0x81300000;
+    }
+
+    if (load_file_buffer(path, dol_buf) != SD_OK) {
+        iprintf("Failed to DOL read file: %s\n", path);
+        dol_buf = NULL;
+        return false;
+    }
+
+    iprintf("Loaded DOL into %p\n", dol_buf);
+    return true;
+}
+
+void boot_program(char *alternative_path) {
+    if (alternative_path != NULL) {
+        load_program(alternative_path);
+    } else {
+        for (int f = 0; f < (sizeof(boot_paths) / sizeof(char *)); f++) {
+            char *path = boot_paths[f];
+            if (load_program(path)) {
+                break;
+            }
         }
-
-        dol_buf = memalign(32, size);
-        if (!dol_buf) {
-            dol_buf = (u8*)0x81300000;
-        }
-
-        if (load_file_buffer(path, dol_buf) != SD_OK) {
-            iprintf("Failed to DOL read file: %s\n", path);
-            dol_buf = NULL;
-        }
-
-        iprintf("Loaded DOL into %p\n", dol_buf);
-        break;
     }
 
     if (dol_buf == NULL) {
@@ -83,9 +92,6 @@ void load_program() {
 #ifdef VIDEO_ENABLE
     VIDEO_WaitVSync();
 #endif
-
-    // No stack - we need it all
-    AR_Init(NULL, 0);    
 
     DOLtoARAM(dol_buf, 0, NULL);
 }

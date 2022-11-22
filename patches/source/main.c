@@ -7,6 +7,8 @@
 #include "os.h"
 
 #include "usbgecko.h"
+#include "state.h"
+#include "time.h"
 
 #define __attribute_used__ __attribute__((used))
 // #define __attribute_himem__ __attribute__((used, section(".himem")))
@@ -32,15 +34,11 @@ __attribute_data__ u32 start_game = 0;
 __attribute_data__ u8 *cube_text_tex = NULL;
 __attribute_data__ u32 force_progressive = 0;
 
+__attribute_data__ static cubeboot_state local_state;
+__attribute_data__ static cubeboot_state *global_state = (cubeboot_state*)0x81700000;
+
+// used if we are switching to 60Hz on a PAL IPL
 __attribute_data__ static int fix_pal_ntsc = 0;
-
-__attribute_used__ u32 bs2tick() {
-    if (start_game) {
-        return STATE_START_GAME;
-    }
-
-    return STATE_NO_DISC;
-}
 
 // used to start game
 __attribute_reloc__ u32 (*PADSync)();
@@ -56,6 +54,7 @@ __attribute_reloc__ void (*cube_init)();
 __attribute_reloc__ void (*main)();
 
 __attribute_reloc__ GXRModeObj *rmode;
+__attribute_reloc__ bios_pad *pad_status;
 
 __attribute_reloc__ model *bg_outer_model;
 __attribute_reloc__ model *bg_inner_model;
@@ -195,6 +194,11 @@ __attribute_used__ void mod_cube_text() {
         void *img_ptr = (void*)((u8*)gc_text_tex + gc_text_tex->offset);
         u32 img_size = wd * ht;
 
+#ifndef DEBUG
+        (void)img_ptr;
+        (void)img_size;
+#endif
+
         OSReport("CUBE TEXT TEX: %dx%d[%d] (type=%d) @ %p\n", wd, ht, img_size, gc_text_tex->format, img_ptr);
         OSReport("PTR = %08x\n", (u32)cube_text_tex);
         OSReport("ORIG_PTR_PARTS = %08x, %08x\n", (u32)gc_text_tex, gc_text_tex->offset);
@@ -287,9 +291,43 @@ __attribute_used__ u32 get_tvmode() {
     return rmode->viTVMode;
 }
 
+__attribute_data__ u32 first = 1;
+__attribute_used__ u32 bs2tick() {
+    // TODO: move this check to PADRead in main loop
+    if (pad_status->pad.button != local_state.last_buttons) {
+        for (int i = 0; i < MAX_BUTTONS; i++) {
+            u16 bitmask = 1 << i;
+            if (first) OSReport("BITMAP %d = %04x\n", i, bitmask);
+            u16 pressed = (pad_status->pad.button & bitmask) >> i;
+
+            // button changed state
+            if (local_state.held_buttons[i].status != pressed) {
+                if (pressed) {
+                    local_state.held_buttons[i].timestamp = gettime();
+                } else {
+                    local_state.held_buttons[i].timestamp = 0;
+                }
+            }
+
+            local_state.held_buttons[i].status = pressed;
+        }
+        first = 0;
+    }
+    local_state.last_buttons = pad_status->pad.button;
+
+    // PAD_BUTTON_B
+
+    if (start_game) {
+        return STATE_START_GAME;
+    }
+
+    return STATE_NO_DISC;
+}
+
 __attribute_used__ void bs2start() {
     OSReport("DONE\n");
-    *(u32*)0x81700000 = 0xCAFEBEEF;
+    memcpy(global_state, &local_state, sizeof(cubeboot_state));
+    global_state->boot_code = 0xCAFEBEEF;
 
     while (!PADSync());
     OSDisableInterrupts();

@@ -9,6 +9,7 @@
 
 #include <asndlib.h>
 #include <ogc/lwp_threads.h>
+#include <ogc/lwp_watchdog.h>
 
 #include <stddef.h>
 #include <stdint.h>
@@ -28,6 +29,7 @@
 #include "helpers.h"
 #include "halt.h"
 
+#include "state.h"
 #include "settings.h"
 #include "logo.h"
 
@@ -35,7 +37,7 @@
 #include "loader.h"
 
 static u32 prog_entrypoint, prog_dst, prog_src, prog_len;
-static u32 *bs2done = (u32*)0x81700000;
+static cubeboot_state *state = (cubeboot_state*)0x81700000;
 
 #define BS2_BASE_ADDR 0x81300000
 static void (*bs2entry)(void) = (void(*)(void))BS2_BASE_ADDR;
@@ -54,7 +56,7 @@ void *xfb;
 GXRModeObj *rmode;
 
 void __SYS_PreInit() {
-    if (*bs2done == 0xCAFEBEEF) return;
+    if (state->boot_code == 0xCAFEBEEF) return;
 
     SYS_SetArenaHi((void*)BS2_BASE_ADDR);
 
@@ -63,7 +65,10 @@ void __SYS_PreInit() {
 }
 
 int main() {
-//// elf world
+    u64 startts, endts;
+
+    startts = ticks_to_millisecs(gettime());
+
 
     Elf32_Ehdr* ehdr;
     Elf32_Shdr* shdr;
@@ -95,6 +100,7 @@ int main() {
 #ifdef VIDEO_ENABLE
 	VIDEO_Init();
     // rmode = VIDEO_GetPreferredMode(NULL);
+    // rmode = &TVNtsc480IntDf;
     u32 tvmode = VIDEO_GetCurrentTvMode();
     switch (tvmode) {
         case VI_NTSC:
@@ -152,16 +158,56 @@ int main() {
         load_settings();
     }
 
-    iprintf("Checkup, done=%08x\n", *bs2done);
-    if (*bs2done == 0xCAFEBEEF) {
+    iprintf("Checkup, done=%08x\n", state->boot_code);
+    if (state->boot_code == 0xCAFEBEEF) {
         iprintf("He's alive! The doc's alive! He's in the old west, but he's alive!!\n");
 
 #ifdef VIDEO_ENABLE
         VIDEO_WaitVSync();
 #endif
 
-        // load program
-        load_program();
+        // check for a held button
+        int held_max_index = -1;
+        u64 held_current_max = 0;
+        for (int i = 0; i < MAX_BUTTONS; i++) {
+            if (state->held_buttons[i].status == 0) continue;
+
+            u64 ts = state->held_buttons[i].timestamp;
+            u32 ms = ticks_to_millisecs(ts);
+
+            if (ms > held_current_max) {
+                held_max_index = i;
+                held_current_max = ms;
+            }
+
+            iprintf("HELD: %s\n", buttons_names[i]);
+        }
+
+        // only boot when held > 150ms
+        if (held_current_max < 150) {
+            held_max_index = -1;
+        }
+
+        if (held_max_index != -1) {
+            char *button_name = buttons_names[held_max_index];
+            iprintf("MAX HELD: %s\n", button_name);
+            char buf[64];
+
+            char *filename = settings.boot_buttons[held_max_index];
+            if (filename == NULL) {
+                filename = &buf[0];
+                strcpy(filename, button_name);
+                strcat(filename, ".dol");
+            }
+
+            if (*button_name == '_') {
+                filename = NULL;
+            }
+
+            boot_program(filename);
+        } else {
+            boot_program(NULL);
+        }
     }
 
     if(settings.fallback_enabled) {
@@ -345,6 +391,10 @@ int main() {
 #endif
 
     iprintf("DONE\n");
+
+    endts = ticks_to_millisecs(gettime());
+
+    iprintf("Runtime = %llu\n", endts - startts);
 
     __lwp_thread_stopmultitasking(bs2entry);
 

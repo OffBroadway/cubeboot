@@ -13,6 +13,7 @@
 `patches/source/usbgecko.c`: credit to swiss-gc <br/>
 `patches/source/picolibc`: credit to picolibc and newlib <br/>
 `patches/source/tinyprintf`: credit to tinyprintf <br/>
+`patches/source/time.c` credit to libogc <br/>
 
 <hr/>
 
@@ -27,3 +28,8 @@
 `cubeboot/source/pcg_basic.h` credit to pcg-random.org <br/>
 `cubeboot/source/ini.c` credit to github.com/rxi/ini <br/>
 `cubeboot/source/ini.h` credit to github.com/rxi/ini <br/>
+
+<hr/>
+
+`NTSC 480p on PAL IPLs` credit to Nintendont (terrible workaround I know) <br/>
+`NTSC 480p on PAL IPLs` credit to swiss-gc (Fix logo animation speed) <br/>

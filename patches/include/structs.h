@@ -2,6 +2,7 @@
 #include <ogc/gx.h>
 #include <ogc/gx_struct.h>
 #include <ogc/video_types.h>
+#include <ogc/pad.h>
 
 typedef struct state_t {
     s32 unk0;
@@ -165,3 +166,9 @@ typedef struct model_t {
     void *unk1;
     void *unk2;
 } model;
+
+typedef struct bios_pad_t {
+    PADStatus pad;
+    u16 unk0; // maybe buttons_down
+    u16 unk1; // maybe buttons_up
+} bios_pad;
