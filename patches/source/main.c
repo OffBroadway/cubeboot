@@ -291,13 +291,11 @@ __attribute_used__ u32 get_tvmode() {
     return rmode->viTVMode;
 }
 
-__attribute_data__ u32 first = 1;
 __attribute_used__ u32 bs2tick() {
     // TODO: move this check to PADRead in main loop
     if (pad_status->pad.button != local_state.last_buttons) {
         for (int i = 0; i < MAX_BUTTONS; i++) {
             u16 bitmask = 1 << i;
-            if (first) OSReport("BITMAP %d = %04x\n", i, bitmask);
             u16 pressed = (pad_status->pad.button & bitmask) >> i;
 
             // button changed state
@@ -311,11 +309,8 @@ __attribute_used__ u32 bs2tick() {
 
             local_state.held_buttons[i].status = pressed;
         }
-        first = 0;
     }
     local_state.last_buttons = pad_status->pad.button;
-
-    // PAD_BUTTON_B
 
     if (start_game) {
         return STATE_START_GAME;

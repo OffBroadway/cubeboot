@@ -20,7 +20,7 @@ char *buttons_names[] = {
     "z",     // Z		0x0010
     "r",     // R		0x0020
     "l",     // L		0x0040
-    "_",     // ???     0x0080 (NOT DEFINED)
+    "_",     // origin  0x0080 (NOT USED)
     "_",     // A		0x0100 (NOT ALLOWED)
     "b",     // B		0x0200
     "x",     // X		0x0400
