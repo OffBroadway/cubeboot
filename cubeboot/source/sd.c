@@ -33,9 +33,16 @@ static int check_available_devices() {
         const DISC_INTERFACE *driver = drivers[i];
         const char *dev_name = dev_names[i];
 
-        // skip GCLoader if we did not boot from ODE
-        if (driver->ioType == DEVICE_TYPE_GAMECUBE_GCODE && low_mem->dhi.country_code != 0x03)
-            continue;
+        // // skip GCLoader if we did not boot from ODE
+        // if (driver->ioType == DEVICE_TYPE_GAMECUBE_GCODE && low_mem->dhi.country_code != 0x03)
+        //     continue;
+
+        // skip ODE to speed up loading
+        if (driver->ioType == DEVICE_TYPE_GAMECUBE_GCODE){
+            GCODE_Init();
+            gcodedrvinfo *info = GCODE_GetDriveInfo();
+            if (info->rel_date != 0x20196c64) continue;
+        }
 
         iprintf("Trying mount %s\n", dev_name);
         if (i < MAX_DRIVE)

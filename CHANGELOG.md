@@ -29,6 +29,15 @@ Expected behavior:
 - When you have both `Y.dol` and `test.dol` on the SD with `button_y = test.dol` in `cubeboot.ini`, this should boot `test.dol`
 - The GCLoader SD card will only be used when booting directly from GCLoader (please submit an **Issue** if you have trouble using GCLoader with PicoBoot)
 
+This release includes the following enhancements:
+- https://github.com/OffBroadway/flippyboot-ipl/issues/13
+- https://github.com/OffBroadway/flippyboot-ipl/issues/7
+- https://github.com/OffBroadway/flippyboot-ipl/issues/2
+- https://github.com/OffBroadway/flippyboot-ipl/issues/3
+
+It also fixes the following bugs:
+- https://github.com/OffBroadway/flippyboot-ipl/issues/5
+
 ## [0.1.3] - PAL Progressive Scan hotfix
 ### Details
 
