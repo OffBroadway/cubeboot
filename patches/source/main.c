@@ -20,6 +20,7 @@
 #define CUBE_TEX_WIDTH 84
 #define CUBE_TEX_HEIGHT 84
 
+#define STATE_WAIT_LOAD  0x0f
 #define STATE_START_GAME 0x10
 #define STATE_NO_DISC 0x12
 
@@ -39,6 +40,11 @@ __attribute_data__ static cubeboot_state *global_state = (cubeboot_state*)0x8170
 
 // used if we are switching to 60Hz on a PAL IPL
 __attribute_data__ static int fix_pal_ntsc = 0;
+
+// used for optional delays
+__attribute_data__ u32 preboot_delay_ms = 0;
+__attribute_data__ u32 postboot_delay_ms = 0;
+__attribute_data__ u64 completed_time = 0;
 
 // used to start game
 __attribute_reloc__ u32 (*PADSync)();
@@ -244,6 +250,11 @@ __attribute_used__ void pre_cube_init() {
     mod_cube_colors();
     mod_cube_text();
     mod_cube_anim();
+
+    // delay before boot animation (to wait for GCVideo)
+    if (preboot_delay_ms) {
+        udelay(preboot_delay_ms * 1000);
+    }
 }
 
 __attribute_used__ void pre_main() {
@@ -312,7 +323,20 @@ __attribute_used__ u32 bs2tick() {
     }
     local_state.last_buttons = pad_status->pad.button;
 
+    if (!completed_time && cube_state->cube_anim_done) {
+        OSReport("FINISHED\n");
+        completed_time = gettime();
+    }
+
     if (start_game) {
+        if (postboot_delay_ms) {
+            u64 elapsed = diff_msec(completed_time, gettime());
+            if (completed_time > 0 && elapsed > postboot_delay_ms) {
+                return STATE_START_GAME;
+            } else {
+                return STATE_WAIT_LOAD;
+            }
+        }
         return STATE_START_GAME;
     }
 

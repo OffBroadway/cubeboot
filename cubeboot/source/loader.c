@@ -3,6 +3,7 @@
 #include <malloc.h>
 
 #include "sd.h"
+#include "settings.h"
 
 #include "crc32.h"
 #include "print.h"
@@ -29,6 +30,18 @@ bool check_load_program() {
     if (!is_device_mounted()) return false;
 
     bool found_file = false;
+
+    if (settings.default_program != NULL) {
+        char *path = settings.default_program;
+        int size = get_file_size(path);
+        if (size == SD_FAIL) {
+            iprintf("Failed to open file: %s\n", path);
+            return false;
+        } else {
+            return true;
+        }
+    }
+
     for (int f = 0; f < (sizeof(boot_paths) / sizeof(char *)); f++) {
         char *path = boot_paths[f];
         int size = get_file_size(path);
@@ -134,6 +147,8 @@ void boot_program(char *alternative_path) {
 
     if (alternative_path != NULL) {
         load_program(alternative_path, &params);
+    } else if (settings.default_program != NULL) {
+        load_program(settings.default_program, &params);
     } else {
         for (int f = 0; f < (sizeof(boot_paths) / sizeof(char *)); f++) {
             char *path = boot_paths[f];

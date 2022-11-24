@@ -66,6 +66,13 @@ void load_settings() {
         settings.cube_logo = (char*)cube_logo;
     }
 
+    // default program
+    const char *default_program = ini_get(conf, "", "default_program");
+    if (default_program != NULL) {
+        iprintf("Found default_program = %s\n", default_program);
+        settings.default_program = (char*)default_program;
+    }
+
     // fallback enable
     int fallback_enabled = 0;
     if (!ini_sget(conf, "", "force_fallback", "%d", &fallback_enabled)) {
@@ -82,6 +89,24 @@ void load_settings() {
     } else {
         iprintf("Found progressive_enabled = %d\n", progressive_enabled);
         settings.progressive_enabled = progressive_enabled;
+    }
+
+    // preboot delay
+    u32 preboot_delay_ms = 0;
+    if (!ini_sget(conf, "", "preboot_delay_ms", "%u", &preboot_delay_ms)) {
+        settings.preboot_delay_ms = 0;
+    } else {
+        iprintf("Found preboot_delay_ms = %u\n", preboot_delay_ms);
+        settings.preboot_delay_ms = preboot_delay_ms;
+    }
+
+    // postboot delay
+    u32 postboot_delay_ms = 0;
+    if (!ini_sget(conf, "", "postboot_delay_ms", "%u", &postboot_delay_ms)) {
+        settings.postboot_delay_ms = 0;
+    } else {
+        iprintf("Found postboot_delay_ms = %u\n", postboot_delay_ms);
+        settings.postboot_delay_ms = postboot_delay_ms;
     }
 
     // button presses

@@ -14,6 +14,7 @@
 `patches/source/picolibc`: credit to picolibc and newlib <br/>
 `patches/source/tinyprintf`: credit to tinyprintf <br/>
 `patches/source/time.c` credit to libogc <br/>
+`patches/source/arith64.c` credit to github.com/glitchub/arith64 <br/>
 
 <hr/>
 
@@ -28,6 +29,9 @@
 `cubeboot/source/pcg_basic.h` credit to pcg-random.org <br/>
 `cubeboot/source/ini.c` credit to github.com/rxi/ini <br/>
 `cubeboot/source/ini.h` credit to github.com/rxi/ini <br/>
+
+`cubeboot/include/elf_abi.h` credit to swiss-gc <br/>
+`cubeboot/include/gcm.h` credit to gc-boot-tools <br/>
 
 <hr/>
 

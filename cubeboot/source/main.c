@@ -149,13 +149,13 @@ int main() {
         iprintf("Could not find an inserted SD card\n");
     }
 
+    if (is_device_mounted()) {
+        load_settings();
+    }
+
     // check if we have a bootable dol
     if (check_load_program()) {
         can_load_dol = true;
-    }
-
-    if (is_device_mounted()) {
-        load_settings();
     }
 
     iprintf("Checkup, done=%08x\n", state->boot_code);
@@ -363,6 +363,9 @@ int main() {
     set_patch_value(symshdr, syment, symstringdata, "cube_text_tex", (u32)image_data);
     set_patch_value(symshdr, syment, symstringdata, "force_progressive", settings.progressive_enabled);
 
+    set_patch_value(symshdr, syment, symstringdata, "preboot_delay_ms", settings.preboot_delay_ms);
+    set_patch_value(symshdr, syment, symstringdata, "postboot_delay_ms", settings.postboot_delay_ms);
+
     // while(1);
 
     unmount_current_device();
@@ -394,7 +397,8 @@ int main() {
 
     endts = ticks_to_millisecs(gettime());
 
-    iprintf("Runtime = %llu\n", endts - startts);
+    u64 runtime = endts - startts;
+    iprintf("Runtime = %llu\n", runtime);
 
     __lwp_thread_stopmultitasking(bs2entry);
 

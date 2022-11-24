@@ -7,6 +7,9 @@ typedef struct settings {
     char *cube_logo;
     u32 fallback_enabled;
     u32 progressive_enabled;
+    u32 preboot_delay_ms;
+    u32 postboot_delay_ms;
+    char *default_program;
     char *boot_buttons[MAX_BUTTONS];
 } settings_t;
 

@@ -4,13 +4,16 @@
 #include <sdcard/card_io.h>
 #include <sdcard/gcsd.h>
 #include "gcode.h"
+#include "gcm.h"
 
 #include "uff.h"
 
 #include "sd.h"
 #include "print.h"
 
+#ifndef USE_FAT_PFF
 #include "fatfs/diskio.h"
+#endif
 
 #define countof(a) (sizeof(a)/sizeof(a[0]))
 
@@ -22,11 +25,17 @@ static const DISC_INTERFACE *current_device = NULL;
 static int current_device_index = -1;
 static bool is_mounted = FALSE;
 
+static struct gcm_system_area *low_mem = (struct gcm_system_area*)0x80000000;
+
 // check for inserted
 static int check_available_devices() {
     for (int i = countof(drivers) - 1; i >= 0; i--) {
         const DISC_INTERFACE *driver = drivers[i];
         const char *dev_name = dev_names[i];
+
+        // skip GCLoader if we did not boot from ODE
+        if (driver->ioType == DEVICE_TYPE_GAMECUBE_GCODE && low_mem->dhi.country_code != 0x03)
+            continue;
 
         iprintf("Trying mount %s\n", dev_name);
         if (i < MAX_DRIVE)

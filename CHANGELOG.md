@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - Boot Held Button Programs
+
+### Details
+This build includes custom program loading, PAL 480p and optional boot delays.
+
+Usage:
+- Held button with standard names like `B.dol` and `START.dol`
+- Held buttons with custom names like `button_x = test.dol` set in `cubeboot.ini`
+- Set delays before the boot logo using `preboot_delay_ms = 500` (time in milliseconds)
+- Set delays after the boot logo using `postboot_delay_ms = 3000` (time in milliseconds)
+- PAL IPL 1.0 (DOL-001 PAL consoles) Force Progressive with `force_progressive = 1` set in `cubeboot.ini`
+- Specify a custom default DOL file to boot into with `default_program = swiss.dol` set in `cubeboot.ini`
+
+Use-cases:
+- Hold button to load alternative DOL files (this also loads associated `.cli` files)
+- Set custom program per-button with `button_name = something.dol`
+- When using GCVideo, you can set `preboot_delay_ms` to wait for your TV to sync to the input source
+- The `postboot_delay_ms` setting exists exclusively for flair. It can help recover the feeling of waiting for a game to load
+- If you do not want cubeboot to enumerate through names like `boot.dol` and `autoexec.dol` you can set your own default with the `default_program` setting
+
+Expected behavior:
+- When you have both `Y.dol` and `test.dol` on the SD with `button_y = test.dol` in `cubeboot.ini`, this should boot `test.dol`
+- The GCLoader SD card will only be used when booting directly from GCLoader (please submit an **Issue** if you have trouble using GCLoader with PicoBoot)
+
 ## [0.1.3] - PAL Progressive Scan hotfix
 ### Details
 

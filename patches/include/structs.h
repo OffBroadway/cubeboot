@@ -24,7 +24,7 @@ typedef struct state_t {
     u8 unk11;
     u8 unk12;
     u8 unk13;
-    u8 unk14;
+    u8 cube_anim_done;
     u8 unk15;
     u8 unk16;
 
