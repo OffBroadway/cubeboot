@@ -15,3 +15,5 @@ typedef struct cubeboot_state_t {
         u64 timestamp;
     } held_buttons[MAX_BUTTONS];
 } cubeboot_state;
+
+extern cubeboot_state *state;

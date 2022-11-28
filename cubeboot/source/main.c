@@ -37,7 +37,6 @@
 #include "loader.h"
 
 static u32 prog_entrypoint, prog_dst, prog_src, prog_len;
-static cubeboot_state *state = (cubeboot_state*)0x81700000;
 
 #define BS2_BASE_ADDR 0x81300000
 static void (*bs2entry)(void) = (void(*)(void))BS2_BASE_ADDR;
@@ -183,8 +182,8 @@ int main() {
             iprintf("HELD: %s\n", buttons_names[i]);
         }
 
-        // only boot when held > 150ms
-        if (held_current_max < 150) {
+        // only boot when held > 300ms
+        if (held_current_max < 300) {
             held_max_index = -1;
         }
 

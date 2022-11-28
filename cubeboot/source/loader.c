@@ -4,6 +4,7 @@
 
 #include "sd.h"
 #include "settings.h"
+#include "state.h"
 
 #include "crc32.h"
 #include "print.h"
@@ -159,11 +160,19 @@ void boot_program(char *alternative_path) {
     }
 
     if (dol_buf == NULL) {
-        prog_halt("No program loaded!\n");
+        if (alternative_path != NULL) {
+            char buf[128];
+            sprintf(buf, "No program loaded! (path=%s)\n", alternative_path);
+            prog_halt(buf);
+        } else {
+            prog_halt("No program loaded!\n");
+        }
+
         return;
     }
 
     iprintf("Program loaded...\n");
+    state->boot_code = 0x0;
 
     iprintf("BOOTING\n");
 #ifdef VIDEO_ENABLE
