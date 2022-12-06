@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Details
 This build includes custom program loading, PAL 480p and optional boot delays.
 
+Custom program loading by be of use if you boot homebrew from one of the existing defaults and need to specify an alternative. It can also be helpful if you prefer to use your cube exclusively for GBI without needing a loader.
+
+Boot Delays are a new optional feature that can delay cubeboot before the animation begins or after it finishes (and leave it on screen for an extended period). You may want to use preboot delay to wait for your TV to detect the video source. Additionally you may be interested in a postboot delay to emulate the load times you would usually see when booting a disc.
+
 Usage:
 - Held button with standard names like `B.dol` and `START.dol`
 - Held buttons with custom names like `button_x = test.dol` set in `cubeboot.ini`
