@@ -9,7 +9,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Setup
         run: |
-          apt-get update && apt-get install -y genisoimage build-essential gcc-arm-none-eabi python3-distutils python3-setuptools
+          apt-get update && apt-get install -y genisoimage nodejs build-essential gcc-arm-none-eabi python3-distutils python3-setuptools
           curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3 get-pip.py
           pip3 install -r patches/scripts/requirements.txt
       - name: Build cubeboot
@@ -24,7 +24,7 @@ jobs:
       - name: Build GCLoader
         run: |
           mkdir boot-dir && cp cubeboot/cubeboot.dol boot-dir
-          genisoimage -R -J -G gc-boot-tools/mkgbi/gbi.hdr -no-emul-boot -b cubeboot.dol -o boot.iso -find boot-dir
+          genisoimage -R -J -G gc-boot-tools/mkgbi/gbi.hdr -no-emul-boot -b cubeboot.dol -o boot.iso boot-dir
       - name: Build PicoBoot
         run: |
           git clone https://github.com/webhdx/PicoBoot.git
@@ -34,8 +34,8 @@ jobs:
       - name: Rename Artifacts
         run: |
           mkdir -p dist/next
-          mv ./boot.iso dist/next/
-          mv ./cubeboot/cubeboot.dol dist/next/
+          mv ./boot.iso dist/next/boot.iso
+          mv ./cubeboot/cubeboot.dol dist/next/cubeboot.dol
           mv ./PicoBoot/picoboot.uf2 dist/next/cubeboot.uf2
       - name: Archive
         uses: actions/upload-artifact@v3
