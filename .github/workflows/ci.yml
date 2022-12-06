@@ -21,11 +21,24 @@ jobs:
           (cd ppc/apploader; make)
           (cd mkgbi; make)
           ls mkgbi/gbi.hdr
+      - name: Build GCLoader
+        run: |
+          mkdir boot-dir && cp cubeboot/cubeboot.dol boot-dir
+          genisoimage -R -J -G gc-boot-tools/mkgbi/gbi.hdr -no-emul-boot -b cubeboot.dol -o boot.iso -find boot-dir
       - name: Build PicoBoot
         run: |
           git clone https://github.com/webhdx/PicoBoot.git
           cd PicoBoot; env PICO_SDK_FETCH_FROM_GIT=1 cmake .
           ./process_ipl.py ../entry/entry.dol src/ipl.h
           make
-      - name: Test
-        run: find
+      - name: Rename Artifacts
+        run: |
+          mkdir -p dist/next
+          mv ./boot.iso dist/next/
+          mv ./cubeboot/cubeboot.dol dist/next/
+          mv ./PicoBoot/picoboot.uf2 dist/next/cubeboot.uf2
+      - name: Archive
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist
+          path: dist/next/
