@@ -58,6 +58,21 @@ lines = []
 # for i in range(elf.num_sections()):
 #     sect = elf.get_section(i)
 
+# string polyfill
+class S:
+    s: str
+
+    def __init__(self, s):
+        self.s = s
+
+    def removeprefix(self, prefix):
+        if not self.s.startswith(prefix): return self.s
+        return self.s[len(prefix):]
+
+    def removesuffix(self, suffix):
+        if not self.s.endswith(suffix): return self.s
+        return self.s[:-len(suffix)]
+
 for sect in elf.iter_sections():
     if not isinstance(sect, elffile.SymbolTableSection):
         continue
@@ -65,14 +80,14 @@ for sect in elf.iter_sections():
     addrs = []
     for sym in sect.iter_symbols():
         if sym.name.startswith('_addr_'):
-            addr = sym.name.removeprefix('_addr_')
+            addr = S(sym.name).removeprefix('_addr_')
             if addr in addrs:
                 continue
             addrs.append(addr)
             lines.append(f'{sym.name} = 0x{addr};\n')
         elif '_VER_' in sym.name and sym.name.endswith("_address"):
             addr = sym['st_value']
-            symbol_name = sym.name.removesuffix("_address")
+            symbol_name = S(sym.name).removesuffix("_address")
             if addr not in patch_map:
                 patch_map[addr] = []
             patch_map[addr].append(symbol_name)
@@ -107,8 +122,8 @@ for sect in elf.iter_sections():
     if not sect.name.startswith('.patch.'):
         continue
 
-    name = sect.name.removeprefix('.patch.')
-    symbol_name = name.removesuffix('_func')
+    name = S(sect.name).removeprefix('.patch.')
+    symbol_name = S(name).removesuffix('_func')
 
     size_name = symbol_name + '_size'
     size = sect.data_size
