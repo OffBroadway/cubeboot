@@ -8,6 +8,7 @@ pal10_cube_init = 0x81310ef0;
 pal10_OSReport = 0x8135d924;
 
 pal10_rmode = 0x81380fd0;
+pal10_pad_status = 0x814af60c;
 
 pal10_cube_state = 0x814b5d58;
 pal10_cube_model = 0x814b5e28;

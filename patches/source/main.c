@@ -7,6 +7,8 @@
 #include "os.h"
 
 #include "usbgecko.h"
+#include "state.h"
+#include "time.h"
 
 #define __attribute_used__ __attribute__((used))
 // #define __attribute_himem__ __attribute__((used, section(".himem")))
@@ -18,6 +20,7 @@
 #define CUBE_TEX_WIDTH 84
 #define CUBE_TEX_HEIGHT 84
 
+#define STATE_WAIT_LOAD  0x0f
 #define STATE_START_GAME 0x10
 #define STATE_NO_DISC 0x12
 
@@ -32,13 +35,16 @@ __attribute_data__ u32 start_game = 0;
 __attribute_data__ u8 *cube_text_tex = NULL;
 __attribute_data__ u32 force_progressive = 0;
 
-__attribute_used__ u32 bs2tick() {
-    if (start_game) {
-        return STATE_START_GAME;
-    }
+__attribute_data__ static cubeboot_state local_state;
+__attribute_data__ static cubeboot_state *global_state = (cubeboot_state*)0x81700000;
 
-    return STATE_NO_DISC;
-}
+// used if we are switching to 60Hz on a PAL IPL
+__attribute_data__ static int fix_pal_ntsc = 0;
+
+// used for optional delays
+__attribute_data__ u32 preboot_delay_ms = 0;
+__attribute_data__ u32 postboot_delay_ms = 0;
+__attribute_data__ u64 completed_time = 0;
 
 // used to start game
 __attribute_reloc__ u32 (*PADSync)();
@@ -54,6 +60,7 @@ __attribute_reloc__ void (*cube_init)();
 __attribute_reloc__ void (*main)();
 
 __attribute_reloc__ GXRModeObj *rmode;
+__attribute_reloc__ bios_pad *pad_status;
 
 __attribute_reloc__ model *bg_outer_model;
 __attribute_reloc__ model *bg_inner_model;
@@ -193,6 +200,11 @@ __attribute_used__ void mod_cube_text() {
         void *img_ptr = (void*)((u8*)gc_text_tex + gc_text_tex->offset);
         u32 img_size = wd * ht;
 
+#ifndef DEBUG
+        (void)img_ptr;
+        (void)img_size;
+#endif
+
         OSReport("CUBE TEXT TEX: %dx%d[%d] (type=%d) @ %p\n", wd, ht, img_size, gc_text_tex->format, img_ptr);
         OSReport("PTR = %08x\n", (u32)cube_text_tex);
         OSReport("ORIG_PTR_PARTS = %08x, %08x\n", (u32)gc_text_tex, gc_text_tex->offset);
@@ -213,11 +225,36 @@ __attribute_used__ void mod_cube_text() {
         }
 }
 
+
+__attribute_used__ void mod_cube_anim() {
+    if (fix_pal_ntsc) {
+        cube_state->cube_side_frames = 10;
+        cube_state->cube_corner_frames = 16;
+        cube_state->fall_anim_frames = 5;
+        cube_state->fall_delay_frames = 16;
+        cube_state->up_anim_frames = 18;
+        cube_state->up_delay_frames = 7;
+        cube_state->move_anim_frames = 10;
+        cube_state->move_delay_frames = 20;
+        cube_state->done_delay_frames = 40;
+        cube_state->logo_hold_frames = 60;
+        cube_state->logo_delay_frames = 5;
+        cube_state->audio_cue_frames_b = 7;
+        cube_state->audio_cue_frames_c = 6;
+    }
+}
+
 __attribute_used__ void pre_cube_init() {
     cube_init();
 
     mod_cube_colors();
     mod_cube_text();
+    mod_cube_anim();
+
+    // delay before boot animation (to wait for GCVideo)
+    if (preboot_delay_ms) {
+        udelay(preboot_delay_ms * 1000);
+    }
 }
 
 __attribute_used__ void pre_main() {
@@ -225,11 +262,27 @@ __attribute_used__ void pre_main() {
 
     if (force_progressive) {
         OSReport("Patching video mode to Progressive Scan\n");
-        rmode->viTVMode |= VI_PROGRESSIVE;
+        fix_pal_ntsc = rmode->viTVMode >> 2 != VI_NTSC;
+        if (fix_pal_ntsc) {
+            rmode->fbWidth = 592;
+            rmode->efbHeight = 226;
+            rmode->xfbHeight = 448;
+            rmode->viXOrigin = 40;
+            rmode->viYOrigin = 16;
+            rmode->viWidth = 640;
+            rmode->viHeight = 448;
+        }
+
+        rmode->viTVMode = VI_TVMODE_NTSC_PROG;
         rmode->xfbMode = VI_XFBMODE_SF;
 
-        static u8 progressive_vfilter[7] = {0, 0, 21, 22, 21, 0, 0};
-        memcpy(rmode->vfilter, progressive_vfilter, sizeof(progressive_vfilter));
+        rmode->vfilter[0] = 0;
+        rmode->vfilter[1] = 0;
+        rmode->vfilter[2] = 21;
+        rmode->vfilter[3] = 22;
+        rmode->vfilter[4] = 21;
+        rmode->vfilter[5] = 0;
+        rmode->vfilter[6] = 0;
     }
 
     // can't boot dol
@@ -245,9 +298,55 @@ __attribute_used__ void pre_main() {
     __builtin_unreachable();
 }
 
+__attribute_used__ u32 get_tvmode() {
+    return rmode->viTVMode;
+}
+
+__attribute_used__ u32 bs2tick() {
+    // TODO: move this check to PADRead in main loop
+    if (pad_status->pad.button != local_state.last_buttons) {
+        for (int i = 0; i < MAX_BUTTONS; i++) {
+            u16 bitmask = 1 << i;
+            u16 pressed = (pad_status->pad.button & bitmask) >> i;
+
+            // button changed state
+            if (local_state.held_buttons[i].status != pressed) {
+                if (pressed) {
+                    local_state.held_buttons[i].timestamp = gettime();
+                } else {
+                    local_state.held_buttons[i].timestamp = 0;
+                }
+            }
+
+            local_state.held_buttons[i].status = pressed;
+        }
+    }
+    local_state.last_buttons = pad_status->pad.button;
+
+    if (!completed_time && cube_state->cube_anim_done) {
+        OSReport("FINISHED\n");
+        completed_time = gettime();
+    }
+
+    if (start_game) {
+        if (postboot_delay_ms) {
+            u64 elapsed = diff_msec(completed_time, gettime());
+            if (completed_time > 0 && elapsed > postboot_delay_ms) {
+                return STATE_START_GAME;
+            } else {
+                return STATE_WAIT_LOAD;
+            }
+        }
+        return STATE_START_GAME;
+    }
+
+    return STATE_NO_DISC;
+}
+
 __attribute_used__ void bs2start() {
     OSReport("DONE\n");
-    *(u32*)0x81700000 = 0xCAFEBEEF;
+    memcpy(global_state, &local_state, sizeof(cubeboot_state));
+    global_state->boot_code = 0xCAFEBEEF;
 
     while (!PADSync());
     OSDisableInterrupts();

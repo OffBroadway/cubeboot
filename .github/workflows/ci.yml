@@ -1,0 +1,44 @@
+name: CI
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitppc:20220821
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup
+        run: |
+          apt-get update && apt-get install -y genisoimage nodejs build-essential gcc-arm-none-eabi python3-distutils python3-setuptools
+          curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3 get-pip.py
+          pip3 install -r patches/scripts/requirements.txt
+      - name: Build cubeboot
+        run: cd entry; make clean && make
+      - name: Build apploader
+        run: |
+          git clone -b force-early-boot --single-branch https://github.com/OffBroadway/gc-boot-tools.git
+          cd gc-boot-tools
+          (cd ppc/apploader; make)
+          (cd mkgbi; make)
+          ls mkgbi/gbi.hdr
+      - name: Build GCLoader
+        run: |
+          mkdir boot-dir && cp cubeboot/cubeboot.dol boot-dir
+          genisoimage -R -J -G gc-boot-tools/mkgbi/gbi.hdr -no-emul-boot -b cubeboot.dol -o boot.iso boot-dir
+      - name: Build PicoBoot
+        run: |
+          git clone https://github.com/webhdx/PicoBoot.git
+          cd PicoBoot; env PICO_SDK_FETCH_FROM_GIT=1 cmake .
+          ./process_ipl.py ../entry/entry.dol src/ipl.h
+          make
+      - name: Rename Artifacts
+        run: |
+          mkdir -p dist/next
+          mv ./boot.iso dist/next/boot.iso
+          mv ./cubeboot/cubeboot.dol dist/next/cubeboot.dol
+          mv ./PicoBoot/picoboot.uf2 dist/next/cubeboot.uf2
+      - name: Archive
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist
+          path: dist/next/

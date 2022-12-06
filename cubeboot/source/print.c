@@ -29,7 +29,7 @@ int iprintf(const char *fmt, ...) {
 
 	return length;
 }
-#else
+#elif defined(CONSOLE_ENABLE) || defined(GECKO_PRINT_ENABLE)
 int iprintf(const char *fmt, ...) {
     va_list args;
     unsigned long length;
@@ -47,4 +47,6 @@ int iprintf(const char *fmt, ...) {
 
 	return length;
 }
+#else
+#define iprintf(...)
 #endif

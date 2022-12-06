@@ -1,16 +1,22 @@
 #include <malloc.h>
+#include <unistd.h>
 
 #include <sdcard/card_cmn.h>
 #include <sdcard/card_io.h>
 #include <sdcard/gcsd.h>
 #include "gcode.h"
+#include "gcm.h"
 
 #include "uff.h"
 
 #include "sd.h"
 #include "print.h"
+#include "halt.h"
+#include "helpers.h"
 
+#ifndef USE_FAT_PFF
 #include "fatfs/diskio.h"
+#endif
 
 #define countof(a) (sizeof(a)/sizeof(a[0]))
 
@@ -22,11 +28,44 @@ static const DISC_INTERFACE *current_device = NULL;
 static int current_device_index = -1;
 static bool is_mounted = FALSE;
 
+// static struct gcm_system_area *low_mem = (struct gcm_system_area*)0x80000000;
+
+gcodecmdblk blk;
+gcodedrvinfo drive_info __attribute__((aligned(32)));
+static int has_drive = -1;
+
+static void drive_info_callback(s32 result, gcodecmdblk *blk) {
+	if(result >= 0) {
+		has_drive = 1;
+	} else {
+        has_drive = 0;
+    }
+}
+
+
 // check for inserted
 static int check_available_devices() {
     for (int i = countof(drivers) - 1; i >= 0; i--) {
         const DISC_INTERFACE *driver = drivers[i];
         const char *dev_name = dev_names[i];
+
+        // // skip GCLoader if we did not boot from ODE
+        // if (driver->ioType == DEVICE_TYPE_GAMECUBE_GCODE && low_mem->dhi.country_code != 0x03)
+        //     continue;
+
+        // skip ODE to speed up loading
+        if (driver->ioType == DEVICE_TYPE_GAMECUBE_GCODE) {
+            GCODE_Init();
+            GCODE_InquiryAsync(&blk, &drive_info, drive_info_callback);
+
+            // wait until done (1ms max)
+            for (int i = 0; i < 10; i++) {
+                if (has_drive >= 0) break;
+                udelay(100); // 100 microseconds
+            }
+
+            if (drive_info.rel_date != 0x20196c64) continue;
+        }
 
         iprintf("Trying mount %s\n", dev_name);
         if (i < MAX_DRIVE)
