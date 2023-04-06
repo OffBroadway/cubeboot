@@ -363,5 +363,10 @@ __attribute_used__ void bs2start() {
     __builtin_unreachable();
 }
 
+// needed for some jaudio check
+__attribute_used__ u32 audio_ret_true() {
+    return 0x1;
+}
+
 // unused
 void _start() {}

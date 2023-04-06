@@ -25,4 +25,16 @@ patch_inst_pal  "_patch_cube_init" 0x8130f2c8 0x8130ead8 0x8130f408 bl pre_cube_
 
 patch_inst_pal "_fix_video_mode_init" 0x81300520 0x81300520 0x81300610 bl get_tvmode
 
+patch_inst vNTSC_11(_disable_audio_init) 0x81357ae0 blr
+patch_inst vNTSC_11(_disable_audio_stop) 0x81357ba0 blr
+patch_inst vNTSC_11(_disable_audio_check) 0x81357ce0 b audio_ret_true
+patch_inst vNTSC_11(_disable_audio_func_a) 0x813574a0 blr
+patch_inst vNTSC_11(_disable_audio_func_b) 0x81357300 blr
+patch_inst vNTSC_11(_disable_audio_func_c) 0x81357c20 blr
+patch_inst vNTSC_11(_disable_audio_func_d) 0x81357c80 blr
+patch_inst vNTSC_11(_disable_audio_func_e) 0x81357640 blr
+patch_inst vNTSC_11(_disable_audio_func_f) 0x81357600 blr
+patch_inst vNTSC_11(_disable_audio_aram_init_stub) 0x81369908 blr
+patch_inst vNTSC_11(_disable_audio_system_init_stub) 0x813593c4 blr
+
 patch_inst_global "_patch_pre_main" 0x81300090 bl pre_main
