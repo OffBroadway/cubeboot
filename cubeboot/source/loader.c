@@ -189,4 +189,6 @@ void boot_program(char *alternative_path) {
 
     size_t argc = arrlen(argv);
     DOLtoARAM(dol_buf, argc, argv);
+
+    // DOLtoARAM(dol_buf, params.argc, params.argv);
 }
