@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 #include <ogc/gx.h>
 
 #include "GRRLIB_pixel.h"

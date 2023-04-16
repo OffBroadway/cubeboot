@@ -1,0 +1,7 @@
+subsystems:
+- ARAM (Memcard unlock)
+- DSP
+
+- DVD (Apploader + Boot)
+- EXI (Memcard mount) (U10 RTC + SRAM)
+- SI (Controllers)

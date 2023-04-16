@@ -328,6 +328,8 @@ __attribute_used__ u32 bs2tick() {
         completed_time = gettime();
     }
 
+    return 0x13;
+
     if (start_game) {
         if (postboot_delay_ms) {
             u64 elapsed = diff_msec(completed_time, gettime());
