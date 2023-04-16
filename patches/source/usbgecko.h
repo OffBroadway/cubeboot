@@ -58,10 +58,6 @@ typedef struct EXIControl {
 	} queue[EXI_DEVICE_MAX];
 } EXIControl;
 
-extern s32 (*EXILock)(s32 chan, u32 dev, EXICallback unlockedCallback);
-extern s32 (*EXIUnlock)(s32 chan);
-
-s32 WriteUARTN(const void *buf, u32 len);
-void usb_OSReport(const char *fmt, ...);
+void custom_OSReport(const char *fmt, ...);
 
 #endif /* EXI_H */

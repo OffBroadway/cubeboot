@@ -12,6 +12,9 @@ ntsc11_run = 0x813007b8;
 ntsc11_main = 0x813004e4;
 ntsc11_cube_init = 0x813107b0;
 ntsc11_OSReport = 0x8135a344;
+ntsc11_InitializeUART = 0x81360920;
+ntsc11_WriteUARTN = 0x81360970;
+ntsc11_uart_init = 0x81481c70;
 
 ntsc11_rmode = 0x8137d9f0;
 ntsc11_pad_status = 0x8148370c;

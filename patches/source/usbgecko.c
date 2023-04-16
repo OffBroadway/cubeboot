@@ -26,7 +26,28 @@
 
 #include "config.h"
 
-#ifdef DEBUG
+#ifdef DOLPHIN_PRINT_ENABLE
+
+#define __attribute_reloc__ __attribute__((section(".reloc")))
+
+__attribute_reloc__ u32 uart_init;
+__attribute_reloc__ u32 (*InitializeUART)(u32);
+__attribute_reloc__ s32 (*WriteUARTN)(const void *buf, u32 len);
+
+s32 dolphin_WriteUARTN(const void *buf, u32 len) {
+  if (uart_init == 0) {
+	InitializeUART(0xe100);
+    uart_init = 1;
+  }
+
+	return WriteUARTN(buf, len);
+}
+
+#define custom_WriteUARTN dolphin_WriteUARTN
+
+#endif
+
+#ifdef GECKO_PRINT_ENABLE
 extern volatile u32 EXI[3][5];
 
 static void exi_select(void)
@@ -142,7 +163,7 @@ static int usb_receive(void *data, int size, int minsize)
 	return i;
 }
 
-s32 WriteUARTN(const void *buf, u32 len)
+s32 usb_WriteUARTN(const void *buf, u32 len)
 {
 	if (usb_probe()) {
 		usb_transmit(buf, len, len);
@@ -152,21 +173,28 @@ s32 WriteUARTN(const void *buf, u32 len)
 	return -1;
 }
 
-void usb_OSReport(const char *fmt, ...) {
+#define custom_WriteUARTN usb_WriteUARTN
+
+#endif
+
+
+#ifdef DEBUG
+
+void custom_OSReport(const char *fmt, ...) {
 	va_list args;
     static char buf[256];
 
     va_start(args, fmt);
     int length = vsprintf((char *)buf, (char *)fmt, args);
 
-	WriteUARTN(buf, length);
+	custom_WriteUARTN(buf, length);
 
     va_end(args);
 }
 
 #else
 
-void usb_OSReport(const char *fmt, ...) {
+void custom_OSReport(const char *fmt, ...) {
 	(void)fmt;
 }
 
