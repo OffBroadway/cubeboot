@@ -65,10 +65,8 @@ Known compatible IPL versions:
 
 ## TODO
 - [ ] Create GitHub Actions for CI/CD
-- [ ] Add GCLoader SD Card support
 - [ ] Flashable settings files for picoboot
 - [ ] Add support for Memory Card boot.dol and ipl.bin
-- [ ] iplboot like button-press features for DOLs
 - [ ] More options for cube color
   - [ ] Individual color selection per-object
   - [ ] Control texture saturation

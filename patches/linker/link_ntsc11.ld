@@ -10,7 +10,7 @@ ntsc11___OSStopAudioSystem = 0x81359580;
 ntsc11_run = 0x813007b8;
 
 ntsc11_main = 0x813004e4;
-ntsc11_cube_init = 0x813107b0;
+ntsc11_menu_init = 0x8130bc90;
 ntsc11_OSReport = 0x8135a344;
 ntsc11_InitializeUART = 0x81360920;
 ntsc11_WriteUARTN = 0x81360970;
@@ -27,4 +27,14 @@ ntsc11_bg_outer_model = 0x81483cc8;
 ntsc11_bg_inner_model = 0x81483ab8;
 ntsc11_gc_text_model = 0x81483d40;
 
+ntsc11_draw_gameselect_menu = 0x813272f8;
 ntsc11_gx_draw_text = 0x8130a6b8;
+ntsc11_save_icon = 0x8149eaa0;
+
+ntsc11_model_init = 0x81303a38;
+ntsc11_draw_model = 0x813207bc;
+ntsc11_change_model = 0x8130418c;
+
+ntsc11_get_camera_mtx = 0x81302f94;
+ntsc11_set_obj_pos = 0x8130537c;
+ntsc11_set_obj_cam = 0x813053c8;

@@ -58,12 +58,22 @@ __attribute_reloc__ void (*run)(register void* entry_point, register u32 clear_s
 
 // for custom menus
 __attribute_reloc__ void (*gx_draw_text)(u16 index, text_group* text, text_draw_group* text_draw, GXColor* color);
+__attribute_reloc__ void (*draw_gameselect_menu)(u8 unk0, u8 unk1, u8 unk2);
+__attribute_reloc__ model_data *save_icon;
+
+// for model gx
+__attribute_reloc__ void (*model_init)(model* m, int process);
+__attribute_reloc__ void (*draw_model)(model* m);
+__attribute_reloc__ void (*change_model)(model* m);
+__attribute_reloc__ void (*set_obj_pos)(model* m, MtxP matrix, guVector vector);
+__attribute_reloc__ void (*set_obj_cam)(model* m, MtxP matrix);
+__attribute_reloc__ MtxP (*get_camera_mtx)();
 
 #ifdef DEBUG
 // This is actually BS2Report on IPL rev 1.2
 __attribute_reloc__ void (*OSReport)(const char* text, ...);
 #endif
-__attribute_reloc__ void (*cube_init)();
+__attribute_reloc__ void (*menu_init)();
 __attribute_reloc__ void (*main)();
 
 __attribute_reloc__ GXRModeObj *rmode;
@@ -128,10 +138,57 @@ void draw_text(char *s, u16 x, u16 y, u8 alpha) {
     gx_draw_text(0, &text.group, &draw.group, &white);
 }
 
-__attribute_used__ u32 custom_options_menu(u8 alpha) {
-    draw_text("hello, world", 10, 10, alpha);
+extern void dump_struct(void *p, void (*printer)(const char *, ...));
 
-    return 0;
+__attribute_data__ model single_icon = {};
+__attribute_used__ void custom_gameselect_init() {
+    single_icon.data = save_icon;
+    model_init(&single_icon, 0);
+
+    DUMP_COLOR(single_icon.data->mat[0].tev_color[0]);
+    DUMP_COLOR(single_icon.data->mat[2].tev_color[0]);
+
+    single_icon.data->mat[0].tev_color[0] = &color_cube;
+    single_icon.data->mat[2].tev_color[0] = &color_cube;
+
+    // tex_data *base = single_icon.data->tex->dat;
+    // for (int i = 0; i < 8; i++) {
+    //     tex_data *p = base + i;
+    //     // void *img_ptr = (void*)((u8*)base + p->offset + (i * 0x20));
+    //     OSReport("Icon tex, %u\n", p->format);
+    // }
+}
+
+__attribute_used__ void custom_gameselect_menu(u8 unk0, u8 unk1, u8 unk2) {
+    draw_gameselect_menu(unk0, unk1, unk2);
+    draw_text("Logo", 10, 10, unk0);
+
+    int base_x = 60 + 5;
+    int base_y = 80 + 15;
+
+    f32 mod = (f32)unk2 * 0.2 / 0xFF;
+    f32 sc = 1.3 + mod;
+
+    guVector scale = {sc, sc, sc};
+
+    for (int row = 0; row < 5; row++) {
+        for (int col = 0; col < 8; col++) {
+            // draw setup
+            Mtx matrix = {
+                { 1, 0, 0, -292 + (base_x + (col * 65)) },
+                { 0, 1, 0, 224 - (base_y + (row * 60)) },
+                { 0, 0 , 1, 0 },
+            };
+
+            set_obj_pos(&single_icon, matrix, scale);
+            set_obj_cam(&single_icon, get_camera_mtx());
+            change_model(&single_icon);
+
+            // draw icon
+            single_icon.alpha = unk1;
+            draw_model(&single_icon);
+        }
+    }
 }
 
 __attribute_used__ void mod_cube_colors() {
@@ -192,7 +249,9 @@ __attribute_used__ void mod_cube_colors() {
 
     // logo
 
-    DUMP_COLOR(logo_model->data->mat[0].tev_color[0]);
+    DUMP_COLOR(logo_model->data->mat[1].tev_color[0]);
+    DUMP_COLOR(logo_model->data->mat[1].tev_color[1]);
+    DUMP_COLOR(logo_model->data->mat[2].tev_color[2]);
 
     tex_data *base = logo_model->data->tex->dat;
     for (int i = 0; i < 8; i++) {
@@ -239,8 +298,12 @@ __attribute_used__ void mod_cube_colors() {
     cube_model->data->mat[0].tev_color[0] = &color_cube;
     cube_model->data->mat[0].tev_color[1] = &color_cube_low;
 
-    logo_model->data->mat[0].tev_color[0] = &color_cube_low;
-    logo_model->data->mat[0].tev_color[1] = &color_cube_low; // TODO: use different shades
+    logo_model->data->mat[0].tev_color[0] = &color_cube_low; // TODO: use different shades
+    logo_model->data->mat[0].tev_color[1] = &color_cube_low; // TODO: <-
+    logo_model->data->mat[1].tev_color[0] = &color_cube_low; // TODO: <-
+    logo_model->data->mat[1].tev_color[1] = &color_cube_low; // TODO: <-
+    logo_model->data->mat[2].tev_color[0] = &color_cube_low; // TODO: <-
+    logo_model->data->mat[2].tev_color[1] = &color_cube_low; // TODO: <-
 
     bg_inner_model->data->mat[0].tev_color[0] = &color_bg_inner;
     bg_inner_model->data->mat[1].tev_color[0] = &color_bg_inner;
@@ -303,8 +366,10 @@ __attribute_used__ void mod_cube_anim() {
     }
 }
 
-__attribute_used__ void pre_cube_init() {
-    cube_init();
+__attribute_used__ void pre_menu_init(int unk) {
+    menu_init(unk);
+
+    custom_gameselect_init();
 
     mod_cube_colors();
     mod_cube_text();
@@ -399,11 +464,12 @@ __attribute_used__ u32 bs2tick() {
         return STATE_START_GAME;
     }
 
-    return STATE_NO_DISC;
+    return STATE_COVER_OPEN;
 }
 
 __attribute_used__ void bs2start() {
     OSReport("DONE\n");
+
     memcpy(global_state, &local_state, sizeof(cubeboot_state));
     global_state->boot_code = 0xCAFEBEEF;
 

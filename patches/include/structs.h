@@ -168,6 +168,9 @@ typedef struct model_t {
 
     void *unk1;
     void *unk2;
+
+    s16 alpha;
+    s16 unk3;
 } model;
 
 typedef struct bios_pad_t {

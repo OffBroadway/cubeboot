@@ -30,14 +30,14 @@
 
 #define __attribute_reloc__ __attribute__((section(".reloc")))
 
-__attribute_reloc__ u32 uart_init;
+__attribute_reloc__ u32 *uart_init;
 __attribute_reloc__ u32 (*InitializeUART)(u32);
 __attribute_reloc__ s32 (*WriteUARTN)(const void *buf, u32 len);
 
 s32 dolphin_WriteUARTN(const void *buf, u32 len) {
-  if (uart_init == 0) {
+  if (*uart_init == 0) {
 	InitializeUART(0xe100);
-    uart_init = 1;
+    *uart_init = 1;
   }
 
 	return WriteUARTN(buf, len);
