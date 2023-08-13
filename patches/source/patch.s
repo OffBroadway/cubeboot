@@ -2,10 +2,38 @@
 #include "asm.h"
 #include "patch_asm.h"
 
-// patch_inst vNTSC_11(_test_a) 0x8130d50c nop
-// patch_inst vNTSC_11(_test_b) 0x8130d428 nop
-// patch_inst vNTSC_11(_test_c) 0x8130d3d0 nop
-// patch_inst vNTSC_11(_test_d) 0x8130d4a4 nop
+#include "../../cubeboot/source/direct.h"
+
+patch_inst vNTSC_11(_disable_ARInit) 0x81301010 nop
+patch_inst vNTSC_11(_disable_ARQInit) 0x81301014 nop
+patch_inst vNTSC_11(_disable_audio_alloc) 0x81301038 nop
+patch_inst vNTSC_11(_disable_audio_start) 0x81301044 nop
+// patch_inst vNTSC_11(_skip_audio_setup) 0x81301034 b _addr_81301048
+patch_inst vNTSC_11(_always_draw_fatal) 0x81314d3c nop
+patch_inst vNTSC_11(_set_alpha_draw_fatal) 0x8130bfa0 sth r5,0x88(r30)
+
+patch_inst vNTSC_11(_skip_draw_logo) 0x8130d3d0 b _addr_8130d530 // interesting to turn on (draws 3D)
+patch_inst vNTSC_11(_always_draw_menu) 0x8130bc34 b _addr_8130bc50
+patch_inst vNTSC_11(_always_update_menu) 0x8130bb7c b _addr_8130bbc8
+patch_inst vNTSC_11(_never_exit_menu) 0x813020f4 lis r0, 0x0
+
+patch_inst vNTSC_11(_skip_card_unk0) 0x8130106c nop
+patch_inst vNTSC_11(_skip_card_thread) 0x81301070 nop
+
+#ifdef BS2_DIRECT_EXEC
+patch_inst vNTSC_11(_skip_heap_init) 0x81301024 nop
+patch_inst vNTSC_11(_replace_malloc) 0x81307e40 b bs2alloc_wrapper
+patch_inst vNTSC_11(_replace_free) 0x81307e90 b bs2free_wrapper
+patch_inst vNTSC_11(_replace_viconfig) 0x813664d4 b VIConfigure_wrapper
+patch_inst vNTSC_11(_replace_visetblack) 0x81366cec b VISetBlack_wrapper
+patch_inst vNTSC_11(_replace_visetnextframebuffer) 0x81366c80 b VISetNextFrameBuffer_wrapper
+patch_inst vNTSC_11(_replace_viwaitforretrace) 0x8136600c b VIWaitForRetrace_wrapper
+patch_inst vNTSC_11(_replace_vigetnextfield) 0x81366e24 b VIGetNextField_wrapper
+patch_inst vNTSC_11(_replace_viflush) 0x81366b64 b VIFlush_wrapper
+
+patch_inst vNTSC_11(_trap_something) 0x813010bc bl mega_trap
+#endif
+
 
 // patch_inst vNTSC_11(_change_background_color) 0x81481cc8 .4byte 0xFFFF00FF
 // patch_inst vNTSC_11(_no_background_color) 0x8137377c blr
@@ -33,7 +61,7 @@ patch_inst vNTSC_11(_gameselect_replace_draw) 0x81314518 bl custom_gameselect_me
 // patch_inst vNTSC_11(_disable_card_menu_text_b) 0x8131b3bc nop
 // patch_inst vNTSC_11(_disable_card_menu_text_c) 0x8131b45c nop
 // patch_inst vNTSC_11(_disable_card_menu_text_d) 0x8131b4f0 nop
-// patch_inst vNTSC_11(_disable_memory_card_detect) 0x813010ec nop
+patch_inst vNTSC_11(_disable_memory_card_detect) 0x813010ec nop
 
 patch_inst_ntsc "_stub_dvdwait" 0x00000000 0x8130108c 0x81301440 0x81301444 nop
 patch_inst_pal  "_stub_dvdwait" 0x8130108c 0x8130108c 0x813011f8 nop

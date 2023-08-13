@@ -38,7 +38,7 @@ PATCHES_PATH := $(PROJDIR)/$(PATCHES)
 CFLAGS	= -O3 -Wno-unused-function -Wall $(MACHDEP) $(INCLUDE)
 CXXFLAGS	=	$(CFLAGS)
 
-LDFLAGS	=	$(MACHDEP) -Wl,-Map,$(notdir $@).map
+LDFLAGS	=	$(MACHDEP) -Wl,-Map,$(notdir $@).map -T $(PROJDIR)/ogc.ld 
 
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project

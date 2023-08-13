@@ -10,6 +10,8 @@
 #include "state.h"
 #include "time.h"
 
+#include "../../cubeboot/source/direct.h"
+
 #define __attribute_used__ __attribute__((used))
 // #define __attribute_himem__ __attribute__((used, section(".himem")))
 #define __attribute_data__ __attribute__((section(".data")))
@@ -427,6 +429,8 @@ __attribute_used__ u32 get_tvmode() {
 }
 
 __attribute_used__ u32 bs2tick() {
+    OSReport("MAIN LOOP\n");
+
     // TODO: move this check to PADRead in main loop
     if (pad_status->pad.button != local_state.last_buttons) {
         for (int i = 0; i < MAX_BUTTONS; i++) {
@@ -452,6 +456,7 @@ __attribute_used__ u32 bs2tick() {
         completed_time = gettime();
     }
 
+#ifndef BS2_DIRECT_EXEC
     if (start_game && !force_boot_menu) {
         if (postboot_delay_ms) {
             u64 elapsed = diff_msec(completed_time, gettime());
@@ -463,8 +468,9 @@ __attribute_used__ u32 bs2tick() {
         }
         return STATE_START_GAME;
     }
+#endif
 
-    return STATE_COVER_OPEN;
+    return STATE_START_GAME;
 }
 
 __attribute_used__ void bs2start() {

@@ -36,10 +36,16 @@
 #include "config.h"
 #include "loader.h"
 
+#include "direct.h"
+
 static u32 prog_entrypoint, prog_dst, prog_src, prog_len;
 
 #define BS2_BASE_ADDR 0x81300000
+#ifdef BS2_DIRECT_EXEC
+static void (*bs2main)();
+#else
 static void (*bs2entry)(void) = (void(*)(void))BS2_BASE_ADDR;
+#endif
 
 static char stringBuffer[255];
 ATTRIBUTE_ALIGN(32) u8 current_dol_buf[750 * 1024];
@@ -95,6 +101,10 @@ int main() {
 
     // get symbols
     Elf32_Sym* syment = (Elf32_Sym*) (addr + symshdr->sh_offset);
+
+#ifdef BS2_DIRECT_EXEC
+    VIDEO_Init();
+#endif
 
 #ifdef VIDEO_ENABLE
 	VIDEO_Init();
@@ -365,6 +375,19 @@ int main() {
     set_patch_value(symshdr, syment, symstringdata, "preboot_delay_ms", settings.preboot_delay_ms);
     set_patch_value(symshdr, syment, symstringdata, "postboot_delay_ms", settings.postboot_delay_ms);
 
+#ifdef BS2_DIRECT_EXEC
+    // Copy function pointers into place
+    set_patch_value(symshdr, syment, symstringdata, "ogc_malloc", (u32)malloc);
+    set_patch_value(symshdr, syment, symstringdata, "ogc_free", (u32)free);
+    set_patch_value(symshdr, syment, symstringdata, "ogc_VIDEO_Configure", (u32)VIDEO_Configure);
+    set_patch_value(symshdr, syment, symstringdata, "ogc_VIDEO_SetNextFramebuffer", (u32)VIDEO_SetNextFramebuffer);
+    set_patch_value(symshdr, syment, symstringdata, "ogc_VIDEO_GetNextField", (u32)VIDEO_GetNextField);
+    set_patch_value(symshdr, syment, symstringdata, "ogc_VIDEO_WaitVSync", (u32)VIDEO_WaitVSync);
+    set_patch_value(symshdr, syment, symstringdata, "ogc_VIDEO_SetBlack", (u32)VIDEO_SetBlack);
+    set_patch_value(symshdr, syment, symstringdata, "ogc_VIDEO_Flush", (u32)VIDEO_Flush);
+
+#endif
+
     // while(1);
 
     unmount_current_device();
@@ -373,6 +396,7 @@ int main() {
     VIDEO_WaitVSync();
 #endif
 
+#ifndef BS2_DIRECT_EXEC
     /*** Shutdown libOGC ***/
     GX_AbortFrame();
     ASND_End();
@@ -392,6 +416,8 @@ int main() {
     udelay(3 * 1000 * 1000);
 #endif
 
+#endif
+
     iprintf("DONE\n");
 
     endts = ticks_to_millisecs(gettime());
@@ -399,7 +425,14 @@ int main() {
     u64 runtime = endts - startts;
     iprintf("Runtime = %llu\n", runtime);
 
+#ifdef BS2_DIRECT_EXEC
+    // NTSC 1.1
+    bs2main = (void (*)())0x81300ff4;
+
+    bs2main();
+#else
     __lwp_thread_stopmultitasking(bs2entry);
+#endif
 
     __builtin_unreachable();
 }
