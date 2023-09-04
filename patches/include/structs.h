@@ -175,8 +175,8 @@ typedef struct model_t {
 
 typedef struct bios_pad_t {
     PADStatus pad;
-    u16 unk0; // maybe buttons_down
-    u16 unk1; // maybe buttons_up
+    u16 buttons_down;
+    u16 buttons_up;
 } bios_pad;
 
 typedef struct text_draw_group {

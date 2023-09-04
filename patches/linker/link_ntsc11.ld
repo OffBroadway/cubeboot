@@ -27,6 +27,11 @@ ntsc11_bg_outer_model = 0x81483cc8;
 ntsc11_bg_inner_model = 0x81483ab8;
 ntsc11_gc_text_model = 0x81483d40;
 
+ntsc11_menu_alpha_setup = 0x813121b0;
+ntsc11_prev_menu_id = 0x81481558;
+ntsc11_cur_menu_id = 0x81481554;
+
+ntsc11_draw_grid = 0x8130b32c;
 ntsc11_draw_gameselect_menu = 0x813272f8;
 ntsc11_gx_draw_text = 0x8130a6b8;
 ntsc11_save_icon = 0x8149eaa0;

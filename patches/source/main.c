@@ -26,7 +26,14 @@
 #define STATE_NO_DISC    0x12 // play full animation before menu
 #define STATE_COVER_OPEN 0x13 // force direct to menu
 
-#define force_boot_menu 1
+#define MENU_SELECTION_ID 0
+#define MENU_GAMESELECT_ID 1
+#define MENU_GAMESELECT_TRANSITION_ID 2
+
+#define SUBMENU_GAMESELECT_LOADER 0
+#define SUBMENU_GAMESELECT_START 1
+
+#define TEST_ONLY_force_boot_menu 1
 
 __attribute_data__ u32 prog_entrypoint;
 __attribute_data__ u32 prog_dst;
@@ -61,6 +68,8 @@ __attribute_reloc__ void (*gx_draw_text)(u16 index, text_group* text, text_draw_
 __attribute_reloc__ void (*draw_gameselect_menu)(u8 unk0, u8 unk1, u8 unk2);
 __attribute_reloc__ model_data *save_icon;
 
+__attribute_reloc__ void (*menu_alpha_setup)();
+
 // for model gx
 __attribute_reloc__ void (*model_init)(model* m, int process);
 __attribute_reloc__ void (*draw_model)(model* m);
@@ -78,6 +87,9 @@ __attribute_reloc__ void (*main)();
 
 __attribute_reloc__ GXRModeObj *rmode;
 __attribute_reloc__ bios_pad *pad_status;
+
+__attribute_reloc__ u32 *prev_menu_id;
+__attribute_reloc__ u32 *cur_menu_id;
 
 __attribute_reloc__ model *bg_outer_model;
 __attribute_reloc__ model *bg_inner_model;
@@ -158,6 +170,8 @@ __attribute_used__ void custom_gameselect_init() {
     //     OSReport("Icon tex, %u\n", p->format);
     // }
 }
+
+__attribute_data__ u32 current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
 
 __attribute_used__ void custom_gameselect_menu(u8 unk0, u8 unk1, u8 unk2) {
     draw_gameselect_menu(unk0, unk1, unk2);
@@ -369,6 +383,10 @@ __attribute_used__ void mod_cube_anim() {
 __attribute_used__ void pre_menu_init(int unk) {
     menu_init(unk);
 
+    // change default menu
+    *prev_menu_id = MENU_GAMESELECT_TRANSITION_ID;
+    *cur_menu_id = MENU_GAMESELECT_ID;
+
     custom_gameselect_init();
 
     mod_cube_colors();
@@ -379,6 +397,47 @@ __attribute_used__ void pre_menu_init(int unk) {
     if (preboot_delay_ms) {
         udelay(preboot_delay_ms * 1000);
     }
+}
+
+__attribute_used__ void pre_menu_alpha_setup() {
+    menu_alpha_setup(); // run original function
+
+    if (*cur_menu_id == MENU_GAMESELECT_ID && *prev_menu_id == MENU_GAMESELECT_TRANSITION_ID) {
+        OSReport("Resetting back to SUBMENU_GAMESELECT_LOADER\n");
+        current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
+    }
+}
+
+__attribute_used__ u32 is_gameselect_draw() {
+    return current_gameselect_state == SUBMENU_GAMESELECT_START;
+}
+
+__attribute_used__ void mod_gameselect_draw(u8 unk0, u8 unk1, u8 unk2) {
+    switch(current_gameselect_state) {
+        case SUBMENU_GAMESELECT_LOADER:
+            custom_gameselect_menu(unk0, unk1, unk2);
+            break;
+        case SUBMENU_GAMESELECT_START:
+            draw_gameselect_menu(unk0, unk1, unk2);
+            break;
+        default:
+    }
+}
+
+__attribute_used__ s32 handle_gameselect_inputs() {
+    if (pad_status->buttons_down & PAD_BUTTON_B) {
+        if (current_gameselect_state == SUBMENU_GAMESELECT_START) {
+            current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
+        } else {
+            return MENU_GAMESELECT_ID;
+        }
+    }
+
+    if (pad_status->buttons_down & PAD_BUTTON_A && current_gameselect_state == SUBMENU_GAMESELECT_LOADER) {
+        current_gameselect_state = SUBMENU_GAMESELECT_START;
+    }
+
+    return MENU_GAMESELECT_TRANSITION_ID;
 }
 
 __attribute_used__ void pre_main() {
@@ -452,7 +511,7 @@ __attribute_used__ u32 bs2tick() {
         completed_time = gettime();
     }
 
-    if (start_game && !force_boot_menu) {
+    if (start_game && !TEST_ONLY_force_boot_menu) {
         if (postboot_delay_ms) {
             u64 elapsed = diff_msec(completed_time, gettime());
             if (completed_time > 0 && elapsed > postboot_delay_ms) {
@@ -464,7 +523,8 @@ __attribute_used__ u32 bs2tick() {
         return STATE_START_GAME;
     }
 
-    return STATE_COVER_OPEN;
+    // TODO: allow the user to decide if they want to logo to play
+    return STATE_NO_DISC; // STATE_COVER_OPEN;
 }
 
 __attribute_used__ void bs2start() {

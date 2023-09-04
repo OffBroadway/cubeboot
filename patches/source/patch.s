@@ -2,20 +2,25 @@
 #include "asm.h"
 #include "patch_asm.h"
 
-// patch_inst vNTSC_11(_test_a) 0x8130d50c nop
-// patch_inst vNTSC_11(_test_b) 0x8130d428 nop
-// patch_inst vNTSC_11(_test_c) 0x8130d3d0 nop
-// patch_inst vNTSC_11(_test_d) 0x8130d4a4 nop
-
 // patch_inst vNTSC_11(_change_background_color) 0x81481cc8 .4byte 0xFFFF00FF
 // patch_inst vNTSC_11(_no_background_color) 0x8137377c blr
 
-// patch_inst vNTSC_11(_change_default_menu) 0x81310b38 li r0, 0x4 // memcard
-patch_inst vNTSC_11(_change_default_menu) 0x81310b38 li r0, 0x2 // gameselect
-
 patch_inst vNTSC_11(_gameselect_hide_cubes) 0x81327454 nop
-patch_inst vNTSC_11(_gameselect_hide_text) 0x8132747c b _addr_813274fc
-patch_inst vNTSC_11(_gameselect_replace_draw) 0x81314518 bl custom_gameselect_menu
+patch_inst vNTSC_11(_gameselect_replace_draw) 0x81314518 bl mod_gameselect_draw
+patch_inst vNTSC_11(_gameselect_replace_input) 0x81326f94 bl handle_gameselect_inputs
+patch_inst vNTSC_11(_gameselect_replace_grid) 0x81327438 b ntsc11_sym(_gameselect_grid_helper)
+
+.section .text
+ntsc11_sym(_gameselect_grid_helper):
+    bl ntsc11_sym(draw_grid) // original insr
+    bl is_gameselect_draw
+    mr r0, r3
+    cmplwi r0, 1
+    beq r0, 8 // skip next instr
+    b _addr_813274fc // early exit
+    b _addr_8132743c // continue
+
+// expand_after_call vNTSC_11(_code_after_grid) 0x81327438 _addr_8130b32c test_func
 
 // patch_inst vNTSC_11(_disable_main_menu_text) 0x81314d24 nop
 // patch_inst vNTSC_11(_disable_main_menu_cube_a) 0x8130df44 nop
@@ -48,6 +53,7 @@ patch_inst_ntsc "_replace_report" 0x8133491c 0x8135a344 0x81300520 0x81300520 b 
 patch_inst_pal  "_replace_report" 0x8135d924 0x8135a264 0x81300520 b custom_OSReport
 
 patch_inst vNTSC_11(_patch_menu_init) 0x81301094 bl pre_menu_init // TODO: find offsets
+patch_inst vNTSC_11(_patch_menu_alpha_setup) 0x81312358 bl pre_menu_alpha_setup // TODO: find offsets
 
 patch_inst_pal "_fix_video_mode_init" 0x81300520 0x81300520 0x81300610 bl get_tvmode
 
