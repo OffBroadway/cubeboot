@@ -3,6 +3,7 @@
 
 #include "picolibc.h"
 #include "structs.h"
+#include "attr.h"
 #include "util.h"
 #include "os.h"
 
@@ -10,13 +11,8 @@
 #include "state.h"
 #include "time.h"
 
-#define __attribute_used__ __attribute__((used))
-// #define __attribute_himem__ __attribute__((used, section(".himem")))
-#define __attribute_data__ __attribute__((section(".data")))
-#define __attribute_reloc__ __attribute__((section(".reloc")))
-#define __attribute_aligned_data__ __attribute__((aligned(32), section(".data"))) 
-#define countof(a) (sizeof(a)/sizeof(a[0]))
-#define make_type(a,b,c,d) (((u32)a)<<24 | ((u32)b)<<16 | ((u32)c)<<8 | ((u32)d))
+#include "reloc.h"
+#include "menu.h"
 
 #define CUBE_TEX_WIDTH 84
 #define CUBE_TEX_HEIGHT 84
@@ -25,13 +21,6 @@
 #define STATE_START_GAME 0x10 // play full animation and start game
 #define STATE_NO_DISC    0x12 // play full animation before menu
 #define STATE_COVER_OPEN 0x13 // force direct to menu
-
-#define MENU_SELECTION_ID 0
-#define MENU_GAMESELECT_ID 1
-#define MENU_GAMESELECT_TRANSITION_ID 2
-
-#define SUBMENU_GAMESELECT_LOADER 0
-#define SUBMENU_GAMESELECT_START 1
 
 #define TEST_ONLY_force_boot_menu 1
 
@@ -63,33 +52,12 @@ __attribute_reloc__ u32 (*OSDisableInterrupts)();
 __attribute_reloc__ void (*__OSStopAudioSystem)();
 __attribute_reloc__ void (*run)(register void* entry_point, register u32 clear_start, register u32 clear_size);
 
-// for custom menus
-__attribute_reloc__ void (*gx_draw_text)(u16 index, text_group* text, text_draw_group* text_draw, GXColor* color);
-__attribute_reloc__ void (*draw_gameselect_menu)(u8 unk0, u8 unk1, u8 unk2);
-__attribute_reloc__ model_data *save_icon;
-
-__attribute_reloc__ void (*menu_alpha_setup)();
-
-// for model gx
-__attribute_reloc__ void (*model_init)(model* m, int process);
-__attribute_reloc__ void (*draw_model)(model* m);
-__attribute_reloc__ void (*change_model)(model* m);
-__attribute_reloc__ void (*set_obj_pos)(model* m, MtxP matrix, guVector vector);
-__attribute_reloc__ void (*set_obj_cam)(model* m, MtxP matrix);
-__attribute_reloc__ MtxP (*get_camera_mtx)();
-
-#ifdef DEBUG
-// This is actually BS2Report on IPL rev 1.2
-__attribute_reloc__ void (*OSReport)(const char* text, ...);
-#endif
+// for setup
 __attribute_reloc__ void (*menu_init)();
 __attribute_reloc__ void (*main)();
 
+// external vars
 __attribute_reloc__ GXRModeObj *rmode;
-__attribute_reloc__ bios_pad *pad_status;
-
-__attribute_reloc__ u32 *prev_menu_id;
-__attribute_reloc__ u32 *cur_menu_id;
 
 __attribute_reloc__ model *bg_outer_model;
 __attribute_reloc__ model *bg_inner_model;
@@ -98,112 +66,12 @@ __attribute_reloc__ model *logo_model;
 __attribute_reloc__ model *cube_model;
 __attribute_reloc__ state *cube_state;
 
+// locals
 __attribute_data__ static GXColorS10 color_cube;
 __attribute_data__ static GXColorS10 color_cube_low;
 __attribute_data__ static GXColorS10 color_bg_inner;
 __attribute_data__ static GXColorS10 color_bg_outer_0;
 __attribute_data__ static GXColorS10 color_bg_outer_1;
-
-void draw_text(char *s, u16 x, u16 y, u8 alpha) {
-    static struct {
-        text_group group;
-        text_metadata metadata;
-        char contents[255];
-    } text = {
-        .group = {
-            .type = make_type('S','T','H','0'),
-            .arr_size = 1, // arr size
-        },
-        .metadata = {
-            .draw_metadata_index = 0,
-            .text_data_offset = sizeof(text_metadata),
-        },
-    };
-
-    static struct {
-        text_draw_group group;
-        text_draw_metadata metadata;
-    } draw = {
-        .group = {
-            .type = make_type('G','L','H','0'),
-            .metadata_offset = sizeof(text_draw_group),
-        },
-        .metadata = {
-            .type = make_type('m','e','s','g'),
-            .x = 0, // x position
-            .y = 0, // y position
-            .y_align = TEXT_ALIGN_CENTER,
-            .x_align = TEXT_ALIGN_TOP,
-            .letter_spacing = -1,
-            .line_spacing = 20,
-            .size = 20,
-            .border_obj = 0xffff,
-        }
-    };
-
-    strcpy(text.contents, s);
-
-    draw.metadata.x = (x + 64) * 20;
-    draw.metadata.y = (y + 64) * 10;
-
-    GXColor white = {0xFF, 0xFF, 0xFF, alpha};
-    gx_draw_text(0, &text.group, &draw.group, &white);
-}
-
-extern void dump_struct(void *p, void (*printer)(const char *, ...));
-
-__attribute_data__ model single_icon = {};
-__attribute_used__ void custom_gameselect_init() {
-    single_icon.data = save_icon;
-    model_init(&single_icon, 0);
-
-    DUMP_COLOR(single_icon.data->mat[0].tev_color[0]);
-    DUMP_COLOR(single_icon.data->mat[2].tev_color[0]);
-
-    single_icon.data->mat[0].tev_color[0] = &color_cube;
-    single_icon.data->mat[2].tev_color[0] = &color_cube;
-
-    // tex_data *base = single_icon.data->tex->dat;
-    // for (int i = 0; i < 8; i++) {
-    //     tex_data *p = base + i;
-    //     // void *img_ptr = (void*)((u8*)base + p->offset + (i * 0x20));
-    //     OSReport("Icon tex, %u\n", p->format);
-    // }
-}
-
-__attribute_data__ u32 current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
-
-__attribute_used__ void custom_gameselect_menu(u8 unk0, u8 unk1, u8 unk2) {
-    draw_gameselect_menu(unk0, unk1, unk2);
-    draw_text("Logo", 10, 10, unk0);
-
-    int base_x = 60 + 5;
-    int base_y = 80 + 15;
-
-    f32 mod = (f32)unk2 * 0.2 / 0xFF;
-    f32 sc = 1.3 + mod;
-
-    guVector scale = {sc, sc, sc};
-
-    for (int row = 0; row < 5; row++) {
-        for (int col = 0; col < 8; col++) {
-            // draw setup
-            Mtx matrix = {
-                { 1, 0, 0, -292 + (base_x + (col * 65)) },
-                { 0, 1, 0, 224 - (base_y + (row * 60)) },
-                { 0, 0 , 1, 0 },
-            };
-
-            set_obj_pos(&single_icon, matrix, scale);
-            set_obj_cam(&single_icon, get_camera_mtx());
-            change_model(&single_icon);
-
-            // draw icon
-            single_icon.alpha = unk1;
-            draw_model(&single_icon);
-        }
-    }
-}
 
 __attribute_used__ void mod_cube_colors() {
     if (cube_color == 0) {
@@ -399,47 +267,6 @@ __attribute_used__ void pre_menu_init(int unk) {
     }
 }
 
-__attribute_used__ void pre_menu_alpha_setup() {
-    menu_alpha_setup(); // run original function
-
-    if (*cur_menu_id == MENU_GAMESELECT_ID && *prev_menu_id == MENU_GAMESELECT_TRANSITION_ID) {
-        OSReport("Resetting back to SUBMENU_GAMESELECT_LOADER\n");
-        current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
-    }
-}
-
-__attribute_used__ u32 is_gameselect_draw() {
-    return current_gameselect_state == SUBMENU_GAMESELECT_START;
-}
-
-__attribute_used__ void mod_gameselect_draw(u8 unk0, u8 unk1, u8 unk2) {
-    switch(current_gameselect_state) {
-        case SUBMENU_GAMESELECT_LOADER:
-            custom_gameselect_menu(unk0, unk1, unk2);
-            break;
-        case SUBMENU_GAMESELECT_START:
-            draw_gameselect_menu(unk0, unk1, unk2);
-            break;
-        default:
-    }
-}
-
-__attribute_used__ s32 handle_gameselect_inputs() {
-    if (pad_status->buttons_down & PAD_BUTTON_B) {
-        if (current_gameselect_state == SUBMENU_GAMESELECT_START) {
-            current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
-        } else {
-            return MENU_GAMESELECT_ID;
-        }
-    }
-
-    if (pad_status->buttons_down & PAD_BUTTON_A && current_gameselect_state == SUBMENU_GAMESELECT_LOADER) {
-        current_gameselect_state = SUBMENU_GAMESELECT_START;
-    }
-
-    return MENU_GAMESELECT_TRANSITION_ID;
-}
-
 __attribute_used__ void pre_main() {
     OSReport("RUNNING BEFORE MAIN\n");
 
@@ -524,7 +351,8 @@ __attribute_used__ u32 bs2tick() {
     }
 
     // TODO: allow the user to decide if they want to logo to play
-    return STATE_NO_DISC; // STATE_COVER_OPEN;
+    // return STATE_COVER_OPEN;
+    return STATE_NO_DISC;
 }
 
 __attribute_used__ void bs2start() {

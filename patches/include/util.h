@@ -3,6 +3,7 @@
 
 #include "GRRLIB_pixel.h"
 #include "dolphin_os.h"
+#include "../source/reloc.h"
 
 extern void *memset (void *m, int c, size_t n);
 extern void DCFlushRange(void *addr, u32 nBytes);

@@ -3,7 +3,6 @@
 #include "patch_asm.h"
 
 // patch_inst vNTSC_11(_change_background_color) 0x81481cc8 .4byte 0xFFFF00FF
-// patch_inst vNTSC_11(_no_background_color) 0x8137377c blr
 
 patch_inst vNTSC_11(_gameselect_hide_cubes) 0x81327454 nop
 patch_inst vNTSC_11(_gameselect_replace_draw) 0x81314518 bl mod_gameselect_draw
@@ -20,8 +19,6 @@ ntsc11_sym(_gameselect_grid_helper):
     b _addr_813274fc // early exit
     b _addr_8132743c // continue
 
-// expand_after_call vNTSC_11(_code_after_grid) 0x81327438 _addr_8130b32c test_func
-
 // patch_inst vNTSC_11(_disable_main_menu_text) 0x81314d24 nop
 // patch_inst vNTSC_11(_disable_main_menu_cube_a) 0x8130df44 nop
 // patch_inst vNTSC_11(_disable_main_menu_cube_b) 0x8130dfac nop
@@ -32,12 +29,6 @@ ntsc11_sym(_gameselect_grid_helper):
 // patch_inst vNTSC_11(_disable_menu_transition_text_b) 0x8130de70 nop
 
 // patch_inst vNTSC_11(_disable_options_menu_transition) 0x81327c4c nop
-
-// patch_inst vNTSC_11(_disable_card_menu_exit) 0x8131612c b _addr_813161e8
-// patch_inst vNTSC_11(_disable_card_menu_text_a) 0x8131b328 nop
-// patch_inst vNTSC_11(_disable_card_menu_text_b) 0x8131b3bc nop
-// patch_inst vNTSC_11(_disable_card_menu_text_c) 0x8131b45c nop
-// patch_inst vNTSC_11(_disable_card_menu_text_d) 0x8131b4f0 nop
 // patch_inst vNTSC_11(_disable_memory_card_detect) 0x813010ec nop
 
 patch_inst_ntsc "_stub_dvdwait" 0x00000000 0x8130108c 0x81301440 0x81301444 nop

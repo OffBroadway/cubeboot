@@ -4,6 +4,8 @@
 #include <ogc/video_types.h>
 #include <ogc/pad.h>
 
+#pragma once
+
 #define TEXT_ALIGN_CENTER 0
 #define TEXT_ALIGN_TOP 2
 
@@ -138,12 +140,16 @@ typedef struct tex_t {
     tex_data *dat;
 } tex;
 
+typedef struct model_part_t {
+    u32 unk0;
+} model_part;
+
 typedef struct model_data_t {
-    void* unka;
-    void* unkb;
+    void* unka; // used at load time
+    void* unkb; // used at load time
     
-    void* root;
-    void* unkc;
+    model_part* parts;
+    void* unkc; // maybe skel
     mat* mat;
 
     void* unk0;

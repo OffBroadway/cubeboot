@@ -35,9 +35,11 @@ ntsc11_draw_grid = 0x8130b32c;
 ntsc11_draw_gameselect_menu = 0x813272f8;
 ntsc11_gx_draw_text = 0x8130a6b8;
 ntsc11_save_icon = 0x8149eaa0;
+ntsc11_save_empty = 0x8149ea68;
 
 ntsc11_model_init = 0x81303a38;
-ntsc11_draw_model = 0x813207bc;
+ntsc11_draw_model = 0x813051ac;
+ntsc11_draw_partial = 0x81305248;
 ntsc11_change_model = 0x8130418c;
 
 ntsc11_get_camera_mtx = 0x81302f94;
