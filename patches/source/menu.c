@@ -78,10 +78,20 @@ void draw_text(char *s, u16 x, u16 y, u8 alpha) {
 
 __attribute_data__ GXColorS10 menu_color_none = {0x00, 0x25, 0x00, 0xFF};
 __attribute_data__ GXColorS10 menu_color_sel = {0x00, 0x69, 0x46, 0xFF};
+__attribute_data__ model textured_icon = {};
 __attribute_data__ model single_icon = {};
 __attribute_used__ void custom_gameselect_init() {
     single_icon.data = save_empty;
     model_init(&single_icon, 0);
+
+    single_icon.data->mat[0].tev_color[0] = &menu_color_none;
+    single_icon.data->mat[1].tev_color[0] = &menu_color_none;
+
+    textured_icon.data = save_icon;
+    model_init(&textured_icon, 0);
+
+    textured_icon.data->mat[0].tev_color[0] = &menu_color_sel;
+    textured_icon.data->mat[2].tev_color[0] = &menu_color_sel;
 
     // DUMP_COLOR(single_icon.data->mat[0].tev_color[0]);
     // DUMP_COLOR(single_icon.data->mat[2].tev_color[0]);
@@ -89,8 +99,6 @@ __attribute_used__ void custom_gameselect_init() {
     // single_icon.data->mat[0].tev_color[0] = &menu_color_sel;
     // single_icon.data->mat[2].tev_color[0] = &menu_color_sel;
 
-    single_icon.data->mat[0].tev_color[0] = &menu_color_none;
-    single_icon.data->mat[1].tev_color[0] = &menu_color_none;
 }
 
 //// with texture
@@ -134,42 +142,43 @@ __attribute_data__ coord_pair slot_coords[32] = {
     {208.0, 118.0},
 
     // A
-    {-152.0, 62.0},
     {-208.0, 62.0},
-    {-40.0, 62.0},
+    {-152.0, 62.0},
     {-96.0, 62.0},
+    {-40.0, 62.0},
     // B
-    {96.0, 62.0},
     {40.0, 62.0},
-    {208.0, 62.0},
+    {96.0, 62.0},
     {152.0, 62.0},
+    {208.0, 62.0},
 
     // A
-    {-152.0, 6.0},
     {-208.0, 6.0},
-    {-40.0, 6.0},
+    {-152.0, 6.0},
     {-96.0, 6.0},
+    {-40.0, 6.0},
     // B
-    {96.0, 6.0},
     {40.0, 6.0},
-    {208.0, 6.0},
+    {96.0, 6.0},
     {152.0, 6.0},
+    {208.0, 6.0},
 
     // A
-    {-152.0, -50.0},
     {-208.0, -50.0},
-    {-40.0, -50.0},
+    {-152.0, -50.0},
     {-96.0, -50.0},
+    {-40.0, -50.0},
     // B
-    {96.0, -50.0},
     {40.0, -50.0},
-    {208.0, -50.0},
+    {96.0, -50.0},
     {152.0, -50.0},
+    {208.0, -50.0},
 };
 
 
 // y = top of screen + (row*56)
 
+int selected_slot = 0;
 __attribute_data__ u32 current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
 __attribute_used__ void custom_gameselect_menu(u8 unk0, u8 unk1, u8 unk2) {
     draw_gameselect_menu(unk0, unk1, unk2);
@@ -186,7 +195,7 @@ __attribute_used__ void custom_gameselect_menu(u8 unk0, u8 unk1, u8 unk2) {
             int slot_num = (row * 8) + col;
 
             f32 sc = 1.3;
-            if (slot_num == 0) {
+            if (slot_num == selected_slot) {
                 sc = 1.5; // 1.3;
             }
 
@@ -211,7 +220,7 @@ __attribute_used__ void custom_gameselect_menu(u8 unk0, u8 unk1, u8 unk2) {
 
             f32 pos_x = slot_coords[slot_num].x;
             f32 pos_y = base_y - (row * 56); // slot_coords[slot_num].y;
-            if (slot_num == 0) {
+            if (slot_num == selected_slot) {
                 pos_x += -10.0;
             }
 
@@ -225,18 +234,28 @@ __attribute_used__ void custom_gameselect_menu(u8 unk0, u8 unk1, u8 unk2) {
                 {0, 0, 1, 0}, // or 2
             };
 
-            if (slot_num == 0) {
+            model *m = &single_icon;
+            if (slot_num == selected_slot) {
+                m = &textured_icon;
                 matrix[2][3] = 2.0;
             }
 
-            set_obj_pos(&single_icon, matrix, scale);
-            set_obj_cam(&single_icon, get_camera_mtx());
-            change_model(&single_icon);
+            set_obj_pos(m, matrix, scale);
+            set_obj_cam(m, get_camera_mtx());
+            change_model(m);
 
             // draw icon
-            single_icon.alpha = unk1;
-            // draw_save_empty(&single_icon, 1, 1);
-            draw_model(&single_icon);
+            m->alpha = unk1;
+            if (slot_num == selected_slot) {
+                // cube
+                draw_partial(m, &m->data->parts[2]);
+                draw_partial(m, &m->data->parts[10]);
+
+                // icon
+                draw_partial(m, &m->data->parts[6]);
+            } else {
+                draw_model(m);
+            }
         }
     }
 
@@ -286,6 +305,11 @@ __attribute_used__ s32 handle_gameselect_inputs() {
 
     if (pad_status->buttons_down & PAD_BUTTON_A && current_gameselect_state == SUBMENU_GAMESELECT_LOADER) {
         current_gameselect_state = SUBMENU_GAMESELECT_START;
+    }
+
+    if (pad_status->analog_down & ANALOG_RIGHT) {
+        selected_slot++;
+        if (selected_slot >= 32) selected_slot = 0;
     }
 
     return MENU_GAMESELECT_TRANSITION_ID;

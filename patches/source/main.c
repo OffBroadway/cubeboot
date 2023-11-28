@@ -23,6 +23,7 @@
 #define STATE_COVER_OPEN 0x13 // force direct to menu
 
 #define TEST_ONLY_force_boot_menu 1
+#define TEST_ONLY_skip_animation 1
 
 __attribute_data__ u32 prog_entrypoint;
 __attribute_data__ u32 prog_dst;
@@ -336,6 +337,10 @@ __attribute_used__ u32 bs2tick() {
     if (!completed_time && cube_state->cube_anim_done) {
         OSReport("FINISHED\n");
         completed_time = gettime();
+    }
+
+    if (TEST_ONLY_skip_animation) {
+        return STATE_COVER_OPEN;
     }
 
     if (start_game && !TEST_ONLY_force_boot_menu) {

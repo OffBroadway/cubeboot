@@ -114,8 +114,13 @@ $(PATCHES):
 	@[ -d $(DATA) ] || mkdir -p $(DATA)
 	@$(MAKE) --no-print-directory -C $(dir $(PROJDIR))/$(basename $(notdir $@))
 	@cp $(dir $(PROJDIR))/$(basename $(notdir $@))/$(notdir $@) $@
+	@env GO111MODULE=off go run $(PROJDIR)/scripts/validate-patches.go $@
 	@$(OBJCOPY) --remove-section .comment --remove-section .gnu.attributes $@
 
+
+#---------------------------------------------------------------------------------
+validate:
+	@env GO111MODULE=off go run $(PROJDIR)/scripts/validate-patches.go $(PATCHES) | grep -B1 'TARGET NOT FOUND' | grep Checking | cut -d'[' -f2 | tr -d ']' | sort
 
 #---------------------------------------------------------------------------------
 clean:

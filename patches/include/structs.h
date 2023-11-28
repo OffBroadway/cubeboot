@@ -9,6 +9,11 @@
 #define TEXT_ALIGN_CENTER 0
 #define TEXT_ALIGN_TOP 2
 
+#define ANALOG_UP       0x1000
+#define ANALOG_DOWN     0x2000
+#define ANALOG_LEFT     0x4000
+#define ANALOG_RIGHT    0x8000
+
 typedef struct state_t {
     s32 unk0;
     s32 unk1;
@@ -142,6 +147,12 @@ typedef struct tex_t {
 
 typedef struct model_part_t {
     u32 unk0;
+    void* a;
+    void* b;
+    void* c;
+    void* d;
+    u16 unk1;
+    s16 unk2;
 } model_part;
 
 typedef struct model_data_t {
@@ -183,6 +194,9 @@ typedef struct bios_pad_t {
     PADStatus pad;
     u16 buttons_down;
     u16 buttons_up;
+    u16 unk;
+    u16 analog_down;
+    u16 analog_up;
 } bios_pad;
 
 typedef struct text_draw_group {
