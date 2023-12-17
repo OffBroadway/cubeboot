@@ -4,7 +4,7 @@
 #include <sdcard/card_cmn.h>
 #include <sdcard/card_io.h>
 #include <sdcard/gcsd.h>
-#include "gcode.h"
+#include <ogc/dvd.h>
 #include "gcm.h"
 
 #include "uff.h"
@@ -30,11 +30,11 @@ static bool is_mounted = FALSE;
 
 // static struct gcm_system_area *low_mem = (struct gcm_system_area*)0x80000000;
 
-gcodecmdblk blk;
-gcodedrvinfo drive_info __attribute__((aligned(32)));
+dvdcmdblk blk;
+dvddrvinfo drive_info __attribute__((aligned(32)));
 static int has_drive = -1;
 
-static void drive_info_callback(s32 result, gcodecmdblk *blk) {
+static void drive_info_callback(s32 result, dvdcmdblk *blk) {
 	if(result >= 0) {
 		has_drive = 1;
 	} else {
@@ -54,9 +54,9 @@ static int check_available_devices() {
         //     continue;
 
         // skip ODE to speed up loading
-        if (driver->ioType == DEVICE_TYPE_GAMECUBE_GCODE) {
-            GCODE_Init();
-            GCODE_InquiryAsync(&blk, &drive_info, drive_info_callback);
+        if (driver->ioType == DEVICE_TYPE_GAMECUBE_DVD) {
+            DVD_Init();
+            DVD_InquiryAsync(&blk, &drive_info, drive_info_callback);
 
             // wait until done (1ms max)
             for (int i = 0; i < 10; i++) {

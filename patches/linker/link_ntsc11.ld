@@ -4,7 +4,7 @@
 /* videomode: rmode = 0x8137d9f0; */
 /* videomode: heap_init = 0x81307d90; */
 
-ntsc11_Jac_PlaySystemSe = 0x813574a0;
+ntsc11_Jac_PlaySe = 0x813574a0;
 
 ntsc11_PADSync = 0x81368c34;
 ntsc11_OSDisableInterrupts = 0x8135bc70;

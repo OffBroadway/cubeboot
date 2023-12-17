@@ -28,7 +28,7 @@ bool is_dolphin() {
 
 u32 generate_random_color() {
     u32 seq = gettick() % 0x20;
-    pcg32_srandom(SYS_Time(), 0x97e6 + seq);
+    pcg32_srandom(__SYS_GetSystemTime(), 0x97e6 + seq);
     return pcg32_boundedrand(0x00FFFFFF) & 0x00FFFFFF;
 }
 
