@@ -4,6 +4,8 @@
 /* videomode: rmode = 0x8137d9f0; */
 /* videomode: heap_init = 0x81307d90; */
 
+ntsc11_Jac_PlaySystemSe = 0x813574a0;
+
 ntsc11_PADSync = 0x81368c34;
 ntsc11_OSDisableInterrupts = 0x8135bc70;
 ntsc11___OSStopAudioSystem = 0x81359580;
@@ -31,6 +33,7 @@ ntsc11_menu_alpha_setup = 0x813121b0;
 ntsc11_prev_menu_id = 0x81481558;
 ntsc11_cur_menu_id = 0x81481554;
 
+ntsc11_get_save_color = 0x81320424;
 ntsc11_draw_grid = 0x8130b32c;
 ntsc11_draw_gameselect_menu = 0x813272f8;
 ntsc11_gx_draw_text = 0x8130a6b8;

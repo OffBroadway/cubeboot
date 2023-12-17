@@ -3,8 +3,9 @@
 #include "patch_asm.h"
 
 // patch_inst vNTSC_11(_change_background_color) 0x81481cc8 .4byte 0xFFFF00FF
+// patch_inst vNTSC_11(_test_only) 0x81311db0 nop
 
-patch_inst vNTSC_11(_gameselect_hide_cubes) 0x81327454 nop
+// patch_inst vNTSC_11(_gameselect_hide_cubes) 0x81327454 nop
 patch_inst vNTSC_11(_gameselect_replace_draw) 0x81314518 bl mod_gameselect_draw
 patch_inst vNTSC_11(_gameselect_replace_input) 0x81326f94 bl handle_gameselect_inputs
 patch_inst vNTSC_11(_gameselect_replace_grid) 0x81327438 b ntsc11_sym(_gameselect_grid_helper)
@@ -15,7 +16,7 @@ ntsc11_sym(_gameselect_grid_helper):
     bl is_gameselect_draw
     mr r0, r3
     cmplwi r0, 1
-    beq r0, 8 // skip next instr
+    beq r0, (4 + (4 * 1)) // skip next N insts
     b _addr_813274fc // early exit
     b _addr_8132743c // continue
 

@@ -5,7 +5,24 @@
 #define SUBMENU_GAMESELECT_LOADER 0
 #define SUBMENU_GAMESELECT_START 1
 
-void custom_gameselect_init();
+#define SAVE_COLOR_BLUE 0
+#define SAVE_COLOR_GREEN 1
+#define SAVE_COLOR_YELLOW 2
+#define SAVE_COLOR_ORANGE 3
+#define SAVE_COLOR_RED 4
+#define SAVE_COLOR_PURPLE 5
 
-// TODO: void custom_gameselect_controls()
-// TODO: void custom_gameselect_update()
+#define SAVE_ICON_SEL 0
+#define SAVE_ICON 1
+#define SAVE_EMPTY_SEL 2
+#define SAVE_EMPTY 3
+
+#define SOUND_MENU_ENTER 0x05
+#define SOUND_MOVE 0x0b
+#define SOUND_ERROR 0x0d
+
+void custom_gameselect_init();
+void update_icon_positions();
+
+// TODO: void custom_gameselect_controls() - in progress
+// TODO: void custom_gameselect_update() - in progress
