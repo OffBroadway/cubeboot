@@ -339,6 +339,7 @@ __attribute_used__ u32 bs2tick() {
         completed_time = gettime();
     }
 
+    // this helps the start menu show correctly
     if (cube_state->cube_anim_done) {
         return STATE_START_GAME;
     }

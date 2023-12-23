@@ -17,9 +17,12 @@
 #define SAVE_EMPTY_SEL 2
 #define SAVE_EMPTY 3
 
+#define SOUND_SUBMENU_ENTER 0x0c
+#define SOUND_SUBMENU_EXIT 0x07
 #define SOUND_MENU_ENTER 0x05
-#define SOUND_MOVE 0x0b
-#define SOUND_ERROR 0x0d
+#define SOUND_MENU_FINAL 0x16
+#define SOUND_CARD_MOVE 0x0b
+#define SOUND_CARD_ERROR 0x0d
 
 void custom_gameselect_init();
 void update_icon_positions();

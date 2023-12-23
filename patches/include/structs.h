@@ -243,3 +243,27 @@ typedef struct text_metadata {
 	u16 length;
 	u32 text_data_offset;
 } text_metadata;
+
+typedef struct box_draw_group {
+    u32 type;
+
+    u32	unk0;
+    u32	unk1;
+    u32	metadata_offset;
+} box_draw_group;
+
+typedef struct box_draw_metadata {
+    u32 type;
+    u16 center_x;
+    u16 center_y;
+    u16 width;
+    u16 height;
+    u16 inside_center_x;
+    u16 inside_center_y;
+    u16 inside_width;
+    u16 inside_height;
+    u16 boarder_index[4];
+    u8 boarder_unk[4];
+    GXColor top_color[2];
+    GXColor bottom_color[2];
+} box_draw_metadata;

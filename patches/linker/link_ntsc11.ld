@@ -5,6 +5,7 @@
 /* videomode: heap_init = 0x81307d90; */
 
 ntsc11_Jac_PlaySe = 0x813574a0;
+ntsc11_Jac_StopSoundAll = 0x81357600;
 
 ntsc11_PADSync = 0x81368c34;
 ntsc11_OSDisableInterrupts = 0x8135bc70;
@@ -48,7 +49,7 @@ ntsc11_model_init = 0x81303a38;
 ntsc11_draw_model = 0x813051ac;
 ntsc11_draw_partial = 0x81305248;
 ntsc11_change_model = 0x8130418c;
-ntsc11_draw_box = 0x81309d24;
+ntsc11_draw_box = 0x81309a30;
 
 ntsc11_get_camera_mtx = 0x81302f94;
 ntsc11_set_obj_pos = 0x8130537c;
@@ -57,3 +58,6 @@ ntsc11_set_obj_cam = 0x813053c8;
 ntsc11_fast_sin = 0x81307cd0;
 ntsc11_fast_cos = 0x81307cec;
 ntsc11_apply_save_rot = 0x81307510;
+ntsc11_bs2start_ready = 0x814816d8;
+ntsc11_banner_pointer = 0x81481450;
+ntsc11_banner_ready = 0x814813f0;
