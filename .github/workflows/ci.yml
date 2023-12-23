@@ -3,15 +3,19 @@ on: push
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: devkitpro/devkitppc:20220821
+    container: devkitpro/devkitppc:20231110
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup
         run: |
-          apt-get update && apt-get install -y genisoimage nodejs build-essential gcc-arm-none-eabi python3-distutils python3-setuptools
+          apt-get update && apt-get install -y genisoimage git nodejs build-essential gcc-arm-none-eabi python3-distutils python3-setuptools
           curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3 get-pip.py
           pip3 install -r patches/scripts/requirements.txt
+      - name: Build libogc2
+        run: |
+          git clone https://github.com/extremscorner/libogc2.git
+          (cd libogc2; make install)
       - name: Build cubeboot
         run: cd entry; make clean && make
       - name: Build apploader
