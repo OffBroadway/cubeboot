@@ -9,7 +9,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Setup
         run: |
-          apt-get update && apt-get install -y genisoimage git nodejs build-essential gcc-arm-none-eabi python3-distutils python3-setuptools
+          apt-get update && apt-get install -y genisoimage git golang nodejs build-essential gcc-arm-none-eabi python3-distutils python3-setuptools
           curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3 get-pip.py
           pip3 install -r patches/scripts/requirements.txt
       - name: Build libogc2
