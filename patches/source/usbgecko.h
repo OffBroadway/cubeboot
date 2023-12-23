@@ -1,5 +1,4 @@
-#ifndef EXI_H
-#define EXI_H
+#pragma once
 
 #include <gctypes.h>
 
@@ -59,5 +58,3 @@ typedef struct EXIControl {
 } EXIControl;
 
 void custom_OSReport(const char *fmt, ...);
-
-#endif /* EXI_H */

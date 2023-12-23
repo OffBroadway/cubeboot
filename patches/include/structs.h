@@ -88,7 +88,7 @@ typedef struct mat_t {
     u8 unk6;
     u8 unk7;
     
-    u16 unk8[8];
+    u16 texmap_index[8];
 
     GXColor* color[2];
     void* unk9[4];

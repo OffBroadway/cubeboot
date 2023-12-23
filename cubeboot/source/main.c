@@ -32,9 +32,20 @@
 #include "state.h"
 #include "settings.h"
 #include "logo.h"
+#include "pngu/pngu.h"
 
 #include "config.h"
 #include "loader.h"
+#include "gcm.h"
+
+typedef struct {
+    struct gcm_disk_header header;
+    u8 banner[0x1960];
+    u8 icon_rgba8[160*160*4];
+    u8 padding[0x1000];
+} game_asset;
+
+__attribute__((aligned(32))) static game_asset assets[4] = {};
 
 static u32 prog_entrypoint, prog_dst, prog_src, prog_len;
 
@@ -335,6 +346,55 @@ int main() {
         }
     }
 
+    // start mocking out the file enum (using SD)
+    for (int i = 0; i < 4; i++) {
+        game_asset *asset = &assets[i];
+
+        char part = 0x30 + i;
+        char base_path[128];
+        sprintf(base_path, "/disc/games/%c", part);
+
+        char boot_path[255];
+        sprintf(boot_path, "%s/boot.bin", base_path);
+
+        char banner_path[255];
+        sprintf(banner_path, "%s/opening.bnr", base_path);
+
+        if (load_file_buffer(boot_path, (u8*)&asset->header) != SD_OK) {
+            prog_halt("Failed to load disc header");
+        }
+
+        if (load_file_buffer(banner_path, asset->banner) != SD_OK) {
+            prog_halt("Failed to load banner");
+        }
+
+        char game_id[8];
+        sprintf(game_id, "%.4s%.2s", asset->header.info.game_code, asset->header.info.maker_code);
+
+        char icon_path[255];
+        sprintf(icon_path, "/disc/icons/%s.png", game_id);
+
+        void *png_buffer = NULL;
+        if (load_file_dynamic(icon_path, &png_buffer) != SD_OK) {
+            prog_halt("Failed to load disc icon");
+        }
+
+        PNGUPROP imgProp;
+        IMGCTX ctx = PNGU_SelectImageFromBuffer(png_buffer);
+        int res = PNGU_GetImageProperties(ctx, &imgProp);
+        iprintf("parsed image res = %d, size = %ux%u\n", res, imgProp.imgWidth, imgProp.imgHeight);
+
+        if (imgProp.imgWidth != 160 || imgProp.imgHeight != 160) {
+            prog_halt("The image is not the correct size (160x160)\n");
+        }
+
+        int width = 0;
+        int height = 0;
+        PNGU_DecodeTo4x4RGBA8(ctx, imgProp.imgWidth, imgProp.imgHeight, &width, &height, asset->icon_rgba8);
+        PNGU_ReleaseImageContext(ctx);
+
+        free(png_buffer);
+    }
 
     u8 *image_data = NULL;
     if (settings.cube_logo != NULL) {
@@ -364,6 +424,9 @@ int main() {
 
     set_patch_value(symshdr, syment, symstringdata, "preboot_delay_ms", settings.preboot_delay_ms);
     set_patch_value(symshdr, syment, symstringdata, "postboot_delay_ms", settings.postboot_delay_ms);
+
+    // Copy custom icons into place
+    set_patch_value(symshdr, syment, symstringdata, "assets", (u32)assets);
 
     // while(1);
 

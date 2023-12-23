@@ -101,14 +101,14 @@ struct gcm_system_area {
 	struct gcm_disk_header_info dhi;
 
 	struct gcm_apploader_header al_header;
-	void *al_image;
-	off_t al_size;		/* aligned to 32 bytes */
+	// void *al_image;
+	// off_t al_size;		/* aligned to 32 bytes */
 
-	void *fst_image;
-	off_t fst_size;		/* aligned to 32 bytes */
+	// void *fst_image;
+	// off_t fst_size;		/* aligned to 32 bytes */
 
-	void *bnr_image;
-	off_t bnr_size;		/* aligned to 32 bytes */
+	// void *bnr_image;
+	// off_t bnr_size;		/* aligned to 32 bytes */
 };
 
 

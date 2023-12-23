@@ -19,16 +19,14 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdarg.h>
 
-#include "tinyprintf/tinyprintf.h"
 #include "usbgecko.h"
+#include "picolibc.h"
+#include "attr.h"
 
 #include "config.h"
 
 #ifdef DOLPHIN_PRINT_ENABLE
-
-#define __attribute_reloc__ __attribute__((section(".reloc")))
 
 __attribute_reloc__ u32 *uart_init;
 __attribute_reloc__ u32 (*InitializeUART)(u32);
@@ -185,7 +183,7 @@ void custom_OSReport(const char *fmt, ...) {
     static char buf[256];
 
     va_start(args, fmt);
-    int length = vsprintf((char *)buf, (char *)fmt, args);
+    int length = vsnprintf((char *)buf, sizeof(buf), (char *)fmt, args);
 
 	custom_WriteUARTN(buf, length);
 

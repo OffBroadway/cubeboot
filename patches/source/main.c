@@ -339,8 +339,8 @@ __attribute_used__ u32 bs2tick() {
         completed_time = gettime();
     }
 
-    if (TEST_ONLY_skip_animation) {
-        return STATE_COVER_OPEN;
+    if (cube_state->cube_anim_done) {
+        return STATE_START_GAME;
     }
 
     if (start_game && !TEST_ONLY_force_boot_menu) {
@@ -353,6 +353,10 @@ __attribute_used__ u32 bs2tick() {
             }
         }
         return STATE_START_GAME;
+    }
+
+    if (TEST_ONLY_skip_animation) {
+        return STATE_COVER_OPEN;
     }
 
     // TODO: allow the user to decide if they want to logo to play
