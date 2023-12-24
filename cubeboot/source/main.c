@@ -41,8 +41,7 @@
 typedef struct {
     struct gcm_disk_header header;
     u8 banner[0x1960];
-    u8 icon_rgba8[160*160*4];
-    u8 padding[0x1000];
+    u8 icon_rgb5[160*160*2];
 } game_asset;
 
 __attribute__((aligned(32))) static game_asset assets[4] = {};
@@ -388,9 +387,7 @@ int main() {
             prog_halt("The image is not the correct size (160x160)\n");
         }
 
-        int width = 0;
-        int height = 0;
-        PNGU_DecodeTo4x4RGBA8(ctx, imgProp.imgWidth, imgProp.imgHeight, &width, &height, asset->icon_rgba8);
+        PNGU_DecodeTo4x4RGB5A3(ctx, imgProp.imgWidth, imgProp.imgHeight, asset->icon_rgb5, 0);
         PNGU_ReleaseImageContext(ctx);
 
         free(png_buffer);

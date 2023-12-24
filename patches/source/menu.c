@@ -54,14 +54,21 @@ __attribute_reloc__ u32 *banner_ready;
 typedef struct {
     struct gcm_disk_header header;
     u8 banner[0x1960];
-    u8 icon_rgba8[160*160*4];
-    u8 padding[0x1000];
+    u8 icon_rgb5[160*160*2];
 } game_asset;
 
-__attribute_data__ game_asset *assets;
+game_asset *assets;
+
+typedef struct {
+    f32 scale;
+    Mtx m;
+} position_t;
+
+static position_t icons_positions[40];
+// static asset_t (*game_assets)[40] = 0x80400000; // needs ~2.5mb
 
 void draw_text(char *s, u16 x, u16 y, u8 alpha) {
-    __attribute_data__ static struct {
+    static struct {
         text_group group;
         text_metadata metadata;
         char contents[255];
@@ -76,7 +83,7 @@ void draw_text(char *s, u16 x, u16 y, u8 alpha) {
         },
     };
 
-    __attribute_data__ static struct {
+    static struct {
         text_draw_group group;
         text_draw_metadata metadata;
     } draw = {
@@ -172,22 +179,116 @@ __attribute_used__ void custom_gameselect_init() {
 
     // change the texture format (disc scans)
     tex_data *textured_icon_tex = &textured_icon->data->tex->dat[1];
-    textured_icon_tex->format = GX_TF_RGBA8;
+    textured_icon_tex->format = GX_TF_RGB5A3;
     textured_icon_tex->width = 160;
     textured_icon_tex->height = 160;
 }
 
+int selected_slot = 0;
+
+__attribute_used__ void draw_save_icon(u32 index, u8 alpha, bool selected, bool has_texture) {
+    position_t *pos = &icons_positions[index];
+
+    f32 sc = pos->scale;
+    guVector scale = {sc, sc, sc};
+
+    model *m = NULL;
+    if (has_texture) {
+        m = textured_icon;
+        if (selected) {
+            set_textured_icon_selected();
+        } else {
+            set_textured_icon_unselected();
+        }
+    } else {
+        m = empty_icon;
+        if (selected) {
+            set_empty_icon_selected();
+        } else {
+            set_empty_icon_unselected();
+        }
+    }
+
+    // setup camera
+    set_obj_pos(m, pos->m, scale);
+    set_obj_cam(m, get_camera_mtx());
+    change_model(m);
+
+    // draw icon
+    m->alpha = alpha;
+    if (has_texture) {
+        // cube
+        draw_partial(m, &m->data->parts[2]);
+        draw_partial(m, &m->data->parts[10]);
+
+        // icon
+        tex_data *icon_tex = &m->data->tex->dat[1];
+        u32 target_texture_data = (u32)assets[index].icon_rgb5;
+
+        s32 desired_offset = (s32)((u32)target_texture_data - (u32)icon_tex);
+        icon_tex->offset = desired_offset;
+
+        // TODO: instead set m->data->mat[1].texmap_index[0] = 0xFFFF
+        draw_partial(m, &m->data->parts[6]);
+    } else {
+        draw_model(m);
+    }
+
+    return;
+}
+
 __attribute_used__ void update_icon_positions() {
+    const int base_x = -208;
+    const int base_y = 118;
+
+    for (int row = 0; row < 4; row++) {
+        for (int col = 0; col < 8; col++) {
+            int slot_num = (row * 8) + col;
+            position_t *pos = &icons_positions[slot_num];
+
+            f32 sc = 1.3;
+            if (slot_num == selected_slot) {
+                sc = 2.0;
+            }
+            pos->scale = sc;
+
+            f32 pos_x = base_x + (col * 56);
+            if (slot_num % 8 >= 4) pos_x += 24; // card spacing
+            f32 pos_y = base_y - (row * 56);
+
+            C_MTXIdentity(pos->m);
+
+            if (slot_num == selected_slot) {
+                f32 mult = 0.7; // 1.0 is more accurate
+                s32 rot_diff_x = fast_cos(anim_step * 70) * 350 * mult;
+                s32 rot_diff_y = fast_cos(anim_step * 35 - 15000) * 1000 * mult;
+                s32 rot_diff_z = fast_cos(anim_step * 35) * 1000 * mult;
+
+                apply_save_rot(rot_diff_x, rot_diff_y, rot_diff_z, pos->m);
+
+                f32 move_diff_y = fast_sin(35 * anim_step - 0x4000) * 10.0 * mult;
+                f32 move_diff_z = fast_sin(70 * anim_step) * 5.0 * mult;
+
+                pos->m[0][3] = pos_x + move_diff_y;
+                pos->m[1][3] = pos_y - move_diff_z;
+                pos->m[2][3] = 2.0;
+            } else {
+                pos->m[0][3] = pos_x;
+                pos->m[1][3] = pos_y;
+                pos->m[2][3] = 1.0;
+            }
+        }
+    }
+
     anim_step += 0x7; // why is this the const?
 }
 
-int selected_slot = 0;
 __attribute_data__ u32 current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
 __attribute_used__ void custom_gameselect_menu(u8 alpha_0, u8 alpha_1, u8 alpha_2) {
     draw_gameselect_menu(alpha_0, alpha_1, alpha_2);
     draw_text("cubeboot loader", 20, 4, alpha_2);
 
-    __attribute_data__ static struct {
+    static struct {
         box_draw_group group;
         box_draw_metadata metadata;
     } blob = {
@@ -215,102 +316,29 @@ __attribute_used__ void custom_gameselect_menu(u8 alpha_0, u8 alpha_1, u8 alpha_
     };
 
     GXColor white = {0xFF, 0xFF, 0xFF, alpha_2};
-    rgb_color top_color = { .parts = {0x6e, 0x00, 0xb3, 0xc8} };
-    rgb_color bottom_color = { .parts = {0x80, 0x00, 0x57, 0xb4} };
-    copy_color(top_color, &blob.metadata.top_color[0]);
-    copy_color(top_color, &blob.metadata.top_color[1]);
-    copy_color(bottom_color, &blob.metadata.bottom_color[0]);
-    copy_color(bottom_color, &blob.metadata.bottom_color[1]);
+    GXColor top_color = {0x6e, 0x00, 0xb3, 0xc8};
+    GXColor bottom_color = {0x80, 0x00, 0x57, 0xb4};
+    copy_gx_color(&top_color, &blob.metadata.top_color[0]);
+    copy_gx_color(&top_color, &blob.metadata.top_color[1]);
+    copy_gx_color(&bottom_color, &blob.metadata.bottom_color[0]);
+    copy_gx_color(&bottom_color, &blob.metadata.bottom_color[1]);
 
     box_draw_metadata *box = (box_draw_metadata*)((u32)&blob + blob.group.metadata_offset);
 	int inside_x = box->center_x - (box->inside_width / 2);
 	int inside_y = box->center_y - (box->inside_height / 2);
 	draw_box(0, &blob.group, &white, inside_x, inside_y, box->inside_width, box->inside_height);
 
-    int base_x = -208;
-    int base_y = 118;
+    for (int pass = 0; pass < 2; pass++) {
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 8; col++) {
+                int slot_num = (row * 8) + col;
 
-    for (int row = 0; row < 4; row++) {
-        for (int col = 0; col < 8; col++) {
-            int slot_num = (row * 8) + col;
+                bool has_texture = (slot_num < 4);
+                bool selected = (slot_num == selected_slot);
 
-            f32 sc = 1.3;
-            if (slot_num == selected_slot) {
-                sc = 2.0;
-            }
-
-            guVector scale = {sc, sc, sc};
-
-            f32 pos_x = base_x + (col * 56);
-            if (slot_num % 8 >= 4) pos_x += 24; // card spacing
-            f32 pos_y = base_y - (row * 56);
-
-            if (pos_x == 0.0 && pos_y == 0.0) {
-                continue;
-            }
-
-            Mtx matrix = {
-                {1, 0, 0, pos_x},
-                {0, 1, 0, pos_y},
-                {0, 0, 1, 0}, // or 2
-            };
-
-            model *m = NULL;
-            if (slot_num < 4) {
-                m = textured_icon;
-                if (slot_num == selected_slot) {
-                    set_textured_icon_selected();
-                } else {
-                    set_textured_icon_unselected();
-                }
-            } else {
-                m = empty_icon;
-                if (slot_num == selected_slot) {
-                    set_empty_icon_selected();
-                } else {
-                    set_empty_icon_unselected();
-                }
-            }
-
-            if (slot_num == selected_slot) {
-                f32 mult = 0.7; // 1.0 is more accurate
-                s32 rot_diff_x = fast_cos(anim_step * 70) * 350 * mult;
-                s32 rot_diff_y = fast_cos(anim_step * 35 - 15000) * 1000 * mult;
-                s32 rot_diff_z = fast_cos(anim_step * 35) * 1000 * mult;
-
-                apply_save_rot(rot_diff_x, rot_diff_y, rot_diff_z, matrix);
-
-                f32 move_diff_y = fast_sin(35 * anim_step - 0x4000) * 10.0 * mult;
-                f32 move_diff_z = fast_sin(70 * anim_step) * 5.0 * mult;
-
-                matrix[0][3] = pos_x + move_diff_y;
-                matrix[1][3] = pos_y - move_diff_z;
-                matrix[2][3] = 2.0;
-            }
-
-            // setup camera
-            set_obj_pos(m, matrix, scale);
-            set_obj_cam(m, get_camera_mtx());
-            change_model(m);
-
-            // draw icon
-            m->alpha = alpha_1;
-            if (slot_num < 4) {
-                // cube
-                draw_partial(m, &m->data->parts[2]);
-                draw_partial(m, &m->data->parts[10]);
-
-                // icon
-                tex_data *icon_tex = &m->data->tex->dat[1];
-                u32 target_texture_data = (u32)assets[slot_num].icon_rgba8;
-
-                s32 desired_offset = (s32)((u32)target_texture_data - (u32)icon_tex);
-                icon_tex->offset = desired_offset;
-
-                // TODO: instead set m->data->mat[1].texmap_index[0] = 0xFFFF
-                draw_partial(m, &m->data->parts[6]);
-            } else {
-                draw_model(m);
+                if (selected && pass == 0) continue;
+                if (!selected && pass == 1) continue;
+                draw_save_icon(slot_num, alpha_1, selected, has_texture);
             }
         }
     }
@@ -368,9 +396,7 @@ __attribute_used__ s32 handle_gameselect_inputs() {
     if (pad_status->buttons_down & PAD_BUTTON_A && current_gameselect_state == SUBMENU_GAMESELECT_LOADER) {
         if (selected_slot < 4) {
             current_gameselect_state = SUBMENU_GAMESELECT_START;
-
-            *banner_pointer = &assets[selected_slot].banner[0]; // banner buf
-            *banner_ready = 1; // banner loaded
+            *banner_pointer = (u32)&assets[selected_slot].banner[0]; // banner buf
 
             Jac_PlaySe(SOUND_SUBMENU_ENTER);
             setup_gameselect_anim();

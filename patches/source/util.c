@@ -1,5 +1,18 @@
 #include "util.h"
 
+// from https://github.com/PrimeDecomp/prime/blob/18fcbc76f19647d399ee66779bd145c6604bd9c0/src/Dolphin/mtx/mtx.c#L7
+void C_MTXIdentity(Mtx mtx) {
+    mtx[0][0] = 1.0f;
+    mtx[0][1] = 0.0f;
+    mtx[0][2] = 0.0f;
+    mtx[1][0] = 0.0f;
+    mtx[1][1] = 1.0f;
+    mtx[1][2] = 0.0f;
+    mtx[2][0] = 0.0f;
+    mtx[2][1] = 0.0f;
+    mtx[2][2] = 1.0f;
+}
+
 // credit https://stackoverflow.com/a/14733008/652487
 rgb_color hsv2rgb(hsv_color hsv) {
     rgb_color rgb;

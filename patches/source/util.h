@@ -8,6 +8,8 @@
 #include "dolphin_os.h"
 #include "../source/reloc.h"
 
+void C_MTXIdentity(Mtx mtx);
+
 extern void *memset (void *m, int c, size_t n);
 extern void DCFlushRange(void *addr, u32 nBytes);
 
@@ -40,6 +42,13 @@ inline void copy_color(rgb_color src, GXColor* dst) {
     dst->g = src.parts.g;
     dst->b = src.parts.b;
     dst->a = src.parts.a;
+}
+
+inline void copy_gx_color(GXColor* src, GXColor* dst) {
+    dst->r = src->r;
+    dst->g = src->g;
+    dst->b = src->b;
+    dst->a = src->a;
 }
 
 #define DUMP_COLOR(x) dump_color(#x, x);
