@@ -16,6 +16,10 @@ jobs:
         run: |
           git clone https://github.com/extremscorner/libogc2.git
           (cd libogc2; make install)
+      - name: Build libfat
+        run: |
+          git clone https://github.com/extremscorner/libfat.git
+          (cd libfat; sed -i '/rice/d' Makefile; make ogc-install)
       - name: Build cubeboot
         run: cd entry; make clean && make
       - name: Build apploader
