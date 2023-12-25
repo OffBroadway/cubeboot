@@ -50,6 +50,11 @@ ntsc11_draw_model = 0x813051ac;
 ntsc11_draw_partial = 0x81305248;
 ntsc11_change_model = 0x8130418c;
 ntsc11_draw_box = 0x81309a30;
+ntsc11_draw_blob_text = 0x8130a844;
+ntsc11_draw_blob_border = 0x81309d24;
+ntsc11_draw_blob_tex = 0x8130a400;
+ntsc11_setup_tex_draw = 0x8130180c;
+ntsc11_ptr_menu_blob = 0x814815e4;
 
 ntsc11_get_camera_mtx = 0x81302f94;
 ntsc11_set_obj_pos = 0x8130537c;

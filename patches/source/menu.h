@@ -20,12 +20,10 @@
 #define SOUND_SUBMENU_ENTER 0x0c
 #define SOUND_SUBMENU_EXIT 0x07
 #define SOUND_MENU_ENTER 0x05
+#define SOUND_MENU_EXIT 0x06
 #define SOUND_MENU_FINAL 0x16
 #define SOUND_CARD_MOVE 0x0b
 #define SOUND_CARD_ERROR 0x0d
 
 void custom_gameselect_init();
 void update_icon_positions();
-
-// TODO: void custom_gameselect_controls() - in progress
-// TODO: void custom_gameselect_update() - in progress

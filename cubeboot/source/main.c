@@ -37,10 +37,11 @@
 #include "config.h"
 #include "loader.h"
 #include "gcm.h"
+#include "bnr.h"
 
 typedef struct {
     struct gcm_disk_header header;
-    u8 banner[0x1960];
+    BNR banner;
     u8 icon_rgb5[160*160*2];
 } game_asset;
 
@@ -363,7 +364,7 @@ int main() {
             prog_halt("Failed to load disc header");
         }
 
-        if (load_file_buffer(banner_path, asset->banner) != SD_OK) {
+        if (load_file_buffer(banner_path, (u8*)&asset->banner) != SD_OK) {
             prog_halt("Failed to load banner");
         }
 

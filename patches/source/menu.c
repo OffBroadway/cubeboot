@@ -12,6 +12,7 @@
 
 #include "../build/default_opening_bin.h"
 #include "../../cubeboot/include/gcm.h"
+#include "../../cubeboot/include/bnr.h"
 
 // for setup
 __attribute_reloc__ void (*menu_alpha_setup)();
@@ -34,8 +35,13 @@ __attribute_reloc__ void (*model_init)(model* m, int process);
 __attribute_reloc__ void (*draw_model)(model* m);
 __attribute_reloc__ void (*draw_partial)(model* m, model_part* part);
 __attribute_reloc__ void (*change_model)(model* m);
-// __attribute_reloc__ void (*gx_load_tex)(u8 texmap_index, tex_data data); // why does this use texture data directly?
 __attribute_reloc__ void (*draw_box)(u32 index, box_draw_group* header, GXColor* rasc, int inside_x, int inside_y, int inside_width, int inside_height);
+__attribute_reloc__ void (*draw_blob_text)(u32 type, void *blob, GXColor *color, char *str, s32 len);
+__attribute_reloc__ void (*draw_blob_border)(u32 type, void *blob, GXColor *color);
+__attribute_reloc__ void (*draw_blob_tex)(u32 type, void *blob, GXColor *color, tex_data *dat);
+__attribute_reloc__ void (*setup_tex_draw)(s32 unk0, s32 unk1, s32 unk2);
+__attribute_reloc__ void **ptr_menu_blob;
+__attribute_data__ void *menu_blob = NULL;
 
 // for camera gx
 __attribute_reloc__ void (*set_obj_pos)(model* m, MtxP matrix, guVector vector);
@@ -53,7 +59,7 @@ __attribute_reloc__ u32 *banner_ready;
 // test only
 typedef struct {
     struct gcm_disk_header header;
-    u8 banner[0x1960];
+    BNR banner;
     u8 icon_rgb5[160*160*2];
 } game_asset;
 
@@ -67,7 +73,9 @@ typedef struct {
 static position_t icons_positions[40];
 // static asset_t (*game_assets)[40] = 0x80400000; // needs ~2.5mb
 
-void draw_text(char *s, u16 x, u16 y, u8 alpha) {
+__attribute__((aligned(4))) static tex_data banner_texture;
+
+void draw_text(char *s, s16 size, u16 x, u16 y, u8 alpha) {
     static struct {
         text_group group;
         text_metadata metadata;
@@ -98,14 +106,15 @@ void draw_text(char *s, u16 x, u16 y, u8 alpha) {
             .y_align = TEXT_ALIGN_CENTER,
             .x_align = TEXT_ALIGN_TOP,
             .letter_spacing = -1,
-            .line_spacing = 20,
-            .size = 20,
+            .line_spacing = 0,
+            .size = 0,
             .border_obj = 0xffff,
         }
     };
 
     strcpy(text.contents, s);
 
+    draw.metadata.size = draw.metadata.line_spacing = size;
     draw.metadata.x = (x + 64) * 20;
     draw.metadata.y = (y + 64) * 10;
 
@@ -153,10 +162,12 @@ __attribute_used__ void custom_gameselect_init() {
     *banner_pointer = (u32)&default_opening_bin[0];
     *banner_ready = 1;
 
-    u32 color_num = SAVE_COLOR_PURPLE;
-    u32 color_index = 1 << (10 + 3 + color_num);
+    // menu setup
+    menu_blob = *ptr_menu_blob;
 
     // colors
+    u32 color_num = SAVE_COLOR_PURPLE;
+    u32 color_index = 1 << (10 + 3 + color_num);
     menu_color_icon = get_save_color(color_index, SAVE_ICON);
     menu_color_icon_sel = get_save_color(color_index, SAVE_ICON_SEL);
     menu_color_empty = get_save_color(color_index, SAVE_EMPTY);
@@ -182,6 +193,25 @@ __attribute_used__ void custom_gameselect_init() {
     textured_icon_tex->format = GX_TF_RGB5A3;
     textured_icon_tex->width = 160;
     textured_icon_tex->height = 160;
+
+    // banner image
+    banner_texture.format = GX_TF_RGB5A3;
+    banner_texture.width = 96;
+    banner_texture.height = 32;
+
+    banner_texture.lodbias = 0; // used by GX_InitTexObjLOD
+    banner_texture.index = 0x00;
+
+    banner_texture.unk1 = 0x00;
+    banner_texture.unk2 = 0x00;
+    banner_texture.unk3 = 0x00;
+    banner_texture.unk4 = 0x00;
+    banner_texture.unk5 = 0x00;
+    banner_texture.unk6 = 0x00;
+    banner_texture.unk7 = 0x01; // used by GX_InitTexObjLOD
+    banner_texture.unk8 = 0x01; // used by GX_InitTexObjLOD
+    banner_texture.unk9 = 0x00;
+    banner_texture.unk10 = 0x00;
 }
 
 int selected_slot = 0;
@@ -237,6 +267,49 @@ __attribute_used__ void draw_save_icon(u32 index, u8 alpha, bool selected, bool 
     return;
 }
 
+__attribute_used__ void draw_info_box(GXColor *color) {
+    static struct {
+        box_draw_group group;
+        box_draw_metadata metadata;
+    } blob = {
+        .group = {
+            .type = make_type('G','L','H','0'),
+            .metadata_offset = sizeof(box_draw_group),
+        },
+        .metadata = {
+            .center_x = 0x1230,
+            .center_y = 0x1640,
+            .width = 0x20f0,
+            .height = 0x560,
+
+            .inside_center_x = 0x80,
+            .inside_center_y = 0x80,
+            .inside_width = 0x1ff0,
+            .inside_height = 0x460,
+
+            .boarder_index = { 0x28, 0x28, 0x28, 0x28 },
+            .boarder_unk = { 0x27, 0x0, 0x0, 0x0 },
+
+            .top_color = {},
+            .bottom_color = {},
+        }
+    };
+
+    GXColor top_color = {0x6e, 0x00, 0xb3, 0xc8};
+    GXColor bottom_color = {0x80, 0x00, 0x57, 0xb4};
+    copy_gx_color(&top_color, &blob.metadata.top_color[0]);
+    copy_gx_color(&top_color, &blob.metadata.top_color[1]);
+    copy_gx_color(&bottom_color, &blob.metadata.bottom_color[0]);
+    copy_gx_color(&bottom_color, &blob.metadata.bottom_color[1]);
+
+    box_draw_metadata *box = (box_draw_metadata*)((u32)&blob + blob.group.metadata_offset);
+	int inside_x = box->center_x - (box->inside_width / 2);
+	int inside_y = box->center_y - (box->inside_height / 2);
+	draw_box(0, &blob.group, color, inside_x, inside_y, box->inside_width, box->inside_height);
+
+    return;
+}
+
 __attribute_used__ void update_icon_positions() {
     const int base_x = -208;
     const int base_y = 118;
@@ -285,49 +358,36 @@ __attribute_used__ void update_icon_positions() {
 
 __attribute_data__ u32 current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
 __attribute_used__ void custom_gameselect_menu(u8 alpha_0, u8 alpha_1, u8 alpha_2) {
+    // this is for the grid
     draw_gameselect_menu(alpha_0, alpha_1, alpha_2);
-    draw_text("cubeboot loader", 20, 4, alpha_2);
 
-    static struct {
-        box_draw_group group;
-        box_draw_metadata metadata;
-    } blob = {
-        .group = {
-            .type = make_type('G','L','H','0'),
-            .metadata_offset = sizeof(box_draw_group),
-        },
-        .metadata = {
-            .center_x = 0x1230,
-            .center_y = 0x1640,
-            .width = 0x20f0,
-            .height = 0x560,
+    // color
+    u8 ui_alpha = alpha_1;
+    // u8 ui_alpha = alpha_2; // correct with animation
+    GXColor white = {0xFF, 0xFF, 0xFF, ui_alpha};
 
-            .inside_center_x = 0x80,
-            .inside_center_y = 0x80,
-            .inside_width = 0x1ff0,
-            .inside_height = 0x460,
+    // text
+    draw_text("cubeboot loader", 20, 20, 4, ui_alpha);
 
-            .boarder_index = { 0x28, 0x28, 0x28, 0x28 },
-            .boarder_unk = { 0x27, 0x0, 0x0, 0x0 },
+    // box
+    draw_info_box(&white);
 
-            .top_color = {},
-            .bottom_color = {},
-        }
-    };
+    if (selected_slot < 4) {
+        // info
+        draw_blob_text(make_type('t','i','t','l'), menu_blob, &white, assets[selected_slot].banner.desc->fullGameName, 0x1f);
+        draw_blob_text(make_type('i','n','f','o'), menu_blob, &white, assets[selected_slot].banner.desc->description, 0x1f);
 
-    GXColor white = {0xFF, 0xFF, 0xFF, alpha_2};
-    GXColor top_color = {0x6e, 0x00, 0xb3, 0xc8};
-    GXColor bottom_color = {0x80, 0x00, 0x57, 0xb4};
-    copy_gx_color(&top_color, &blob.metadata.top_color[0]);
-    copy_gx_color(&top_color, &blob.metadata.top_color[1]);
-    copy_gx_color(&bottom_color, &blob.metadata.bottom_color[0]);
-    copy_gx_color(&bottom_color, &blob.metadata.bottom_color[1]);
+        // game source
+        draw_blob_border(make_type('f','r','m','c'), menu_blob, &white);
+        draw_text("ISO", 20, 125, 540, ui_alpha);
 
-    box_draw_metadata *box = (box_draw_metadata*)((u32)&blob + blob.group.metadata_offset);
-	int inside_x = box->center_x - (box->inside_width / 2);
-	int inside_y = box->center_y - (box->inside_height / 2);
-	draw_box(0, &blob.group, &white, inside_x, inside_y, box->inside_width, box->inside_height);
+        // banner image
+        setup_tex_draw(1, 0, 1);
+        banner_texture.offset = (s32)((u32)(assets[selected_slot].banner.pixelData) - (u32)&banner_texture);
+        draw_blob_tex(make_type('b','a','n','a'), menu_blob, &white, &banner_texture);
+    }
 
+    // icons
     for (int pass = 0; pass < 2; pass++) {
         for (int row = 0; row < 4; row++) {
             for (int col = 0; col < 8; col++) {
@@ -336,8 +396,8 @@ __attribute_used__ void custom_gameselect_menu(u8 alpha_0, u8 alpha_1, u8 alpha_
                 bool has_texture = (slot_num < 4);
                 bool selected = (slot_num == selected_slot);
 
-                if (selected && pass == 0) continue;
-                if (!selected && pass == 1) continue;
+                if (selected && pass == 0) continue; // skip selected icon on first pass
+                if (!selected && pass == 1) continue; // skip unselected icons on second pass
                 draw_save_icon(slot_num, alpha_1, selected, has_texture);
             }
         }
@@ -389,6 +449,7 @@ __attribute_used__ s32 handle_gameselect_inputs() {
         } else {
             anim_step = 0; // anim reset
             *banner_pointer = (u32)&default_opening_bin[0]; // banner reset
+            Jac_PlaySe(SOUND_MENU_EXIT);
             return MENU_GAMESELECT_ID;
         }
     }
@@ -396,7 +457,7 @@ __attribute_used__ s32 handle_gameselect_inputs() {
     if (pad_status->buttons_down & PAD_BUTTON_A && current_gameselect_state == SUBMENU_GAMESELECT_LOADER) {
         if (selected_slot < 4) {
             current_gameselect_state = SUBMENU_GAMESELECT_START;
-            *banner_pointer = (u32)&assets[selected_slot].banner[0]; // banner buf
+            *banner_pointer = (u32)&assets[selected_slot].banner; // banner buf
 
             Jac_PlaySe(SOUND_SUBMENU_ENTER);
             setup_gameselect_anim();

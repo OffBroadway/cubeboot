@@ -31,6 +31,7 @@
 `cubeboot/source/ini.h` credit to github.com/rxi/ini <br/>
 
 `cubeboot/include/elf_abi.h` credit to swiss-gc <br/>
+`cubeboot/include/bnr.h`: credit to swiss-gc <br/>
 `cubeboot/include/gcm.h` credit to gc-boot-tools <br/>
 
 <hr/>
