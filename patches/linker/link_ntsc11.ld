@@ -38,8 +38,8 @@ ntsc11_cur_menu_id = 0x81481554;
 
 ntsc11_get_save_color = 0x81320424;
 ntsc11_draw_grid = 0x8130b32c;
-ntsc11_draw_gameselect_menu = 0x813272f8;
 ntsc11_gx_draw_text = 0x8130a6b8;
+ntsc11_setup_gameselect_menu = 0x813272f8;
 ntsc11_setup_gameselect_anim = 0x8132703c;
 ntsc11_setup_cube_anim = 0x81328c20;
 ntsc11_save_icon = 0x8149eaa0;
@@ -50,11 +50,17 @@ ntsc11_draw_model = 0x813051ac;
 ntsc11_draw_partial = 0x81305248;
 ntsc11_change_model = 0x8130418c;
 ntsc11_draw_box = 0x81309a30;
+ntsc11_draw_start_info = 0x813270e8;
+ntsc11_draw_start_anim = 0x8132fa28;
+ntsc11_draw_blob_fixed = 0x8130aad0;
 ntsc11_draw_blob_text = 0x8130a844;
 ntsc11_draw_blob_border = 0x81309d24;
 ntsc11_draw_blob_tex = 0x8130a400;
 ntsc11_setup_tex_draw = 0x8130180c;
 ntsc11_ptr_menu_blob = 0x814815e4;
+ntsc11_ptr_game_blob_a = 0x814816d4;
+ntsc11_ptr_game_blob_b = 0x814816d0;
+ntsc11_game_blob_text = 0x814b25c8;
 
 ntsc11_get_camera_mtx = 0x81302f94;
 ntsc11_set_obj_pos = 0x8130537c;

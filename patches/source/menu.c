@@ -19,7 +19,7 @@ __attribute_reloc__ void (*menu_alpha_setup)();
 
 // for custom menus
 __attribute_reloc__ void (*gx_draw_text)(u16 index, text_group* text, text_draw_group* text_draw, GXColor* color);
-__attribute_reloc__ void (*draw_gameselect_menu)(u8 unk0, u8 unk1, u8 unk2);
+__attribute_reloc__ void (*setup_gameselect_menu)(u8 alpha_0, u8 alpha_1, u8 alpha_2);
 __attribute_reloc__ GXColorS10 *(*get_save_color)(u32 color_index, s32 save_type);
 __attribute_reloc__ void (*setup_gameselect_anim)();
 __attribute_reloc__ void (*setup_cube_anim)();
@@ -35,13 +35,28 @@ __attribute_reloc__ void (*model_init)(model* m, int process);
 __attribute_reloc__ void (*draw_model)(model* m);
 __attribute_reloc__ void (*draw_partial)(model* m, model_part* part);
 __attribute_reloc__ void (*change_model)(model* m);
+
+// for menu elements
+__attribute_reloc__ void (*draw_grid)(Mtx position, u8 alpha);
 __attribute_reloc__ void (*draw_box)(u32 index, box_draw_group* header, GXColor* rasc, int inside_x, int inside_y, int inside_width, int inside_height);
+__attribute_reloc__ void (*draw_start_info)(u8 alpha);
+__attribute_reloc__ void (*draw_start_anim)(u8 alpha);
+__attribute_reloc__ void (*draw_blob_fixed)(void *blob_ptr, void *blob_a, void *blob_b, GXColor *color);
 __attribute_reloc__ void (*draw_blob_text)(u32 type, void *blob, GXColor *color, char *str, s32 len);
 __attribute_reloc__ void (*draw_blob_border)(u32 type, void *blob, GXColor *color);
 __attribute_reloc__ void (*draw_blob_tex)(u32 type, void *blob, GXColor *color, tex_data *dat);
 __attribute_reloc__ void (*setup_tex_draw)(s32 unk0, s32 unk1, s32 unk2);
+
+// unknown blob (from memcard menu)
 __attribute_reloc__ void **ptr_menu_blob;
 __attribute_data__ void *menu_blob = NULL;
+
+// unknown blobs (from gameselect menu)
+__attribute_reloc__ void *game_blob_text;
+__attribute_reloc__ void **ptr_game_blob_a;
+__attribute_data__ void *game_blob_a = NULL;
+__attribute_reloc__ void **ptr_game_blob_b;
+__attribute_data__ void *game_blob_b = NULL;
 
 // for camera gx
 __attribute_reloc__ void (*set_obj_pos)(model* m, MtxP matrix, guVector vector);
@@ -164,6 +179,8 @@ __attribute_used__ void custom_gameselect_init() {
 
     // menu setup
     menu_blob = *ptr_menu_blob;
+    game_blob_a = *ptr_game_blob_a;
+    game_blob_b = *ptr_game_blob_b;
 
     // colors
     u32 color_num = SAVE_COLOR_PURPLE;
@@ -310,8 +327,14 @@ __attribute_used__ void draw_info_box(GXColor *color) {
     return;
 }
 
+// #define WITH_SPACE 1
+
 __attribute_used__ void update_icon_positions() {
+#if defined(WITH_SPACE) && WITH_SPACE
     const int base_x = -208;
+#else
+    const int base_x = -196;
+#endif
     const int base_y = 118;
 
     for (int row = 0; row < 4; row++) {
@@ -326,7 +349,9 @@ __attribute_used__ void update_icon_positions() {
             pos->scale = sc;
 
             f32 pos_x = base_x + (col * 56);
+#if defined(WITH_SPACE) && WITH_SPACE
             if (slot_num % 8 >= 4) pos_x += 24; // card spacing
+#endif
             f32 pos_y = base_y - (row * 56);
 
             C_MTXIdentity(pos->m);
@@ -356,11 +381,15 @@ __attribute_used__ void update_icon_positions() {
     anim_step += 0x7; // why is this the const?
 }
 
-__attribute_data__ u32 current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
-__attribute_used__ void custom_gameselect_menu(u8 alpha_0, u8 alpha_1, u8 alpha_2) {
-    // this is for the grid
-    draw_gameselect_menu(alpha_0, alpha_1, alpha_2);
+__attribute_data__ Mtx global_gameselect_matrix;
+__attribute_data__ Mtx global_gameselect_inverse;
+void set_gameselect_view(Mtx matrix, Mtx inverse) {
+    C_MTXCopy(matrix, global_gameselect_matrix);
+    C_MTXCopy(inverse, global_gameselect_inverse);
+}
 
+__attribute_data__ u32 current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
+__attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8 broken_alpha_2) {
     // color
     u8 ui_alpha = alpha_1;
     // u8 ui_alpha = alpha_2; // correct with animation
@@ -402,9 +431,34 @@ __attribute_used__ void custom_gameselect_menu(u8 alpha_0, u8 alpha_1, u8 alpha_
             }
         }
     }
+
+    return;
+}
+
+__attribute_used__ void original_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8 broken_alpha_2) {
+    // menu alpha
+    u8 ui_alpha = alpha_1;
+    GXColor white = {0xFF, 0xFF, 0xFF, ui_alpha};
+
+    // banner and info
+    draw_start_info(ui_alpha); // TODO: fix alpha timing
+
+    // press start anim
+    draw_start_anim(ui_alpha); // TODO: fix alpha timing
+
+    // fix camera again
+    setup_gameselect_menu(0, 0, 0);
+
+    // start string
+    draw_blob_fixed(game_blob_text, game_blob_a, game_blob_b, &white);
+
+    return;
 }
 
 static bool first_transition = true;
+static bool in_submenu_transition = false;
+static u8 custom_menu_transition_alpha = 0xFF;
+static u8 original_menu_transition_alpha = 0;
 __attribute_used__ void pre_menu_alpha_setup() {
     menu_alpha_setup(); // run original function
 
@@ -419,24 +473,56 @@ __attribute_used__ void pre_menu_alpha_setup() {
     }
 }
 
-__attribute_used__ u32 is_gameselect_draw() {
-    return current_gameselect_state == SUBMENU_GAMESELECT_START;
-}
+__attribute_used__ void mod_gameselect_draw(u8 alpha_0, u8 alpha_1, u8 alpha_2) {
+    // this is for the camera
+    setup_gameselect_menu(0, 0, 0);
+    draw_grid(global_gameselect_matrix, alpha_1);
 
-__attribute_used__ void mod_gameselect_draw(u8 unk0, u8 unk1, u8 unk2) {
-    switch(current_gameselect_state) {
-        case SUBMENU_GAMESELECT_LOADER:
-            custom_gameselect_menu(unk0, unk1, unk2);
-            break;
-        case SUBMENU_GAMESELECT_START:
-            draw_gameselect_menu(unk0, unk1, unk2);
-            break;
-        default:
+    // original_gameselect_menu(alpha_0, alpha_1, alpha_2); // fix alpha_0 + alpha_2?
+
+    // // TODO: use GXColor instead of alpha byte
+    u8 custom_alpha_1 = custom_menu_transition_alpha;
+    u8 original_alpha_1 = original_menu_transition_alpha;
+
+    if (alpha_1 != 0xFF) {
+        custom_alpha_1 = alpha_1;
     }
+
+    if (custom_alpha_1 != 0) custom_gameselect_menu(alpha_0, custom_alpha_1, alpha_2);
+    if (original_alpha_1 != 0) original_gameselect_menu(0, original_alpha_1, 0); // fix alpha_0 + alpha_2?
+
+    return;
 }
 
 __attribute_used__ s32 handle_gameselect_inputs() {
     update_icon_positions();
+
+    // TODO: only works with numbers that do not divide into 255
+    const u8 transition_step = 14;
+    if (in_submenu_transition) {
+        if (custom_menu_transition_alpha != 0 && original_menu_transition_alpha != 0) {
+            if ((255 - custom_menu_transition_alpha) < transition_step || (255 - original_menu_transition_alpha) < transition_step) {
+                in_submenu_transition = false;
+
+                custom_menu_transition_alpha = custom_menu_transition_alpha < 127 ? 0 : 255;
+                original_menu_transition_alpha = original_menu_transition_alpha < 127 ? 0 : 255;
+            }
+        }
+    }
+
+    if (in_submenu_transition) {
+        switch(current_gameselect_state) {
+            case SUBMENU_GAMESELECT_LOADER:
+                custom_menu_transition_alpha += transition_step;
+                original_menu_transition_alpha -= transition_step;
+                break;
+            case SUBMENU_GAMESELECT_START:
+                custom_menu_transition_alpha -= transition_step;
+                original_menu_transition_alpha += transition_step;
+                break;
+            default:
+        }
+    }
 
     if (pad_status->buttons_down & PAD_TRIGGER_Z) {
         // placeholder
@@ -444,6 +530,7 @@ __attribute_used__ s32 handle_gameselect_inputs() {
 
     if (pad_status->buttons_down & PAD_BUTTON_B) {
         if (current_gameselect_state == SUBMENU_GAMESELECT_START) {
+            in_submenu_transition = true;
             current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
             Jac_PlaySe(SOUND_SUBMENU_EXIT);
         } else {
@@ -456,6 +543,7 @@ __attribute_used__ s32 handle_gameselect_inputs() {
 
     if (pad_status->buttons_down & PAD_BUTTON_A && current_gameselect_state == SUBMENU_GAMESELECT_LOADER) {
         if (selected_slot < 4) {
+            in_submenu_transition = true;
             current_gameselect_state = SUBMENU_GAMESELECT_START;
             *banner_pointer = (u32)&assets[selected_slot].banner; // banner buf
 

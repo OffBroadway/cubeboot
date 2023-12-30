@@ -31,6 +31,13 @@
 .set vPAL_11(_SDA_BASE_), 0x81483de0
 .set vPAL_12(_SDA_BASE_), 0x814b7280
 
+// helpers
+.macro rept_inst count, inst:vararg
+.rept \count
+    \inst
+.endr
+.endm
+
 .macro patch_routine name, addr
 .section .patch.\name\()_func
 	.set \name\()_address, \addr
