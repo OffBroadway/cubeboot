@@ -1,4 +1,4 @@
-# Flippyboot IPL
+# cubeboot
 
 This project provides a program called cubeboot which is able to play the GameCube
 boot animation. This is useful for some modchips like PicoBoot which skip the boot
@@ -8,18 +8,15 @@ custom colors and logos.
 ## Technical Details
 
 This project is a patching framework for the GameCube IPL which is called BS2.
-The project was originally intended to restore the Boot Animation on Flippyboot.
-Now the project has been generalized and works on both Flippyboot and PicoBoot.
+The project was originally intended to restore the Boot Animation on IPL Replacements.
 
 cubeboot acts as a patching harness for BS2 and is capable of mounting external
-FAT devices and chainloading a DOL. The essential copyrighted BS1 and Font ROM 
-are not provided, nor needed with the Flippyboot as these are resident onboard 
-the Gamecube's U10 ROM.
+FAT devices and chainloading a DOL file. The essential copyrighted are not provided,
+but instead loaded at runtime from the Gamecube's onboard U10 ROM.
 
-cubeboot can inject the BS2 into an existing scrambled ROM image for simulation
-purposes via `make dolphinipl.bin` in the ipl directory. You must provide the
-original ROM image for injection. Again, this is only necessary for development
- and debugging.
+**To be clear** cubeboot does not contain any copyrighted materials. It is able to run
+on any GameCube unit without any additional software. All assets are provided by the IPL
+resident on the GameCube motherboard. This is simply a software instrumentation framrwork.
 
 ## Usage
 
