@@ -48,13 +48,16 @@ static int check_available_devices() {
     for (int i = countof(drivers) - 1; i >= 0; i--) {
         const DISC_INTERFACE *driver = drivers[i];
         const char *dev_name = dev_names[i];
+        bool present = false;
 
-        // // skip GCLoader if we did not boot from ODE
-        // if (driver->ioType == DEVICE_TYPE_GAMECUBE_GCODE && low_mem->dhi.country_code != 0x03)
-        //     continue;
+        switch (driver->ioType) {
+        case DEVICE_TYPE_GC_SD:
+            sdgecko_setSpeed(i, EXI_SPEED32MHZ);
+            present = driver->startup();
+            break;
 
-        // skip ODE to speed up loading
-        if (driver->ioType == DEVICE_TYPE_GAMECUBE_GCODE) {
+        case DEVICE_TYPE_GAMECUBE_GCODE:
+            // The manual inquiry is faster than driver->startup().
             GCODE_Init();
             GCODE_InquiryAsync(&blk, &drive_info, drive_info_callback);
 
@@ -64,14 +67,15 @@ static int check_available_devices() {
                 udelay(100); // 100 microseconds
             }
 
-            if (drive_info.rel_date != 0x20196c64) continue;
+            present = (drive_info.rel_date != 0x20196c64);
+            break;
+        default:
+            // Unknown driver type? Something fatal is happening.
+            break;
         }
 
         iprintf("Trying mount %s\n", dev_name);
-        if (driver->ioType == DEVICE_TYPE_GC_SD)
-            sdgecko_setSpeed(i, EXI_SPEED32MHZ);
-
-        if (driver->startup() && driver->isInserted()) {
+        if (present && driver->isInserted()) {
             // set driver for fatfs
             current_device_index = i;
             current_device = driver;
