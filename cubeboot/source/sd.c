@@ -68,7 +68,7 @@ static int check_available_devices() {
         }
 
         iprintf("Trying mount %s\n", dev_name);
-        if (i < MAX_DRIVE)
+        if (driver->ioType == DEVICE_TYPE_GC_SD)
             sdgecko_setSpeed(i, EXI_SPEED32MHZ);
 
         if (driver->startup() && driver->isInserted()) {
