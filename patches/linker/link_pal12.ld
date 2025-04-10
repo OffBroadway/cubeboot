@@ -100,3 +100,8 @@ pal12_EXIDeselect = 0x81367c6c;
 pal12_EXISync = 0x81367428;
 pal12_EXIImm = 0x81367040;
 pal12_EXIImmEx = 0x8136729c;
+
+pal12_all_element_alphas = 0x814b78dc;
+pal12_update_element_alpha = 0x8130a9bc;
+pal12_after_update_button_text_jump_table = 0x81312a0c;
+pal12_after_update_button_icons_jump_table = 0x81312b78;

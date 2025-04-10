@@ -104,3 +104,8 @@ ntsc11_EXIDeselect = 0x8135b298;
 ntsc11_EXISync = 0x8135ab5c;
 ntsc11_EXIImm = 0x8135a774;
 ntsc11_EXIImmEx = 0x8135a9d0;
+
+ntsc11_all_element_alphas = 0x8148a21c;
+ntsc11_update_element_alpha = 0x8130a964;
+ntsc11_after_update_button_text_jump_table = 0x81312030;
+ntsc11_after_update_button_icons_jump_table = 0x8131219c;
