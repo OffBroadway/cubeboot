@@ -46,7 +46,7 @@ jobs:
           mv ./cubeboot/cubeboot.dol dist/next/cubeboot.dol
           # mv ./PicoBoot/picoboot.uf2 dist/next/cubeboot.uf2
       - name: Archive
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/next/
