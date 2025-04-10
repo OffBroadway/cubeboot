@@ -5,7 +5,7 @@
 
 __attribute_reloc__ void (*update_element_alpha)(element_alpha_state_t* element_ptr, bool disabled);
 
-// Locations to branch back to, after the patched switch statement entry
+// Locations to branch back to, after the patched switch statement entry (used in button_descriptions_asm.s)
 __attribute_reloc__ void* after_update_button_text_jump_table;
 __attribute_reloc__ void* after_update_button_icons_jump_table;
 
@@ -42,28 +42,3 @@ __attribute_used__ void update_gameplay_button_icons() {
     update_element_alpha(&all_element_alphas->icons.three_columns.left_control_stick, current_gameselect_state != SUBMENU_GAMESELECT_LOADER);
     update_element_alpha(&all_element_alphas->icons.three_columns.right_a_button, current_gameselect_state != SUBMENU_GAMESELECT_LOADER);
 }
-
-// Within the function that updates the alpha of button descriptions, we patch two jump table entries
-// corresponding to the 'gameplay' menu state, so they point to these two assembly snippets -
-// these run the new C functions, then jump to the code following its jump table
-asm(
-".global patched_update_gameplay_button_text\n"
-"patched_update_gameplay_button_text:\n"
-"   bl update_gameplay_button_text\n"
-"   lis 3, after_update_button_text_jump_table@h\n"
-"   ori 3, 3, after_update_button_text_jump_table@l\n"
-"   lwz 3, 0(3)\n"
-"   mtctr 3\n"
-"   bctr\n"
-);
-
-asm(
-".global patched_update_gameplay_button_icons\n"
-"patched_update_gameplay_button_icons:\n"
-"   bl update_gameplay_button_icons\n"
-"   lis 3, after_update_button_icons_jump_table@h\n"
-"   ori 3, 3, after_update_button_icons_jump_table@l\n"
-"   lwz 3, 0(3)\n"
-"   mtctr 3\n"
-"   bctr\n"
-);
