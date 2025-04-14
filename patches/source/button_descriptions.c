@@ -5,10 +5,6 @@
 
 __attribute_reloc__ void (*update_element_alpha)(element_alpha_state_t* element_ptr, bool disabled);
 
-// Locations to branch back to, after the patched switch statement entry (used in button_descriptions_asm.s)
-__attribute_reloc__ void* after_update_button_text_jump_table;
-__attribute_reloc__ void* after_update_button_icons_jump_table;
-
 __attribute_reloc__ all_element_alphas_t* all_element_alphas;
 
 __attribute_used__ void update_gameplay_button_text() {

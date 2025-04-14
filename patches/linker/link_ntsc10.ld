@@ -107,5 +107,3 @@ ntsc10_EXIImmEx = 0x81334fa8;
 
 ntsc10_all_element_alphas = 0x81465a9c;
 ntsc10_update_element_alpha = 0x8130aa58;
-ntsc10_after_update_button_text_jump_table = 0x81311de0;
-ntsc10_after_update_button_icons_jump_table = 0x81311f4c;

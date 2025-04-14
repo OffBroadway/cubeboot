@@ -117,8 +117,25 @@ patch_inst_pal "_fix_video_mode_init" 0x81300520 0x81300520 0x81300610 bl get_tv
 patch_inst_global "_patch_pre_main" 0x81300090 bl pre_main
 
 // Within the function that updates the alpha of button descriptions,
-// patch two jump table entries corresponding to the 'gameplay' menu state
-patch_inst_ntsc "_patch_update_gameplay_button_text_jump_table" 0x813a5b70 0x8137e780 0x8137fa48 0x8137fec8 .4byte patched_update_gameplay_button_text
-patch_inst_pal "_patch_update_gameplay_button_text_jump_table" 0x81381250 0x8137e6a0 0x813826f0 .4byte patched_update_gameplay_button_text
-patch_inst_ntsc "_patch_update_gameplay_button_icons_jump_table" 0x813a5b50 0x8137e760 0x8137fa28 0x8137fea8 .4byte patched_update_gameplay_button_icons
-patch_inst_pal "_patch_update_gameplay_button_icons_jump_table" 0x81381230 0x8137e680 0x813826d0 .4byte patched_update_gameplay_button_icons
+// patch two code paths corresponding to the 'gameplay' menu state
+.macro patched_update_gameplay_button_text
+    bl update_gameplay_button_text
+
+    // Annoyingly, this state's code path falls through into code for another state (which we don't want to touch) before moving onto the next part of the function, so we can't just use a no-op slide
+    // As the previous state's code finishes with the branch instruction we need, let's just use that
+    b -8
+
+    // May as well no-op out the rest of the code path
+    repeat_inst 20 nop
+.endm
+
+.macro patched_update_gameplay_button_icons
+    bl update_gameplay_button_icons
+    repeat_inst 24 nop
+    // Fortunately, we can just use the branch instruction that follows
+.endm
+
+patch_inst_ntsc "_patch_update_gameplay_button_text_jump_table" 0x81311b9c 0x81311dec 0x81312184 0x8131219c patched_update_gameplay_button_text
+patch_inst_pal "_patch_update_gameplay_button_text_jump_table" 0x81312688 0x81311d18 0x813127c8 patched_update_gameplay_button_text
+patch_inst_ntsc "_patch_update_gameplay_button_icons_jump_table" 0x81311e50 0x813120a0 0x81312438 0x81312450 patched_update_gameplay_button_icons
+patch_inst_pal "_patch_update_gameplay_button_icons_jump_table" 0x8131293c 0x81311fcc 0x81312a7c patched_update_gameplay_button_icons

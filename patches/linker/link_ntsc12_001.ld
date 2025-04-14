@@ -102,5 +102,3 @@ ntsc12_001_EXIImmEx = 0x81363dc0;
 
 ntsc12_001_all_element_alphas = 0x8148b7fc;
 ntsc12_001_update_element_alpha = 0x8130acd8;
-ntsc12_001_after_update_button_text_jump_table = 0x813123c8;
-ntsc12_001_after_update_button_icons_jump_table = 0x81312534;
