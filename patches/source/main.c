@@ -353,17 +353,18 @@ __attribute_used__ void pre_thread_init() {
 
     gm_init_heap();
     gm_init_thread();
-    if (!start_passthrough_game) {
-        gm_start_thread("/");
-    }
+    gm_start_disc_thread();
+    // if (!start_passthrough_game) {
+    //     gm_start_thread("/");
+    // }
 }
 
 __attribute_used__ void pre_menu_init(int unk) {
     menu_init(unk);
 
     // change default menu
-    *prev_menu_id = MENU_GAMESELECT_TRANSITION_ID;
-    *cur_menu_id = MENU_GAMESELECT_ID;
+    // *prev_menu_id = MENU_GAMESELECT_TRANSITION_ID;
+    // *cur_menu_id = MENU_GAMESELECT_ID;
 
     custom_gameselect_init();
 
@@ -430,8 +431,20 @@ __attribute_used__ u32 get_tvmode() {
     return rmode->viTVMode;
 }
 
+extern u32 *banner_ready;
+extern const BNR **banner_pointer;
+
 __attribute_data__ int frame_count = 0;
 __attribute_used__ u32 bs2tick() {
+    // If the disc thread is running, do things relating to it
+    // TODO: Make this conditional!
+    *banner_ready = disc_read_banner_ready;
+    *banner_pointer = stock_banner_ptr;
+    return disc_read_state;
+
+
+
+
     frame_count++;
     if (!completed_time && cube_state->cube_anim_done) {
         OSReport("FINISHED (%d frames)\n", frame_count);

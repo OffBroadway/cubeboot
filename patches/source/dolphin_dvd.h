@@ -122,6 +122,7 @@ typedef struct {
 
 _Static_assert(sizeof(dolphin_game_into_t) == 32);
 
+dolphin_game_into_t get_game_info_with_open_game(u8 fd);
 dolphin_game_into_t get_game_info(char *game_path);
 
 #endif

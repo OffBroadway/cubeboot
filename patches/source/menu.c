@@ -87,7 +87,7 @@ __attribute_reloc__ f32 (*fast_sin)(s16 deg);
 __attribute_reloc__ f32 (*fast_cos)(s16 deg);
 __attribute_reloc__ void (*apply_save_rot)(s32 x, s32 y, s32 z, Mtx matrix);
 __attribute_reloc__ u32 *bs2start_ready;
-__attribute_reloc__ u32 *banner_pointer;
+__attribute_reloc__ const BNR **banner_pointer;
 __attribute_reloc__ u32 *banner_ready;
 
 typedef struct {
@@ -199,7 +199,7 @@ void set_textured_icon_unselected() {
 
 __attribute_used__ void custom_gameselect_init() {
     // default banner
-    *banner_pointer = (u32)&default_opening_bin[0];
+    *banner_pointer = (const BNR *)&default_opening_bin[0];
     *banner_ready = 1;
 
     // menu setup
@@ -770,7 +770,7 @@ __attribute_used__ s32 handle_gameselect_inputs() {
                 gm_start_thread("..");
             } else {
                 anim_step = 0; // anim reset
-                *banner_pointer = (u32)&default_opening_bin[0]; // banner reset
+                *banner_pointer = (const BNR *)&default_opening_bin[0]; // banner reset
                 Jac_PlaySe(SOUND_MENU_EXIT);
                 return MENU_GAMESELECT_ID;
             }

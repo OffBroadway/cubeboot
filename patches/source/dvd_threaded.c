@@ -1,6 +1,7 @@
 #include "dvd_threaded.h"
 #include "dolphin_os.h"
 #include "os.h"
+#include "time.h"
 
 // DI regs from YAGCD
 #define DI_SR      0 // 0xCC006000 - DI Status Register
@@ -27,6 +28,7 @@
 #define DI_CFG     9 // 0xCC006024 - DI Configuration Register
 
 #define DVD_OEM_READ 0xA8000000
+#define DVD_OEM_ERROR 0xE0000000
 
 static vu32* const _di_regs = (vu32*)0xCC006000;
 
@@ -56,4 +58,47 @@ int dvd_threaded_read(void* dst, unsigned int len, uint64_t offset, unsigned int
         return 1;
     }
 	return 0;
+}
+
+int dvd_threaded_read_id() {
+    _di_regs[DI_SR] = (DI_SR_BRKINTMASK | DI_SR_TCINTMASK | DI_SR_DEINT | DI_SR_DEINTMASK);
+    _di_regs[DI_CVR] = 0; // clear cover int
+
+    _di_regs[DI_CMDBUF0] = DVD_OEM_READ | 0x40;
+    _di_regs[DI_CMDBUF1] = 0;
+    _di_regs[DI_CMDBUF2] = 0x20;
+
+    _di_regs[DI_MAR] = 0;
+    _di_regs[DI_LENGTH] = 0x20;
+    _di_regs[DI_CR] = (DI_CR_DMA | DI_CR_TSTART); // start transfer
+
+    while (_di_regs[DI_CR] & DI_CR_TSTART) {
+        OSYieldThread();
+    }
+
+    // check if ERR was asserted
+    if (_di_regs[DI_SR] & DI_SR_DEINT) {
+        return 1;
+    }
+    return 0;
+}
+
+unsigned int dvd_threaded_get_error(void) {
+    _di_regs[DI_CMDBUF0] = DVD_OEM_ERROR;
+    _di_regs[DI_IMMBUF] = 0;
+    _di_regs[DI_CR] = DI_CR_TSTART; // IMM
+
+    while (_di_regs[DI_CR] & DI_CR_TSTART) {
+        OSYieldThread();
+    }
+
+    return _di_regs[DI_IMMBUF];
+}
+
+void dvd_threaded_reset() {
+	_di_regs[DI_CVR] = 2;
+	volatile unsigned long v = *(volatile unsigned long*)0xcc003024;
+	*(volatile unsigned long*)0xcc003024 = (v & ~4) | 1;
+	udelay_threaded(12);
+	*(volatile unsigned long*)0xcc003024 = v | 5;
 }

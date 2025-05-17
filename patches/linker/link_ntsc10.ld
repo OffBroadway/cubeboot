@@ -104,3 +104,5 @@ ntsc10_EXIDeselect = 0x81335838;
 ntsc10_EXISync = 0x81335134;
 ntsc10_EXIImm = 0x81334d4c;
 ntsc10_EXIImmEx = 0x81334fa8;
+
+ntsc10_stock_banner_ptr = 0x80af8440;
