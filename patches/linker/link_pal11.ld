@@ -58,6 +58,9 @@ pal11_fast_cos = 0x81307cec;
 pal11_banner_ready = 0x8147c0b0;
 pal11_banner_pointer = 0x8147c110;
 pal11_game_blob_text = 0x814ad288;
+pal11_game_blob_insert_disc = 0x814ad298;
+pal11_game_blob_reading_disc = 0x814ad2b8;
+pal11_game_blob_could_not_read_disc = 0x814ad2c8;
 pal11_ptr_menu_blob = 0x8147c2a4;
 pal11_ptr_game_blob_a = 0x8147c394;
 pal11_ptr_game_blob_b = 0x8147c390;
@@ -101,3 +104,6 @@ pal11_EXIImm = 0x8135a694;
 pal11_EXIImmEx = 0x8135a8f0;
 
 pal11_stock_banner_ptr = 0x809efb80;
+
+pal11_get_element_alpha = 0x8130aa4c;
+pal11_banner_element_alpha = 0x814ad278;

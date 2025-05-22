@@ -30,6 +30,8 @@
 #include "gcm.h"
 #include "bnr.h"
 
+#include "temp_test_disc.h"
+
 // for setup
 __attribute_reloc__ void (*menu_alpha_setup)();
 
@@ -65,6 +67,8 @@ __attribute_reloc__ void (*draw_blob_border)(u32 type, void *blob, GXColor *colo
 __attribute_reloc__ void (*draw_blob_tex)(u32 type, void *blob, GXColor *color, tex_data *dat);
 __attribute_reloc__ void (*setup_tex_draw)(s32 unk0, s32 unk1, s32 unk2);
 __attribute_reloc__ void (*draw_named_tex)(u32 type, void *blob, GXColor *color, s16 x, s16 y);
+__attribute_reloc__ void (*get_element_alpha)(void *element, u16 *alpha, u32 *unk);
+__attribute_reloc__ void *banner_element_alpha;
 
 // unknown blob (from memcard menu)
 __attribute_reloc__ void **ptr_menu_blob;
@@ -72,6 +76,9 @@ __attribute_data__ void *menu_blob = NULL;
 
 // unknown blobs (from gameselect menu)
 __attribute_reloc__ void *game_blob_text;
+__attribute_reloc__ void *game_blob_insert_disc;
+__attribute_reloc__ void *game_blob_reading_disc;
+__attribute_reloc__ void *game_blob_could_not_read_disc;
 __attribute_reloc__ void **ptr_game_blob_a;
 __attribute_data__ void *game_blob_a = NULL;
 __attribute_reloc__ void **ptr_game_blob_b;
@@ -517,7 +524,11 @@ void fix_gameselect_view() {
     GXSetCurrentMtx(0);
 }
 
+#if !TEMP_TEST_DISC
 __attribute_data__ u32 current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
+#else
+__attribute_data__ u32 current_gameselect_state = SUBMENU_GAMESELECT_START;
+#endif
 __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8 broken_alpha_2) {
     // color
     u8 ui_alpha = alpha_1;
@@ -638,30 +649,83 @@ __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8
 }
 
 __attribute_used__ void original_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8 broken_alpha_2) {
+#if TEMP_TEST_DISC
+    // TODO: I don't think this is necessary - check!
+    static bool first_draw = true;
+    if (first_draw) {
+        first_draw = false;
+        setup_gameselect_anim();
+        setup_cube_anim();
+    }
+#endif
+
     // menu alpha
     u8 ui_alpha = alpha_1;
     GXColor white = {0xFF, 0xFF, 0xFF, ui_alpha};
 
+    u16 banner_alpha = 0;
+    get_element_alpha(banner_element_alpha, &banner_alpha, NULL);
+    GXColor banner_white = {0xFF, 0xFF, 0xFF, (banner_alpha * ui_alpha) / 0xFF};
+
+#if !TEMP_TEST_DISC
     gm_file_entry_t *entry = gm_get_game_entry(selected_slot);
     if (entry == NULL) return; // protect against transition during enum
-    if (entry->extra.game_id[3] == 'J') switch_lang_jpn();
+
+    char game_region = entry->extra.game_id[3];
+#else
+    char game_region = disc_read_region;
+#endif
+    if (game_region == 'J') switch_lang_jpn();
     else switch_lang_eng();
 
+    u8* pixelData = NULL;
+#if !TEMP_TEST_DISC
     if (entry->type == GM_FILE_TYPE_GAME && entry->asset.banner.state == GM_LOAD_STATE_LOADED) {
+        pixelData = entry->asset.banner.buf->data;
+    }
+#else
+    bool is_valid_disc_bnr = strncmp(stock_banner_ptr->magic, "BNR1", 4) || strncmp(stock_banner_ptr->magic, "BNR2", 4);
+
+    if (is_valid_disc_bnr) {
+        pixelData = stock_banner_ptr->pixelData;
+    }
+#endif
+
+    if (pixelData) {
         // game banner
         setup_tex_draw(1, 0, 1);
-        banner_texture.offset = (s32)((u32)(entry->asset.banner.buf->data) - (u32)&banner_texture);
-        draw_blob_tex(make_type('b','a','n','a'), game_blob_b, &white, &banner_texture);
+        banner_texture.offset = (s32)((u32)(pixelData) - (u32)&banner_texture);
+        draw_blob_tex(make_type('b','a','n','a'), game_blob_b, &banner_white, &banner_texture);
     }
+
+    BNRDesc *desc = NULL;
+#if !TEMP_TEST_DISC
+    desc = &entry->desc;
+#else
+    if (is_valid_disc_bnr) {
+        int language = 0;
+        if (stock_banner_ptr->magic[3] == '2' /*&& is_pal_console */) {
+            // BNR2 banners support multiple PAL languages, so use the appropriate one for this PAL console
+            // TODO: How do we get the current PAL language?
+        }
+        desc = &stock_banner_ptr->desc[language];
+    }
+#endif
 
     // game info
     prep_text_mode();
-    draw_blob_text(make_type('t','i','t','l'), game_blob_b, &white, entry->desc.fullGameName, 0x40);
-    if (entry->type == GM_FILE_TYPE_GAME) {
-        draw_blob_text(make_type('m','a','k','r'), game_blob_b, &white, entry->desc.fullCompany, 0x40);
-        draw_blob_text_long(make_type('i','n','f','o'), game_blob_b, &white, entry->desc.description, 0x80);
-    } else {
-        draw_blob_text(make_type('m','a','k','r'), game_blob_b, &white, entry->desc.description, 0x40);
+    if (desc) {
+        draw_blob_text(make_type('t','i','t','l'), game_blob_b, &banner_white, desc->fullGameName, 0x40);
+#if !TEMP_TEST_DISC
+        if (!entry || entry->type == GM_FILE_TYPE_GAME) {
+#else
+        if (true) {
+#endif
+            draw_blob_text(make_type('m','a','k','r'), game_blob_b, &banner_white, desc->fullCompany, 0x40);
+            draw_blob_text_long(make_type('i','n','f','o'), game_blob_b, &banner_white, desc->description, 0x80);
+        } else {
+            draw_blob_text(make_type('m','a','k','r'), game_blob_b, &banner_white, desc->description, 0x40);
+        }
     }
 
     // press start anim
@@ -674,19 +738,35 @@ __attribute_used__ void original_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, 
     switch_lang_orig();
     draw_blob_fixed(game_blob_text, game_blob_a, game_blob_b, &white);
 
+    // Messages relating to reading a disc
+#if TEMP_TEST_DISC
+    draw_blob_fixed(game_blob_insert_disc, game_blob_a, game_blob_b, &white);
+    draw_blob_fixed(game_blob_reading_disc, game_blob_a, game_blob_b, &white);
+    draw_blob_fixed(game_blob_could_not_read_disc, game_blob_a, game_blob_b, &white);
+#endif
     return;
 }
 
 static bool first_transition = true;
 static bool in_submenu_transition = false;
+#if !TEMP_TEST_DISC
 static u8 custom_menu_transition_alpha = 0xFF;
 static u8 original_menu_transition_alpha = 0;
+#else
+static u8 custom_menu_transition_alpha = 0;
+static u8 original_menu_transition_alpha = 0xFF;
+#endif
 __attribute_used__ void pre_menu_alpha_setup() {
     menu_alpha_setup(); // run original function
 
     if (*cur_menu_id == MENU_GAMESELECT_ID && *prev_menu_id == MENU_GAMESELECT_TRANSITION_ID) {
+#if !TEMP_TEST_DISC
         OSReport("Resetting back to SUBMENU_GAMESELECT_LOADER\n");
         current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
+#else
+        OSReport("Resetting back to SUBMENU_GAMESELECT_START\n");
+        current_gameselect_state = SUBMENU_GAMESELECT_START;
+#endif
 
         if (first_transition) {
             Jac_PlaySe(SOUND_MENU_ENTER);
@@ -705,7 +785,8 @@ __attribute_used__ void mod_gameselect_draw(u8 alpha_0, u8 alpha_1, u8 alpha_2) 
     u8 original_alpha_1 = original_menu_transition_alpha;
 
     if (alpha_1 != 0xFF) {
-        custom_alpha_1 = alpha_1;
+        custom_alpha_1 = ((int)custom_alpha_1 * alpha_1) / 0xFF;
+        original_alpha_1 = ((int)original_alpha_1 * alpha_1) / 0xFF;
     }
 
     if (custom_alpha_1 != 0) custom_gameselect_menu(alpha_0, custom_alpha_1, alpha_2);
@@ -759,8 +840,15 @@ __attribute_used__ s32 handle_gameselect_inputs() {
 
     if (pad_status->buttons_down & PAD_BUTTON_B) {
         if (current_gameselect_state == SUBMENU_GAMESELECT_START && !in_submenu_transition) {
+#if !TEMP_TEST_DISC
             in_submenu_transition = true;
             current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
+#else
+            anim_step = 0; // anim reset
+            // *banner_pointer = (const BNR *)&default_opening_bin[0]; // banner reset - not relevant for disc
+            Jac_PlaySe(SOUND_MENU_EXIT);
+            return MENU_GAMESELECT_ID;
+#endif
             Jac_PlaySe(SOUND_SUBMENU_EXIT);
         } else if (!in_submenu_transition) {
             // TODO: check current path depth

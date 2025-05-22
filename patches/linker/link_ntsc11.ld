@@ -60,6 +60,9 @@ ntsc11_ptr_menu_blob = 0x814815e4;
 ntsc11_ptr_game_blob_a = 0x814816d4;
 ntsc11_ptr_game_blob_b = 0x814816d0;
 ntsc11_game_blob_text = 0x814b25c8;
+ntsc11_game_blob_insert_disc = 0x814b25d8;
+ntsc11_game_blob_reading_disc = 0x814b25f8;
+ntsc11_game_blob_could_not_read_disc = 0x814b2608;
 
 ntsc11_get_camera_mtx = 0x81302f94;
 ntsc11_set_obj_pos = 0x8130537c;
@@ -106,3 +109,6 @@ ntsc11_EXIImm = 0x8135a774;
 ntsc11_EXIImmEx = 0x8135a9d0;
 
 ntsc11_stock_banner_ptr = 0x809f8440;
+
+ntsc11_get_element_alpha = 0x8130aa4c;
+ntsc11_banner_element_alpha = 0x814b25b8;

@@ -64,6 +64,9 @@ ntsc10_ptr_menu_blob = 0x8145d79c;
 ntsc10_ptr_game_blob_a = 0x8145d88c;
 ntsc10_ptr_game_blob_b = 0x8145d888;
 ntsc10_game_blob_text = 0x8148dd98;
+ntsc10_game_blob_insert_disc = 0x8148dda8;
+ntsc10_game_blob_reading_disc = 0x8148ddc8;
+ntsc10_game_blob_could_not_read_disc = 0x8148ddd8;
 
 ntsc10_prev_menu_id = 0x8145d710;
 ntsc10_cur_menu_id = 0x8145d70c;
@@ -106,3 +109,6 @@ ntsc10_EXIImm = 0x81334d4c;
 ntsc10_EXIImmEx = 0x81334fa8;
 
 ntsc10_stock_banner_ptr = 0x80af8440;
+
+ntsc10_get_element_alpha = 0x8130ab40;
+ntsc10_banner_element_alpha = 0x8148dd88;
