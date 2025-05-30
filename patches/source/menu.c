@@ -795,6 +795,14 @@ __attribute_used__ void mod_gameselect_draw(u8 alpha_0, u8 alpha_1, u8 alpha_2) 
     return;
 }
 
+// TODO: Find a centralised spot for these!
+#define STATE_WAIT_LOAD   0x0f
+#define STATE_START_GAME  0x10
+#define STATE_NO_DISC     0x12
+#define STATE_COVER_OPEN  0x13
+#define STATE_READ_ERROR  0x16
+#define STATE_FATAL_ERROR 0x17
+
 __attribute_used__ s32 handle_gameselect_inputs() {
     update_icon_positions();
     grid_update_icon_positions();
@@ -898,16 +906,30 @@ __attribute_used__ s32 handle_gameselect_inputs() {
     //     ...
     // }
 
-    if (pad_status->buttons_down & PAD_BUTTON_START && current_gameselect_state == SUBMENU_GAMESELECT_START) {
-        Jac_StopSoundAll();
-        Jac_PlaySe(SOUND_MENU_FINAL);
-        gm_file_entry_t *entry = gm_get_game_entry(selected_slot);
-        memcpy(&boot_entry, entry, sizeof(gm_file_entry_t));
-        if (boot_entry.second != NULL) {
-            memcpy(&second_boot_entry, boot_entry.second, sizeof(gm_file_entry_t));
-            boot_entry.second = &second_boot_entry;
+
+    if (current_gameselect_state == SUBMENU_GAMESELECT_START) {
+#if !TEMP_TEST_DISC
+        gm_file_entry_t *entry = gm_get_game_entry(selected_slot)
+        bool ready_to_start = entry != NULL;
+#else
+        bool ready_to_start = disc_read_state == STATE_START_GAME;
+#endif
+
+        if (pad_status->buttons_down & PAD_BUTTON_START && ready_to_start) {
+            Jac_StopSoundAll();
+            Jac_PlaySe(SOUND_MENU_FINAL);
+
+#if !TEMP_TEST_DISC
+            memcpy(&boot_entry, entry, sizeof(gm_file_entry_t));
+            if (boot_entry.second != NULL) {
+                memcpy(&second_boot_entry, boot_entry.second, sizeof(gm_file_entry_t));
+                boot_entry.second = &second_boot_entry;
+            }
+#else
+            // ???
+#endif
+            *bs2start_ready = 1;
         }
-        *bs2start_ready = 1;
     }
 
     if (current_gameselect_state == SUBMENU_GAMESELECT_LOADER) {

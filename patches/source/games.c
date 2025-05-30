@@ -965,11 +965,12 @@ void *gm_thread_worker(void* param) {
 }
 
 // Stops the disc-reading loop, so we can switch to the FlippyDrive
-static atomic_bool request_disc_stop = false;
+atomic_bool request_disc_stop_thread = false;
 
 // Stops the disc-reading loop, so we can start the loaded disc
-static atomic_bool request_disc_start = false;
+atomic_bool request_disc_start_game = false;
 
+// TODO: Find a centralised spot for these!
 #define STATE_WAIT_LOAD   0x0f
 #define STATE_START_GAME  0x10
 #define STATE_NO_DISC     0x12
@@ -998,7 +999,7 @@ void *gm_disc_thread_worker(void *param) {
 
     bool finished_reading_disc = false;
     const u8 fd = 0; // The DVD drive doesn't use file descriptors; leave its bits set to 0
-    while (!request_disc_stop && !request_disc_start) {
+    while (!request_disc_stop_thread && !request_disc_start_game) {
         OSYieldThread();
 
         bool is_cover_open = dvd_cover_status();
@@ -1040,13 +1041,13 @@ void *gm_disc_thread_worker(void *param) {
             continue;
         }
 
-        if (request_disc_stop) {
+        if (request_disc_stop_thread) {
             break;
         }
 
-        // TODO: Run the apploader
+        // TODO: Run the apploader, if that's at all possible
 
-        if (request_disc_stop) {
+        if (request_disc_stop_thread) {
             break;
         }
 
@@ -1059,7 +1060,7 @@ void *gm_disc_thread_worker(void *param) {
             continue;
         }
 
-        if (request_disc_stop) {
+        if (request_disc_stop_thread) {
             break;
         }
 
@@ -1072,15 +1073,17 @@ void *gm_disc_thread_worker(void *param) {
         disc_read_state = STATE_START_GAME;
     }
 
-    if (request_disc_stop) {
+    if (request_disc_stop_thread) {
         // TODO: Should we spin down the disc?
         dvd_custom_bypass_exit();
     } else {
-        bool ready_to_start = request_disc_start && finished_reading_disc && disc_read_state == STATE_START_GAME;
+        bool ready_to_start = request_disc_start_game && finished_reading_disc && disc_read_state == STATE_START_GAME;
         if (!ready_to_start) {
             while (true);
         }
     }
+
+    game_disc_running = false;
 
     return NULL;
 }
@@ -1186,7 +1189,7 @@ void gm_start_disc_thread() {
 
 
 void gm_deinit_thread() {
-    if (game_enum_running) {
+    if (game_enum_running || game_disc_running) {
         OSReport("Stopping file enum\n");
         OSLockMutex(game_enum_mutex);
         OSReport("Waiting for thread to exit, %d\n", game_enum_running);

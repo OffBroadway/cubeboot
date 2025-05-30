@@ -489,11 +489,18 @@ __attribute_used__ void bs2start() {
     // read boot info into lowmem
     struct dolphin_lowmem *lowmem = (struct dolphin_lowmem*)0x80000000;
 
+#if TEMP_TEST_DISC
+    start_passthrough_game = true;
+#endif
+
     if (!start_passthrough_game) {
         gm_deinit_thread();
     } else {
-        dvd_custom_bypass_enter();
-        udelay(10 * 1000);
+        // dvd_custom_bypass_enter();
+        // udelay(10 * 1000);
+
+        request_disc_start_game = true;
+        gm_deinit_thread();
 
         int ret = dvd_read_id();
         int err = dvd_get_error();

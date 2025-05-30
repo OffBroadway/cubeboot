@@ -109,6 +109,8 @@ extern gm_file_entry_t boot_entry;
 extern gm_file_entry_t second_boot_entry;
 
 // For DVD-reading thread
+extern atomic_bool request_disc_stop_thread;
+extern atomic_bool request_disc_start_game;
 extern atomic_uint disc_read_state;
 extern atomic_bool disc_read_banner_ready;
 extern atomic_char disc_read_region;
