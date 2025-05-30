@@ -40,6 +40,7 @@ ntsc12_001___pformatter = 0x8137a1d0;
 ntsc12_001___StringWrite = 0x8137a164;
 
 ntsc12_001_Jac_StopSoundAll = 0x813579a0;
+ntsc12_001_Jac_PlayBgm = 0x813579e0;
 ntsc12_001_menu_alpha_setup = 0x81312548;
 ntsc12_001_get_save_color = 0x813207bc;
 ntsc12_001_setup_gameselect_anim = 0x813273d4;

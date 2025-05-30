@@ -40,6 +40,7 @@ pal11___pformatter = 0x81378c18;
 pal11___StringWrite = 0x81378b54;
 
 pal11_Jac_StopSoundAll = 0x81357520;
+pal11_Jac_PlayBgm = 0x81357560;
 pal11_menu_alpha_setup = 0x813120dc;
 pal11_get_save_color = 0x81320350;
 pal11_setup_gameselect_anim = 0x81326f68;

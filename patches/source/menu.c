@@ -48,6 +48,7 @@ __attribute_reloc__ model_data *save_empty;
 // for audio
 __attribute_reloc__ void (*Jac_PlaySe)(u32);
 __attribute_reloc__ void (*Jac_StopSoundAll)();
+__attribute_reloc__ void (*Jac_PlayBgm)(u32);
 
 // for model gx
 __attribute_reloc__ void (*model_init)(model* m, int process);
@@ -803,6 +804,8 @@ __attribute_used__ void mod_gameselect_draw(u8 alpha_0, u8 alpha_1, u8 alpha_2) 
 #define STATE_READ_ERROR  0x16
 #define STATE_FATAL_ERROR 0x17
 
+static bool starting_game = false;
+
 __attribute_used__ s32 handle_gameselect_inputs() {
     update_icon_positions();
     grid_update_icon_positions();
@@ -915,20 +918,30 @@ __attribute_used__ s32 handle_gameselect_inputs() {
         bool ready_to_start = disc_read_state == STATE_START_GAME;
 #endif
 
-        if (pad_status->buttons_down & PAD_BUTTON_START && ready_to_start) {
-            Jac_StopSoundAll();
-            Jac_PlaySe(SOUND_MENU_FINAL);
+        if (!*bs2start_ready) {
+            if (starting_game) {
+                // Disc startup has been interrupted (e.g. disc cover opened during animation)
+                // We have to restart the background music that we previously stopped
+                Jac_PlayBgm(0);
+                starting_game = false;
+            }
+
+            if (pad_status->buttons_down & PAD_BUTTON_START && ready_to_start) {
+                Jac_StopSoundAll();
+                Jac_PlaySe(SOUND_MENU_FINAL);
 
 #if !TEMP_TEST_DISC
-            memcpy(&boot_entry, entry, sizeof(gm_file_entry_t));
-            if (boot_entry.second != NULL) {
-                memcpy(&second_boot_entry, boot_entry.second, sizeof(gm_file_entry_t));
-                boot_entry.second = &second_boot_entry;
-            }
+                memcpy(&boot_entry, entry, sizeof(gm_file_entry_t));
+                if (boot_entry.second != NULL) {
+                    memcpy(&second_boot_entry, boot_entry.second, sizeof(gm_file_entry_t));
+                    boot_entry.second = &second_boot_entry;
+                }
 #else
-            // ???
+                // ???
 #endif
-            *bs2start_ready = 1;
+                *bs2start_ready = 1;
+                starting_game = true;
+            }
         }
     }
 

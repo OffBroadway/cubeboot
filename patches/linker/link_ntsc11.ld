@@ -1,5 +1,6 @@
 ntsc11_Jac_PlaySe = 0x813574a0;
 ntsc11_Jac_StopSoundAll = 0x81357600;
+ntsc11_Jac_PlayBgm = 0x81357640;
 
 ntsc11_PADSync = 0x81368c34;
 ntsc11_OSDisableInterrupts = 0x8135bc70;

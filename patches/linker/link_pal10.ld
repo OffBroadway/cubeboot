@@ -37,6 +37,7 @@ pal10_set_obj_pos = 0x8130537c;
 pal10_set_obj_cam = 0x813053c8;
 
 pal10_Jac_StopSoundAll = 0x8135abe0;
+pal10_Jac_PlayBgm = 0x8135ac20;
 pal10_InitializeUART = 0x81363f00;
 pal10_WriteUARTN = 0x81363f50;
 pal10___pformatter = 0x8137c2d8;

@@ -41,6 +41,7 @@ pal12___pformatter = 0x8137d9cc;
 pal12___StringWrite = 0x8137d960;
 
 pal12_Jac_StopSoundAll = 0x8135ad20;
+pal12_Jac_PlayBgm = 0x8135ad60;
 pal12_menu_alpha_setup = 0x81312bd4;
 pal12_get_save_color = 0x81320f10;
 pal12_setup_gameselect_anim = 0x81327b50;

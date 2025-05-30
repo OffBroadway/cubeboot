@@ -1,5 +1,6 @@
 ntsc10_Jac_PlaySe = 0x813594e0;
 ntsc10_Jac_StopSoundAll = 0x81359640;
+ntsc10_Jac_PlayBgm = 0x81359680;
 ntsc10_PADSync = 0x81341074;
 ntsc10_OSDisableInterrupts = 0x813361b0;
 ntsc10___OSStopAudioSystem = 0x81333b88;
