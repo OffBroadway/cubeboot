@@ -29,7 +29,7 @@ ntsc11_bg_inner_model = 0x81483ab8;
 ntsc11_gc_text_model = 0x81483d40;
 
 ntsc11_menu_alpha_setup = 0x813121b0;
-ntsc11_prev_menu_id = 0x81481558;
+ntsc11_next_menu_id = 0x81481558;
 ntsc11_cur_menu_id = 0x81481554;
 
 ntsc11_get_save_color = 0x81320424;
@@ -113,3 +113,5 @@ ntsc11_stock_banner_ptr = 0x809f8440;
 
 ntsc11_get_element_alpha = 0x8130aa4c;
 ntsc11_banner_element_alpha = 0x814b25b8;
+
+ntsc11_cube_menu_rotation_vertical = 0x81489fb2;

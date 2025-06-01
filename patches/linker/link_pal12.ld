@@ -68,7 +68,7 @@ pal12_ptr_game_blob_a = 0x814af86c;
 pal12_ptr_game_blob_b = 0x814af868;
 pal12_bs2start_ready = 0x814af870;
 pal12_cur_menu_id = 0x814af6ec;
-pal12_prev_menu_id = 0x814af6f0;
+pal12_next_menu_id = 0x814af6f0;
 pal12_save_empty = 0x814cc128;
 pal12_save_icon = 0x814cc160;
 
@@ -109,3 +109,5 @@ pal12_stock_banner_ptr = 0x80a7d4a0;
 
 pal12_get_element_alpha = 0x8130aaa4;
 pal12_banner_element_alpha = 0x814dfc78;
+
+pal12_cube_menu_rotation_vertical = 0x814b7672;

@@ -24,7 +24,7 @@
 #include "boot.h"
 #include "gameid.h"
 
-#include "temp_test_disc.h"
+#include "default_opening_bin.h"
 
 #define CUBE_TEX_WIDTH 84
 #define CUBE_TEX_HEIGHT 84
@@ -74,6 +74,8 @@ __attribute_reloc__ model *gc_text_model;
 __attribute_reloc__ model *logo_model;
 __attribute_reloc__ model *cube_model;
 
+__attribute_reloc__ s16 *cube_menu_rotation_vertical;
+
 // locals
 __attribute_data__ static GXColorS10 color_cube;
 __attribute_data__ static GXColorS10 color_cube_low;
@@ -84,6 +86,12 @@ __attribute_data__ static GXColorS10 color_bg_outer_1;
 // start
 __attribute_data__ gm_file_entry_t boot_entry;
 __attribute_data__ gm_file_entry_t second_boot_entry;
+
+extern void (*Jac_PlaySe)(u32);
+
+bool is_disc_drive_selected = false;
+static bool is_disc_drive_active = false;
+static bool is_switching_device = false;
 
 __attribute_used__ void mod_cube_colors() {
     if (cube_color == 0) {
@@ -355,20 +363,23 @@ __attribute_used__ void pre_thread_init() {
 
     gm_init_heap();
     gm_init_thread();
-#if !TEMP_TEST_DISC
-    if (!start_passthrough_game) {
+
+    is_disc_drive_selected = start_passthrough_game;
+    is_disc_drive_active = is_disc_drive_selected;
+    is_switching_device = false;
+
+    if (is_disc_drive_active) {
+        gm_start_disc_thread();
+    } else {
         gm_start_thread("/");
     }
-#else
-    gm_start_disc_thread();
-#endif
 }
 
 __attribute_used__ void pre_menu_init(int unk) {
     menu_init(unk);
 
     // change default menu
-    *prev_menu_id = MENU_GAMESELECT_TRANSITION_ID;
+    *next_menu_id = MENU_GAMESELECT_TRANSITION_ID;
     *cur_menu_id = MENU_GAMESELECT_ID;
 
     custom_gameselect_init();
@@ -436,22 +447,32 @@ __attribute_used__ u32 get_tvmode() {
     return rmode->viTVMode;
 }
 
+__attribute_used__ void top_level_menu_extra_inputs() {
+    s16 gameselect_vertical_cube_rotation = 0x4000;
+
+    if (*next_menu_id == MENU_GAMESELECT_ID && *cube_menu_rotation_vertical == gameselect_vertical_cube_rotation) {
+
+        if (!is_switching_device) {
+            // Handle L and R to select between disc drive and FlippyDrive
+            if ((pad_status->buttons_down & PAD_TRIGGER_L) && !is_disc_drive_selected) {
+                // Switch to the disc drive
+                Jac_PlaySe(SOUND_SUBMENU_ENTER);
+                is_disc_drive_selected = true;
+
+            } else if ((pad_status->buttons_down & PAD_TRIGGER_R) && is_disc_drive_selected) {
+                // Switch to the FlippyDrive
+                Jac_PlaySe(SOUND_SUBMENU_ENTER);
+                is_disc_drive_selected = false;
+            }
+        }
+    }
+}
+
 extern u32 *banner_ready;
 extern const BNR **banner_pointer;
 
 __attribute_data__ int frame_count = 0;
-__attribute_used__ u32 bs2tick() {
-#if TEMP_TEST_DISC
-    // If the disc thread is running, do things relating to it
-    // TODO: Make this conditional!
-    *banner_ready = disc_read_banner_ready;
-    *banner_pointer = stock_banner_ptr;
-    return disc_read_state;
-#endif
-
-
-
-
+u32 bs2tick_flippydrive() {
     frame_count++;
     if (!completed_time && cube_state->cube_anim_done) {
         OSReport("FINISHED (%d frames)\n", frame_count);
@@ -483,22 +504,90 @@ __attribute_used__ u32 bs2tick() {
     return STATE_NO_DISC;
 }
 
+u32 bs2tick_disc() {
+    // If the disc thread is running, do things relating to it
+    *banner_ready = disc_read_banner_ready;
+    *banner_pointer = stock_banner_ptr;
+    return disc_read_state;
+}
+
+int switching_device_frame_count = 0;
+void bs2tick_check_device_switch() {
+    if ((is_disc_drive_selected != is_disc_drive_active) && !is_switching_device) {
+        // Begin switching to the new device
+        is_switching_device = true;
+        switching_device_frame_count = 0;
+
+        if (is_disc_drive_active) {
+            // Request the disc drive thread to stop
+            request_disc_stop_thread = true;
+
+        } else {
+            // TODO: Can we do the same for the FlippyDrive thread?
+        }
+    }
+
+    if (is_switching_device) {
+        // Before completing the switch, make sure the banner on the menu's finished fading out
+        // TODO: Can we do this better than just relying on timing?
+        bool is_banner_visible = switching_device_frame_count < 25;
+        switching_device_frame_count += 1;
+
+        if (!is_banner_visible) {
+            // If the thread's stopped, restart it and stop switching
+            if (is_disc_drive_active) {
+                if (!game_disc_running) {
+                    gm_deinit_thread();
+                    is_switching_device = false;
+                }
+            } else {
+                if (!game_enum_running) {
+                    gm_deinit_thread();
+                    is_switching_device = false;
+                }
+            }
+        }
+
+        if (!is_switching_device) {
+            // Start spinning up the new thread
+            is_disc_drive_active = is_disc_drive_selected;
+            if (is_disc_drive_active) {
+                gm_start_disc_thread();
+            } else {
+                if (*cur_menu_id != MENU_GAMESELECT_TRANSITION_ID) {
+                    *banner_pointer = (const BNR *)&default_opening_bin[0];
+                    *banner_ready = 1;
+                }
+                gm_start_thread("/");
+            }
+        }
+    }
+}
+
+__attribute_used__ u32 bs2tick() {
+    // TODO: On boot, try each device in a configurable order, and stick with the first successful one
+    bs2tick_check_device_switch();
+    if (is_switching_device) {
+        // Just show as 'loading' while we wait
+        return STATE_WAIT_LOAD;
+    }
+
+    if (is_disc_drive_active) {
+        return bs2tick_disc();
+    } else {
+        return bs2tick_flippydrive();
+    }
+}
+
 __attribute_used__ void bs2start() {
     OSReport("DONE\n");
 
     // read boot info into lowmem
     struct dolphin_lowmem *lowmem = (struct dolphin_lowmem*)0x80000000;
 
-#if TEMP_TEST_DISC
-    start_passthrough_game = true;
-#endif
-
-    if (!start_passthrough_game) {
+    if (!is_disc_drive_active) {
         gm_deinit_thread();
     } else {
-        // dvd_custom_bypass_enter();
-        // udelay(10 * 1000);
-
         request_disc_start_game = true;
         gm_deinit_thread();
 
@@ -539,7 +628,7 @@ __attribute_used__ void bs2start() {
     ICInvalidateRange((void*)start_addr, len);
 
     // Passthrough mode
-    if (start_passthrough_game) {
+    if (is_disc_drive_active) {
         chainload_boot_game(NULL, true);
     }
 

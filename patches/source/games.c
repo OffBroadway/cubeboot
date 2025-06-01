@@ -1074,7 +1074,7 @@ void *gm_disc_thread_worker(void *param) {
     }
 
     if (request_disc_stop_thread) {
-        // TODO: Should we spin down the disc?
+        dvd_threaded_stop_motor();
         dvd_custom_bypass_exit();
     } else {
         bool ready_to_start = request_disc_start_game && finished_reading_disc && disc_read_state == STATE_START_GAME;
@@ -1175,6 +1175,9 @@ void gm_start_disc_thread() {
 
     game_disc_running = true;
     DCBlockStore((void*)OSRoundDown32B((u32)&game_disc_running));
+
+    request_disc_stop_thread = false;
+    request_disc_start_game = false;
 
     // OSUnlockMutex(game_enum_mutex);
 

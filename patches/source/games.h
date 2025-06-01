@@ -117,6 +117,9 @@ extern atomic_char disc_read_region;
 
 extern BNR* stock_banner_ptr;
 
+extern bool game_enum_running;
+extern bool game_disc_running;
+
 void gm_init_heap();
 void gm_init_thread();
 void gm_deinit_thread();

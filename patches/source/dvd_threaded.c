@@ -29,6 +29,7 @@
 
 #define DVD_OEM_READ 0xA8000000
 #define DVD_OEM_ERROR 0xE0000000
+#define DVD_OEM_STOP_MOTOR 0xE3000000
 
 static vu32* const _di_regs = (vu32*)0xCC006000;
 
@@ -83,7 +84,7 @@ int dvd_threaded_read_id() {
     return 0;
 }
 
-unsigned int dvd_threaded_get_error(void) {
+unsigned int dvd_threaded_get_error() {
     _di_regs[DI_CMDBUF0] = DVD_OEM_ERROR;
     _di_regs[DI_IMMBUF] = 0;
     _di_regs[DI_CR] = DI_CR_TSTART; // IMM
@@ -93,6 +94,16 @@ unsigned int dvd_threaded_get_error(void) {
     }
 
     return _di_regs[DI_IMMBUF];
+}
+
+void dvd_threaded_stop_motor() {
+    _di_regs[DI_CMDBUF0] = DVD_OEM_STOP_MOTOR;
+    _di_regs[DI_IMMBUF] = 0;
+    _di_regs[DI_CR] = DI_CR_TSTART; // IMM
+
+    while (_di_regs[DI_CR] & DI_CR_TSTART) {
+        OSYieldThread();
+    }
 }
 
 void dvd_threaded_reset() {

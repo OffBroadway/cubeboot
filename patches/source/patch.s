@@ -115,3 +115,12 @@ patch_inst_pal "_patch_menu_alpha_setup" 0x81312c3c 0x81312284 0x81312d7c bl pre
 patch_inst_pal "_fix_video_mode_init" 0x81300520 0x81300520 0x81300610 bl get_tvmode
 
 patch_inst_global "_patch_pre_main" 0x81300090 bl pre_main
+
+// Add a hook for handling additional inputs on the top-level menu
+.macro insert_top_level_menu_extra_inputs
+    bl top_level_menu_extra_inputs  // Where the next instruction (loading return address) previously was
+    lwz	r0, 0x0014 (sp)             // Was `li r3, 0`, which is never read
+.endm
+
+patch_inst_ntsc "_patch_top_level_extra_inputs" 0x81311250 0x813114a0 0x81311838 0x81311850 insert_top_level_menu_extra_inputs
+patch_inst_pal "_patch_top_level_extra_inputs" 0x81311d3c 0x813113cc 0x81311e78 insert_top_level_menu_extra_inputs

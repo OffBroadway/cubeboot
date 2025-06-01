@@ -70,7 +70,7 @@ pal10_game_blob_text = 0x814de4c8;
 pal10_game_blob_insert_disc = 0x814de4d8;
 pal10_game_blob_reading_disc = 0x814de4f8;
 pal10_game_blob_could_not_read_disc = 0x814de508;
-pal10_prev_menu_id = 0x814ad3f8;
+pal10_next_menu_id = 0x814ad3f8;
 pal10_save_empty = 0x814ca968;
 
 pal10_orig_thread_init = 0x8131c5c4;
@@ -110,3 +110,5 @@ pal10_stock_banner_ptr = 0x80a7d4a0;
 
 pal10_get_element_alpha = 0x8130a964;
 pal10_banner_element_alpha = 0x814de4b8;
+
+pal10_cube_menu_rotation_vertical = 0x814b5eb2;

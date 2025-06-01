@@ -67,7 +67,7 @@ pal11_ptr_game_blob_a = 0x8147c394;
 pal11_ptr_game_blob_b = 0x8147c390;
 pal11_bs2start_ready = 0x8147c398;
 pal11_cur_menu_id = 0x8147c214;
-pal11_prev_menu_id = 0x8147c218;
+pal11_next_menu_id = 0x8147c218;
 pal11_save_empty = 0x81499728;
 pal11_save_icon = 0x81499760;
 
@@ -108,3 +108,5 @@ pal11_stock_banner_ptr = 0x809efb80;
 
 pal11_get_element_alpha = 0x8130aa4c;
 pal11_banner_element_alpha = 0x814ad278;
+
+pal11_cube_menu_rotation_vertical = 0x81484c72;
