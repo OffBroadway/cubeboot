@@ -108,5 +108,7 @@ ntsc12_101_stock_banner_ptr = 0x809f8440;
 
 ntsc12_101_get_element_alpha = 0x8130add8;
 ntsc12_101_banner_element_alpha = 0x814b4038;
+ntsc12_101_top_level_banner_element_alpha = 0x8148be3c;
 
 ntsc12_101_cube_menu_rotation_vertical = 0x8148ba32;
+ntsc12_101_cube_menu_alpha = 0x8148ba38;

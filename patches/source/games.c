@@ -1182,6 +1182,7 @@ void gm_start_disc_thread() {
 
     request_disc_stop_thread = false;
     request_disc_start_game = false;
+    disc_read_state = STATE_WAIT_LOAD;
 
     // OSUnlockMutex(game_enum_mutex);
 

@@ -109,5 +109,7 @@ pal12_stock_banner_ptr = 0x80a7d4a0;
 
 pal12_get_element_alpha = 0x8130aaa4;
 pal12_banner_element_alpha = 0x814dfc78;
+pal12_top_level_banner_element_alpha = 0x814b7a7c;
 
 pal12_cube_menu_rotation_vertical = 0x814b7672;
+pal12_cube_menu_alpha = 0x814b7678;

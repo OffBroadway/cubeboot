@@ -75,6 +75,7 @@ __attribute_reloc__ model *logo_model;
 __attribute_reloc__ model *cube_model;
 
 __attribute_reloc__ s16 *cube_menu_rotation_vertical;
+__attribute_reloc__ u16 *cube_menu_alpha;
 
 // locals
 __attribute_data__ static GXColorS10 color_cube;
@@ -86,6 +87,9 @@ __attribute_data__ static GXColorS10 color_bg_outer_1;
 // start
 __attribute_data__ gm_file_entry_t boot_entry;
 __attribute_data__ gm_file_entry_t second_boot_entry;
+
+// Top-level menu
+__attribute_reloc__ u16 *top_level_banner_element_alpha; // This could be a `element_alpha_state_t` (once that's merged), but we only need the first member
 
 extern void (*Jac_PlaySe)(u32);
 
@@ -511,12 +515,10 @@ u32 bs2tick_disc() {
     return disc_read_state;
 }
 
-int switching_device_frame_count = 0;
 void bs2tick_check_device_switch() {
     if ((is_disc_drive_selected != is_disc_drive_active) && !is_switching_device) {
         // Begin switching to the new device
         is_switching_device = true;
-        switching_device_frame_count = 0;
 
         if (is_disc_drive_active) {
             // Request the disc drive thread to stop
@@ -529,9 +531,9 @@ void bs2tick_check_device_switch() {
 
     if (is_switching_device) {
         // Before completing the switch, make sure the banner on the menu's finished fading out
-        // TODO: Can we do this better than just relying on timing?
-        bool is_banner_visible = switching_device_frame_count < 25;
-        switching_device_frame_count += 1;
+        // Note that the banner alpha is only updated while on the top-level menu, so check if the top-level menu's visible too
+        // (The banner alpha also doesn't change during the startup animation, and is instead always set to 0)
+        bool is_banner_visible = *top_level_banner_element_alpha > 0 && *cube_menu_alpha < 0x7FFF;
 
         if (!is_banner_visible) {
             // If the thread's stopped, restart it and stop switching
