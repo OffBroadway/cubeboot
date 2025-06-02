@@ -33,7 +33,15 @@
 
 static vu32* const _di_regs = (vu32*)0xCC006000;
 
-int dvd_threaded_read(void* dst, unsigned int len, uint64_t offset, unsigned int fd) {
+void dvd_break() {
+    _di_regs[DI_SR] = DI_SR_BRK;
+
+    while (_di_regs[DI_SR] & DI_SR_BRK) {
+        OSYieldThread();
+    }
+}
+
+int dvd_threaded_read(void* dst, unsigned int len, uint64_t offset, unsigned int fd, dvd_should_cancel_callback should_cancel) {
 
     if (offset >> 2 > 0xFFFFFFFF) return -1;
 
@@ -49,6 +57,11 @@ int dvd_threaded_read(void* dst, unsigned int len, uint64_t offset, unsigned int
     _di_regs[DI_CR] = (DI_CR_DMA | DI_CR_TSTART); // start transfer
 
 	while (_di_regs[DI_CR] & DI_CR_TSTART) {
+        if (should_cancel && should_cancel()) {
+            dvd_break();
+            return 1;
+        }
+
         OSYieldThread();
     }
 
@@ -61,7 +74,7 @@ int dvd_threaded_read(void* dst, unsigned int len, uint64_t offset, unsigned int
 	return 0;
 }
 
-int dvd_threaded_read_id() {
+int dvd_threaded_read_id(dvd_should_cancel_callback should_cancel) {
     _di_regs[DI_SR] = (DI_SR_BRKINTMASK | DI_SR_TCINTMASK | DI_SR_DEINT | DI_SR_DEINTMASK);
     _di_regs[DI_CVR] = 0; // clear cover int
 
@@ -74,6 +87,11 @@ int dvd_threaded_read_id() {
     _di_regs[DI_CR] = (DI_CR_DMA | DI_CR_TSTART); // start transfer
 
     while (_di_regs[DI_CR] & DI_CR_TSTART) {
+        if (should_cancel && should_cancel()) {
+            dvd_break();
+            return 1;
+        }
+
         OSYieldThread();
     }
 

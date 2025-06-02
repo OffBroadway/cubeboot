@@ -594,7 +594,7 @@ static int gm_load_banner(gm_file_entry_t *entry, u32 aram_offset, bool force_un
     }
 
     __attribute_aligned_data_lowmem__ static BNR banner_buffer;
-    dvd_threaded_read(&banner_buffer, sizeof(BNR), entry->extra.dvd_bnr_offset, status->fd);
+    dvd_threaded_read(&banner_buffer, sizeof(BNR), entry->extra.dvd_bnr_offset, status->fd, NULL);
     dvd_custom_close(status->fd);
 
     entry->asset.banner.state = GM_LOAD_STATE_LOADING;
@@ -645,7 +645,7 @@ static bool gm_load_icon(gm_file_entry_t *entry, u32 aram_offset, bool force_unl
     void *file_buf = gm_malloc(file_size);
 
     // read
-    dvd_threaded_read(file_buf, file_size, 0, status->fd);
+    dvd_threaded_read(file_buf, file_size, 0, status->fd, NULL);
     dvd_custom_close(status->fd);
 
     ok_png png = gm_png_decode(file_buf, file_size);
@@ -989,6 +989,10 @@ atomic_uint disc_read_state = STATE_WAIT_LOAD;
 atomic_bool disc_read_banner_ready = false;
 atomic_char disc_read_region = '?';
 
+bool should_stop_disc_thread_worker() {
+    return request_disc_stop_thread;
+}
+
 void *gm_disc_thread_worker(void *param) {
     disc_read_state = STATE_WAIT_LOAD;
 
@@ -1022,7 +1026,7 @@ void *gm_disc_thread_worker(void *param) {
 
         dvd_threaded_reset();
 
-        int ret = dvd_threaded_read_id();
+        int ret = dvd_threaded_read_id(should_stop_disc_thread_worker);
         u32 error = dvd_threaded_get_error();
         if (ret != 0 || error != 0) {
             u32 error_a = error >> 24;
@@ -1051,8 +1055,8 @@ void *gm_disc_thread_worker(void *param) {
             break;
         }
 
-        // TODO: Get the banner
-        dolphin_game_into_t game_info = get_game_info_with_open_game(fd);
+        // Get the banner
+        dolphin_game_into_t game_info = get_game_info_with_open_game(fd, should_stop_disc_thread_worker);
         if (!game_info.valid) {
             disc_read_state = STATE_READ_ERROR;
             finished_reading_disc = true;
@@ -1064,7 +1068,7 @@ void *gm_disc_thread_worker(void *param) {
             break;
         }
 
-        dvd_threaded_read(stock_banner_ptr, sizeof(BNR), game_info.bnr_offset, fd);
+        dvd_threaded_read(stock_banner_ptr, sizeof(BNR), game_info.bnr_offset, fd, should_stop_disc_thread_worker);
         disc_read_region = (char)game_info.game_id[3];
         disc_read_banner_ready = true;
 
