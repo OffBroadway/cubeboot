@@ -8,6 +8,8 @@
 
 #include <ogc/machine/processor.h>
 
+#include "audio.h"
+#include "draw.h"
 #include "usbgecko.h"
 #include "menu.h"
 #include "grid.h"
@@ -34,8 +36,6 @@
 __attribute_reloc__ void (*menu_alpha_setup)();
 
 // for custom menus
-__attribute_reloc__ void (*prep_text_mode)();
-__attribute_reloc__ void (*gx_draw_text)(u16 index, text_group* text, text_draw_group* text_draw, GXColor* color);
 __attribute_reloc__ void (*setup_gameselect_menu)(u8 alpha_0, u8 alpha_1, u8 alpha_2);
 __attribute_reloc__ GXColorS10 *(*get_save_color)(u32 color_index, s32 save_type);
 __attribute_reloc__ void (*setup_gameselect_anim)();
@@ -43,29 +43,9 @@ __attribute_reloc__ void (*setup_cube_anim)();
 __attribute_reloc__ model_data *save_icon;
 __attribute_reloc__ model_data *save_empty;
 
-// for audio
-__attribute_reloc__ void (*Jac_PlaySe)(u32);
-__attribute_reloc__ void (*Jac_StopSoundAll)();
-__attribute_reloc__ void (*Jac_PlayBgm)(u32);
-
-// for model gx
-__attribute_reloc__ void (*model_init)(model* m, int process);
-__attribute_reloc__ void (*draw_model)(model* m);
-__attribute_reloc__ void (*draw_partial)(model* m, model_part* part);
-__attribute_reloc__ void (*change_model)(model* m);
-
 // for menu elements
-__attribute_reloc__ void (*draw_grid)(Mtx position, u8 alpha);
-__attribute_reloc__ void (*draw_box)(u32 index, box_draw_group* header, GXColor* texa, int inside_x, int inside_y, int inside_width, int inside_height);
 // __attribute_reloc__ void (*draw_start_info)(u8 alpha);
 __attribute_reloc__ void (*draw_start_anim)(u8 alpha);
-__attribute_reloc__ void (*draw_blob_fixed)(void *blob_ptr, void *blob_a, void *blob_b, GXColor *color);
-__attribute_reloc__ void (*draw_blob_text)(u32 type, void *blob, GXColor *color, char *str, s32 len);
-__attribute_reloc__ void (*draw_blob_text_long)(u32 type, void *blob, GXColor *color, char *str, s32 len);
-__attribute_reloc__ void (*draw_blob_border)(u32 type, void *blob, GXColor *color);
-__attribute_reloc__ void (*draw_blob_tex)(u32 type, void *blob, GXColor *color, tex_data *dat);
-__attribute_reloc__ void (*setup_tex_draw)(s32 unk0, s32 unk1, s32 unk2);
-__attribute_reloc__ void (*draw_named_tex)(u32 type, void *blob, GXColor *color, s16 x, s16 y);
 __attribute_reloc__ void (*get_element_alpha)(void *element, u16 *alpha, u32 *unk);
 __attribute_reloc__ void *banner_element_alpha;
 
@@ -83,14 +63,7 @@ __attribute_data__ void *game_blob_a = NULL;
 __attribute_reloc__ void **ptr_game_blob_b;
 __attribute_data__ void *game_blob_b = NULL;
 
-// for camera gx
-__attribute_reloc__ void (*set_obj_pos)(model* m, MtxP matrix, guVector vector);
-__attribute_reloc__ void (*set_obj_cam)(model* m, MtxP matrix);
-__attribute_reloc__ MtxP (*get_camera_mtx)();
-
 // helpers
-__attribute_reloc__ f32 (*fast_sin)(s16 deg);
-__attribute_reloc__ f32 (*fast_cos)(s16 deg);
 __attribute_reloc__ void (*apply_save_rot)(s32 x, s32 y, s32 z, Mtx matrix);
 __attribute_reloc__ u32 *bs2start_ready;
 __attribute_reloc__ const BNR **banner_pointer;
