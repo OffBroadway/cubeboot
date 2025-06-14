@@ -19,6 +19,9 @@
 
 __attribute_reloc__ s16 *cube_menu_rotation_vertical;
 
+// TODO: Can we find a home for this?
+extern u16 *cube_menu_alpha;
+
 static element_alpha_state_t device_icons_alpha = (element_alpha_state_t){ .current_alpha = 0, .fade_duration = 20, .start_delay = 0, .max_output = 0xFF };
 static element_alpha_state_t disc_drive_icon_alpha = (element_alpha_state_t){ .current_alpha = 0, .fade_duration = 20, .start_delay = 0, .max_output = 0xFF };
 static element_alpha_state_t flippydrive_icon_alpha = (element_alpha_state_t){ .current_alpha = 0, .fade_duration = 20, .start_delay = 0, .max_output = 0xFF };
@@ -26,8 +29,7 @@ static element_alpha_state_t flippydrive_icon_alpha = (element_alpha_state_t){ .
 __attribute_used__ void top_level_menu_extra_inputs() {
     s16 gameselect_vertical_cube_rotation = 0x4000;
 
-    // TODO: Make sure the menu's also not currently fading
-    if (*next_menu_id == MENU_GAMESELECT_ID && *cube_menu_rotation_vertical == gameselect_vertical_cube_rotation) {
+    if (*next_menu_id == MENU_GAMESELECT_ID && *cube_menu_rotation_vertical == gameselect_vertical_cube_rotation && *cube_menu_alpha == 0) {
 
         if (!bs2_is_switching_device()) {
             // Handle L and R to select between disc drive and FlippyDrive
