@@ -112,8 +112,12 @@ ntsc11_EXIImmEx = 0x8135a9d0;
 ntsc11_stock_banner_ptr = 0x809f8440;
 
 ntsc11_get_element_alpha = 0x8130aa4c;
+ntsc11_update_element_alpha = 0x8130a964;
 ntsc11_banner_element_alpha = 0x814b25b8;
 ntsc11_top_level_banner_element_alpha = 0x8148a3bc;
 
 ntsc11_cube_menu_rotation_vertical = 0x81489fb2;
 ntsc11_cube_menu_alpha = 0x81489fb8;
+
+ntsc11_draw_buttons = 0x81314604;
+ntsc11_update_button_alphas = 0x81311ce8;

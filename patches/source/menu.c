@@ -27,6 +27,8 @@
 
 #include "time.h"
 
+#include "element_alpha.h"
+
 // TODO: this is all zeros except for one BNRDesc, so replace it with a sparse version
 #include "default_opening_bin.h"
 #include "gcm.h"
@@ -46,7 +48,6 @@ __attribute_reloc__ model_data *save_empty;
 // for menu elements
 // __attribute_reloc__ void (*draw_start_info)(u8 alpha);
 __attribute_reloc__ void (*draw_start_anim)(u8 alpha);
-__attribute_reloc__ void (*get_element_alpha)(void *element, u16 *alpha, u32 *unk);
 __attribute_reloc__ void *banner_element_alpha;
 
 // unknown blob (from memcard menu)
