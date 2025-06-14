@@ -116,4 +116,5 @@ pal12_cube_menu_rotation_vertical = 0x814b7672;
 pal12_cube_menu_alpha = 0x814b7678;
 
 pal12_draw_buttons = 0x813151cc;
+pal12_setup_buttons_matrix = 0x81303218;
 pal12_update_button_alphas = 0x813126c0;

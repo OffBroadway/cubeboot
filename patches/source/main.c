@@ -417,6 +417,7 @@ __attribute_used__ u32 get_tvmode() {
 __attribute_used__ void top_level_menu_extra_inputs() {
     s16 gameselect_vertical_cube_rotation = 0x4000;
 
+    // TODO: Make sure the menu's also not currently fading
     if (*next_menu_id == MENU_GAMESELECT_ID && *cube_menu_rotation_vertical == gameselect_vertical_cube_rotation) {
 
         if (!bs2_is_switching_device()) {

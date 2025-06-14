@@ -115,4 +115,5 @@ ntsc12_101_cube_menu_rotation_vertical = 0x8148ba32;
 ntsc12_101_cube_menu_alpha = 0x8148ba38;
 
 ntsc12_101_draw_buttons = 0x813149b4;
+ntsc12_101_setup_buttons_matrix = 0x81303464;
 ntsc12_101_update_button_alphas = 0x81312098;

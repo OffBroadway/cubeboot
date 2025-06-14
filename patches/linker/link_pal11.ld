@@ -115,4 +115,5 @@ pal11_cube_menu_rotation_vertical = 0x81484c72;
 pal11_cube_menu_alpha = 0x81484c78;
 
 pal11_draw_buttons = 0x81314530;
+pal11_setup_buttons_matrix = 0x813030b0;
 pal11_update_button_alphas = 0x81311c14;
