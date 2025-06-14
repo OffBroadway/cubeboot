@@ -52,9 +52,6 @@ __attribute_reloc__ model *gc_text_model;
 __attribute_reloc__ model *logo_model;
 __attribute_reloc__ model *cube_model;
 
-__attribute_reloc__ s16 *cube_menu_rotation_vertical;
-__attribute_reloc__ u16 *cube_menu_alpha;
-
 // locals
 __attribute_data__ static GXColorS10 color_cube;
 __attribute_data__ static GXColorS10 color_cube_low;
@@ -65,8 +62,6 @@ __attribute_data__ static GXColorS10 color_bg_outer_1;
 // start
 __attribute_data__ gm_file_entry_t boot_entry;
 __attribute_data__ gm_file_entry_t second_boot_entry;
-
-extern void (*Jac_PlaySe)(u32);
 
 __attribute_used__ void mod_cube_colors() {
     if (cube_color == 0) {
@@ -412,28 +407,6 @@ __attribute_used__ void pre_main() {
 
 __attribute_used__ u32 get_tvmode() {
     return rmode->viTVMode;
-}
-
-__attribute_used__ void top_level_menu_extra_inputs() {
-    s16 gameselect_vertical_cube_rotation = 0x4000;
-
-    // TODO: Make sure the menu's also not currently fading
-    if (*next_menu_id == MENU_GAMESELECT_ID && *cube_menu_rotation_vertical == gameselect_vertical_cube_rotation) {
-
-        if (!bs2_is_switching_device()) {
-            // Handle L and R to select between disc drive and FlippyDrive
-            if ((pad_status->buttons_down & PAD_TRIGGER_L) && !is_disc_drive_selected) {
-                // Switch to the disc drive
-                Jac_PlaySe(SOUND_SUBMENU_ENTER);
-                is_disc_drive_selected = true;
-
-            } else if ((pad_status->buttons_down & PAD_TRIGGER_R) && is_disc_drive_selected) {
-                // Switch to the FlippyDrive
-                Jac_PlaySe(SOUND_SUBMENU_ENTER);
-                is_disc_drive_selected = false;
-            }
-        }
-    }
 }
 
 void mega_trap(u32 r3, u32 r4, u32 r5, u32 r6) {

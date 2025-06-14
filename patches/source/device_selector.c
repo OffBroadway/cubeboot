@@ -1,5 +1,6 @@
 #include "device_selector.h"
 
+#include "audio.h"
 #include "bs2.h"
 #include "button_descriptions.h"
 #include "custom_ui_blob.h"
@@ -16,9 +17,33 @@
 
 #include <ogc/gx.h>
 
+__attribute_reloc__ s16 *cube_menu_rotation_vertical;
+
 static element_alpha_state_t device_icons_alpha = (element_alpha_state_t){ .current_alpha = 0, .fade_duration = 20, .start_delay = 0, .max_output = 0xFF };
 static element_alpha_state_t disc_drive_icon_alpha = (element_alpha_state_t){ .current_alpha = 0, .fade_duration = 20, .start_delay = 0, .max_output = 0xFF };
 static element_alpha_state_t flippydrive_icon_alpha = (element_alpha_state_t){ .current_alpha = 0, .fade_duration = 20, .start_delay = 0, .max_output = 0xFF };
+
+__attribute_used__ void top_level_menu_extra_inputs() {
+    s16 gameselect_vertical_cube_rotation = 0x4000;
+
+    // TODO: Make sure the menu's also not currently fading
+    if (*next_menu_id == MENU_GAMESELECT_ID && *cube_menu_rotation_vertical == gameselect_vertical_cube_rotation) {
+
+        if (!bs2_is_switching_device()) {
+            // Handle L and R to select between disc drive and FlippyDrive
+            if ((pad_status->buttons_down & PAD_TRIGGER_L) && !is_disc_drive_selected) {
+                // Switch to the disc drive
+                Jac_PlaySe(SOUND_SUBMENU_ENTER);
+                is_disc_drive_selected = true;
+
+            } else if ((pad_status->buttons_down & PAD_TRIGGER_R) && is_disc_drive_selected) {
+                // Switch to the FlippyDrive
+                Jac_PlaySe(SOUND_SUBMENU_ENTER);
+                is_disc_drive_selected = false;
+            }
+        }
+    }
+}
 
 void draw_device_icons() {
     u16 device_icons_output_alpha;

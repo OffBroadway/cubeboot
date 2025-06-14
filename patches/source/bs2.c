@@ -3,6 +3,7 @@
 #include "attr.h"
 #include "boot.h"
 #include "dol.h"
+#include "element_alpha.h"
 #include "flippy_sync.h"
 #include "gameid.h"
 #include "games.h"
@@ -32,9 +33,9 @@ __attribute_reloc__ void (*__OSStopAudioSystem)();
 // __attribute_reloc__ void (*run)(register void* entry_point, register u32 clear_start, register u32 clear_size);
 
 // Top-level menu
-__attribute_reloc__ u16 *top_level_banner_element_alpha; // This could be a `element_alpha_state_t` (once that's merged), but we only need the first member
+__attribute_reloc__ element_alpha_state_t *top_level_banner_element_alpha;
+__attribute_reloc__ u16 *cube_menu_alpha;
 
-extern u16 *cube_menu_alpha;
 extern u32 *banner_ready;
 extern const BNR **banner_pointer;
 extern u32 start_passthrough_game;
@@ -113,7 +114,7 @@ void bs2tick_check_device_switch() {
         // Before completing the switch, make sure the banner on the menu's finished fading out
         // Note that the banner alpha is only updated while on the top-level menu, so check if the top-level menu's visible too
         // (The banner alpha also doesn't change during the startup animation, and is instead always set to 0)
-        bool is_banner_visible = *top_level_banner_element_alpha > 0 && *cube_menu_alpha < 0x7FFF;
+        bool is_banner_visible = top_level_banner_element_alpha->current_alpha > 0 && *cube_menu_alpha < 0x7FFF;
 
         if (!is_banner_visible) {
             // If the thread's stopped, restart it and stop switching
