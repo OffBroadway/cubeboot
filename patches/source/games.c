@@ -29,6 +29,7 @@
 
 #include "metaphrasis.h"
 
+#include "bs2.h"
 #include "games.h"
 #include "grid.h"
 #include "menu.h"
@@ -969,14 +970,6 @@ atomic_bool request_disc_stop_thread = false;
 
 // Stops the disc-reading loop, so we can start the loaded disc
 atomic_bool request_disc_start_game = false;
-
-// TODO: Find a centralised spot for these!
-#define STATE_WAIT_LOAD   0x0f
-#define STATE_START_GAME  0x10
-#define STATE_NO_DISC     0x12
-#define STATE_COVER_OPEN  0x13
-#define STATE_READ_ERROR  0x16
-#define STATE_FATAL_ERROR 0x17
 
 #define ERROR_A_OK                   0x00
 #define ERROR_A_LID_OPEN             0x01
