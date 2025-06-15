@@ -7,7 +7,12 @@
 #define STATE_READ_ERROR  0x16 // 'The disc could not be read' error message
 #define STATE_FATAL_ERROR 0x17 // 'An error has occurred' message, UI stops responding to inputs
 
-extern bool is_disc_drive_selected;
+typedef enum {
+    device_disc_drive,
+    device_flippydrive
+} device_t;
+
+extern device_t selected_device;
 
 void bs2init();
 bool bs2_is_switching_device();

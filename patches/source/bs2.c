@@ -17,8 +17,8 @@
 
 #include <gctypes.h>
 
-bool is_disc_drive_selected = false;
-static bool is_disc_drive_active = false;
+device_t selected_device;
+static device_t active_device;
 static bool is_switching_device = false;
 
 __attribute_data__ u32 force_swiss_boot = 0;
@@ -41,14 +41,18 @@ extern const BNR **banner_pointer;
 extern u32 start_passthrough_game;
 
 void bs2init() {
-    is_disc_drive_selected = start_passthrough_game;
-    is_disc_drive_active = is_disc_drive_selected;
+    selected_device = start_passthrough_game ? device_disc_drive : device_flippydrive;
+    active_device = selected_device;
     is_switching_device = false;
 
-    if (is_disc_drive_active) {
-        gm_start_disc_thread();
-    } else {
-        gm_start_thread("/");
+    switch (active_device) {
+        case device_disc_drive:
+            gm_start_disc_thread();
+            break;
+
+        case device_flippydrive:
+            gm_start_thread("/");
+            break;
     }
 }
 
@@ -97,11 +101,11 @@ u32 bs2tick_disc() {
 }
 
 void bs2tick_check_device_switch() {
-    if ((is_disc_drive_selected != is_disc_drive_active) && !is_switching_device) {
+    if ((selected_device != active_device) && !is_switching_device) {
         // Begin switching to the new device
         is_switching_device = true;
 
-        if (is_disc_drive_active) {
+        if (active_device == device_disc_drive) {
             // Request the disc drive thread to stop
             request_disc_stop_thread = true;
 
@@ -118,30 +122,38 @@ void bs2tick_check_device_switch() {
 
         if (!is_banner_visible) {
             // If the thread's stopped, restart it and stop switching
-            if (is_disc_drive_active) {
-                if (!game_disc_running) {
-                    gm_deinit_thread();
-                    is_switching_device = false;
-                }
-            } else {
-                if (!game_enum_running) {
-                    gm_deinit_thread();
-                    is_switching_device = false;
-                }
+            switch (active_device) {
+                case device_disc_drive:
+                    if (!game_disc_running) {
+                        gm_deinit_thread();
+                        is_switching_device = false;
+                    }
+                    break;
+
+                case device_flippydrive:
+                    if (!game_enum_running) {
+                        gm_deinit_thread();
+                        is_switching_device = false;
+                    }
+                    break;
             }
         }
 
         if (!is_switching_device) {
             // Start spinning up the new thread
-            is_disc_drive_active = is_disc_drive_selected;
-            if (is_disc_drive_active) {
-                gm_start_disc_thread();
-            } else {
-                if (*cur_menu_id != MENU_GAMESELECT_TRANSITION_ID) {
-                    *banner_pointer = (const BNR *)&default_opening_bin[0];
-                    *banner_ready = 1;
-                }
-                gm_start_thread("/");
+            active_device = selected_device;
+            switch (active_device) {
+                case device_disc_drive:
+                    gm_start_disc_thread();
+                    break;
+
+                case device_flippydrive:
+                    if (*cur_menu_id != MENU_GAMESELECT_TRANSITION_ID) {
+                        *banner_pointer = (const BNR *)&default_opening_bin[0];
+                        *banner_ready = 1;
+                    }
+                    gm_start_thread("/");
+                    break;
             }
         }
     }
@@ -155,11 +167,18 @@ __attribute_used__ u32 bs2tick() {
         return STATE_WAIT_LOAD;
     }
 
-    if (is_disc_drive_active) {
-        return bs2tick_disc();
-    } else {
-        return bs2tick_flippydrive();
+    u32 return_value = STATE_FATAL_ERROR;
+    switch (active_device) {
+        case device_disc_drive:
+            return_value = bs2tick_disc();
+            break;
+
+        case device_flippydrive:
+            return_value = bs2tick_flippydrive();
+            break;
     }
+
+    return return_value;
 }
 
 __attribute_used__ void bs2start() {
@@ -168,7 +187,7 @@ __attribute_used__ void bs2start() {
     // read boot info into lowmem
     struct dolphin_lowmem *lowmem = (struct dolphin_lowmem*)0x80000000;
 
-    if (!is_disc_drive_active) {
+    if (active_device != device_disc_drive) {
         gm_deinit_thread();
     } else {
         request_disc_start_game = true;
@@ -211,7 +230,7 @@ __attribute_used__ void bs2start() {
     ICInvalidateRange((void*)start_addr, len);
 
     // Passthrough mode
-    if (is_disc_drive_active) {
+    if (active_device == device_disc_drive) {
         chainload_boot_game(NULL, true);
     }
 

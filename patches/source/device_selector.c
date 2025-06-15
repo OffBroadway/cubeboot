@@ -33,15 +33,15 @@ __attribute_used__ void top_level_menu_extra_inputs() {
 
         if (!bs2_is_switching_device()) {
             // Handle L and R to select between disc drive and FlippyDrive
-            if ((pad_status->buttons_down & PAD_TRIGGER_L) && !is_disc_drive_selected) {
+            if ((pad_status->buttons_down & PAD_TRIGGER_L) && selected_device != device_disc_drive) {
                 // Switch to the disc drive
                 Jac_PlaySe(SOUND_SUBMENU_ENTER);
-                is_disc_drive_selected = true;
+                selected_device = device_disc_drive;
 
-            } else if ((pad_status->buttons_down & PAD_TRIGGER_R) && is_disc_drive_selected) {
+            } else if ((pad_status->buttons_down & PAD_TRIGGER_R) && selected_device != device_flippydrive) {
                 // Switch to the FlippyDrive
                 Jac_PlaySe(SOUND_SUBMENU_ENTER);
-                is_disc_drive_selected = false;
+                selected_device = device_flippydrive;
             }
         }
     }
@@ -78,6 +78,6 @@ void update_device_icon_alphas() {
     bool should_show_device_icons = *next_menu_id == MENU_GAMESELECT_ID;
     update_element_alpha(&device_icons_alpha, should_show_device_icons ? element_alpha_visible : element_alpha_hidden);
 
-    update_element_alpha(&disc_drive_icon_alpha, is_disc_drive_selected ? element_alpha_visible : element_alpha_dimmed);
-    update_element_alpha(&flippydrive_icon_alpha, !is_disc_drive_selected ? element_alpha_visible : element_alpha_dimmed);
+    update_element_alpha(&disc_drive_icon_alpha, (selected_device == device_disc_drive) ? element_alpha_visible : element_alpha_dimmed);
+    update_element_alpha(&flippydrive_icon_alpha, (selected_device == device_flippydrive) ? element_alpha_visible : element_alpha_dimmed);
 }
