@@ -499,6 +499,9 @@ void fix_gameselect_view() {
 }
 
 __attribute_data__ u32 current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
+u32 gameselect_menu_stack[] = { -1 };
+u32 gameselect_menu_stack_count = 0;
+
 __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8 broken_alpha_2) {
     // color
     u8 ui_alpha = alpha_1;
@@ -727,6 +730,8 @@ __attribute_used__ void pre_menu_alpha_setup() {
                 break;
         }
 
+        gameselect_menu_stack_count = 0;
+
         custom_menu_transition_alpha = current_gameselect_state == SUBMENU_GAMESELECT_LOADER ? 0xFF : 0;
         original_menu_transition_alpha = current_gameselect_state == SUBMENU_GAMESELECT_START ? 0xFF : 0;
 
@@ -755,6 +760,52 @@ __attribute_used__ void mod_gameselect_draw(u8 alpha_0, u8 alpha_1, u8 alpha_2) 
     if (original_alpha_1 != 0) original_gameselect_menu(0, original_alpha_1, 0); // fix alpha_0 + alpha_2?
 
     return;
+}
+
+static void push_menu_stack(u32 new_state) {
+    if (gameselect_menu_stack_count >= countof(gameselect_menu_stack)) {
+        // Out of menu stack space
+        return;
+    }
+
+    Jac_PlaySe(SOUND_SUBMENU_CONFIRM);
+
+    gameselect_menu_stack[gameselect_menu_stack_count] = current_gameselect_state;
+    gameselect_menu_stack_count += 1;
+    current_gameselect_state = new_state;
+
+    in_submenu_transition = true;
+
+    // Run code when transitioning to the new menu
+    switch (current_gameselect_state) {
+        case SUBMENU_GAMESELECT_LOADER:
+            break;
+
+        case SUBMENU_GAMESELECT_START:
+            setup_gameselect_anim();
+            setup_cube_anim();
+            break;
+    }
+}
+
+static bool pop_menu_stack() {
+    Jac_PlaySe(SOUND_MENU_EXIT);
+
+    if (gameselect_menu_stack_count > 0) {
+        gameselect_menu_stack_count -= 1;
+        current_gameselect_state = gameselect_menu_stack[gameselect_menu_stack_count];
+
+        in_submenu_transition = true;
+        return false;
+
+    } else {
+        anim_step = 0; // anim reset
+        if (selected_device == device_flippydrive) {
+            // banner reset - only relevant for the FlippyDrive (the disc drive always uses a single banner)
+            *banner_pointer = (const BNR *)&default_opening_bin[0];
+        }
+        return true;
+    }
 }
 
 static bool starting_game = false;
@@ -803,34 +854,17 @@ __attribute_used__ s32 handle_gameselect_inputs() {
     }
 
     if (pad_status->buttons_down & PAD_BUTTON_B) {
-        if (current_gameselect_state == SUBMENU_GAMESELECT_START && !in_submenu_transition) {
-            // TODO: Implement a proper navigation stack, so we don't need so much special casing
-            switch (selected_device) {
-                case device_disc_drive:
-                    anim_step = 0; // anim reset
-                    // *banner_pointer = (const BNR *)&default_opening_bin[0]; // banner reset - not relevant for disc
-                    Jac_PlaySe(SOUND_MENU_EXIT);
-                    return MENU_GAMESELECT_ID;
-                    break;
-
-                case device_flippydrive:
-                    in_submenu_transition = true;
-                    current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
-                    break;
-            }
-
-            Jac_PlaySe(SOUND_SUBMENU_EXIT);
-        } else if (!in_submenu_transition) {
-            // TODO: check current path depth
-            if (strcmp(game_enum_path, "/") != 0) {
+        if (!in_submenu_transition) {
+            if (current_gameselect_state == SUBMENU_GAMESELECT_LOADER && strcmp(game_enum_path, "/") != 0) {
                 gm_deinit_thread();
                 Jac_PlaySe(SOUND_MENU_EXIT);
                 gm_start_thread("..");
+
             } else {
-                anim_step = 0; // anim reset
-                *banner_pointer = (const BNR *)&default_opening_bin[0]; // banner reset
-                Jac_PlaySe(SOUND_MENU_EXIT);
-                return MENU_GAMESELECT_ID;
+                if (pop_menu_stack()) {
+                    // If we're reached the end of the stack, then need to return to the menu
+                    return MENU_GAMESELECT_ID;
+                }
             }
         }
     }
@@ -848,12 +882,7 @@ __attribute_used__ s32 handle_gameselect_inputs() {
                 sprintf(path, "%s/", entry->path);
                 gm_start_thread(path);
             } else {
-                in_submenu_transition = true;
-                current_gameselect_state = SUBMENU_GAMESELECT_START;
-
-                Jac_PlaySe(SOUND_SUBMENU_CONFIRM);
-                setup_gameselect_anim();
-                setup_cube_anim();
+                push_menu_stack(SUBMENU_GAMESELECT_START);
 
                 if (entry->type == GM_FILE_TYPE_GAME) {
                     mcp_set_gameid(entry);
