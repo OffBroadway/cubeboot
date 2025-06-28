@@ -619,16 +619,6 @@ __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8
 }
 
 __attribute_used__ void original_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8 broken_alpha_2) {
-    if (selected_device == device_disc_drive) {
-        // TODO: I don't think this is necessary - check!
-        static bool first_draw = true;
-        if (first_draw) {
-            first_draw = false;
-            setup_gameselect_anim();
-            setup_cube_anim();
-        }
-    }
-
     // menu alpha
     u8 ui_alpha = alpha_1;
     GXColor white = {0xFF, 0xFF, 0xFF, ui_alpha};
@@ -766,14 +756,6 @@ __attribute_used__ void mod_gameselect_draw(u8 alpha_0, u8 alpha_1, u8 alpha_2) 
 
     return;
 }
-
-// TODO: Find a centralised spot for these!
-#define STATE_WAIT_LOAD   0x0f
-#define STATE_START_GAME  0x10
-#define STATE_NO_DISC     0x12
-#define STATE_COVER_OPEN  0x13
-#define STATE_READ_ERROR  0x16
-#define STATE_FATAL_ERROR 0x17
 
 static bool starting_game = false;
 
