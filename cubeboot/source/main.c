@@ -316,6 +316,9 @@ int main(int argc, char **argv) {
     //     strcpy(cube_logo_ptr, settings.cube_logo);
     // }
 
+    set_patch_value(symshdr, syment, symstringdata, "boot_devices", (uintptr_t)&settings.boot_devices);
+    set_patch_value(symshdr, syment, symstringdata, "boot_devices_count", settings.boot_devices_count);
+
     // Copy other variables
     set_patch_value(symshdr, syment, symstringdata, "is_running_dolphin", is_running_dolphin);
 

@@ -1,6 +1,9 @@
 #include <gctypes.h>
 
 #include "const.h"
+#include "device.h"
+
+#define MAX_BOOT_DEVICES 8
 
 typedef struct settings {
     u32 cube_color;
@@ -13,6 +16,8 @@ typedef struct settings {
     u32 postboot_delay_ms;
     char *default_program;
     char *boot_buttons[MAX_BUTTONS];
+    device_t boot_devices[MAX_BOOT_DEVICES];
+    u32 boot_devices_count;
 } settings_t;
 
 extern char *buttons_names[];

@@ -16,10 +16,30 @@
 #include "default_opening_bin.h"
 
 #include <gctypes.h>
+#include <stdlib.h>
+
+#define MAIN_MENU_ID_SETUP_ERROR 0
+#define MAIN_MENU_ID_READING_DISC_ANIMATION 1
+#define MAIN_MENU_ID_RTC_ERROR 2
+#define MAIN_MENU_ID_NO_DISC_FADE_IN 3
+#define MAIN_MENU_ID_ANIMATING_TO_MENU 4
+#define MAIN_MENU_ID_MENU_ACTIVE 5
+
+typedef enum {
+    device_waiting,
+    device_ready,
+    device_not_ready
+} device_state_t;
 
 device_t selected_device;
 static device_t active_device;
 static bool is_switching_device = false;
+
+bool finished_automatic_switching = false;
+__attribute_data__ device_t *boot_devices;
+__attribute_data__ u32 boot_devices_count;
+static u32 current_boot_device_index = 0;
+static device_state_t current_device_state = device_waiting;
 
 __attribute_data__ u32 force_swiss_boot = 0;
 
@@ -41,9 +61,17 @@ extern const BNR **banner_pointer;
 extern u32 start_passthrough_game;
 
 void bs2init() {
-    selected_device = start_passthrough_game ? device_disc_drive : device_flippydrive;
+    if (boot_devices_count > 0) {
+        selected_device = boot_devices[0];
+    } else {
+        selected_device = start_passthrough_game ? device_disc_drive : device_flippydrive;
+    }
     active_device = selected_device;
     is_switching_device = false;
+
+    current_boot_device_index = 0;
+    finished_automatic_switching = boot_devices_count <= 0;
+    current_device_state = device_waiting;
 
     switch (active_device) {
         case device_disc_drive:
@@ -68,20 +96,12 @@ u32 bs2tick_flippydrive() {
         completed_time = gettime();
     }
 
-    if (start_passthrough_game) {
-        if (postboot_delay_ms) {
-            u64 elapsed = diff_msec(completed_time, gettime());
-            if (completed_time > 0 && elapsed > postboot_delay_ms) {
-                return STATE_START_GAME;
-            } else {
-                return STATE_WAIT_LOAD;
-            }
-        }
-        return STATE_START_GAME;
-    }
+    // For now, assume that the FlippyDrive is ready to go
+    // Ideally, this should check if the network or SD card is accessible
+    current_device_state = device_ready;
 
     // this helps the start menu show correctly
-    if (*main_menu_id >= 3) {
+    if (*main_menu_id >= MAIN_MENU_ID_NO_DISC_FADE_IN) {
         return STATE_START_GAME;
     }
 
@@ -97,13 +117,26 @@ u32 bs2tick_disc() {
     // If the disc thread is running, do things relating to it
     *banner_ready = disc_read_banner_ready;
     *banner_pointer = stock_banner_ptr;
-    return disc_read_state;
+    u32 found_disc_read_state = disc_read_state;
+
+    if (found_disc_read_state == STATE_START_GAME) {
+        current_device_state = device_ready;
+    } else if (found_disc_read_state == STATE_NO_DISC || found_disc_read_state == STATE_COVER_OPEN || found_disc_read_state == STATE_READ_ERROR || found_disc_read_state == STATE_FATAL_ERROR) {
+        current_device_state = device_not_ready;
+    } else {
+        current_device_state = device_waiting;
+    }
+
+    // TODO: Do we need to handle post-boot delay?
+
+    return found_disc_read_state;
 }
 
 void bs2tick_check_device_switch() {
     if ((selected_device != active_device) && !is_switching_device) {
         // Begin switching to the new device
         is_switching_device = true;
+        current_device_state = device_waiting;
 
         if (active_device == device_disc_drive) {
             // Request the disc drive thread to stop
@@ -159,26 +192,69 @@ void bs2tick_check_device_switch() {
     }
 }
 
+void bs2tick_auto_device_switch() {
+    if (finished_automatic_switching) {
+        // Automatic switching isn't active
+        return;
+    }
+
+    if (*main_menu_id >= MAIN_MENU_ID_ANIMATING_TO_MENU) {
+        // The GameCube logo is finished and we're transitioning to the main menu;
+        // disable automtatic switching, handing control to the user
+        finished_automatic_switching = true;
+        return;
+    }
+
+    switch (current_device_state) {
+    case device_waiting:
+        // Keep waiting for the device to finish loading
+        break;
+
+    case device_ready:
+        // The current device is ready to go - stop auto-switching
+        finished_automatic_switching = true;
+        break;
+
+    case device_not_ready:
+        // The current device isn't currently usable (e.g. no disc); switch to the next one
+        if (current_boot_device_index < boot_devices_count - 1) {
+            current_boot_device_index += 1;
+            selected_device = boot_devices[current_boot_device_index];
+        } else {
+            // We've tried every device, and none are ready; just stick with the last one
+            finished_automatic_switching = true;
+        }
+        break;
+    }
+}
+
 __attribute_used__ u32 bs2tick() {
-    // TODO: On boot, try each device in a configurable order, and stick with the first successful one
-    bs2tick_check_device_switch();
-    if (is_switching_device) {
-        // Just show as 'loading' while we wait
-        return STATE_WAIT_LOAD;
+    while (true) {
+        bs2tick_check_device_switch();
+        if (is_switching_device) {
+            // Just show as 'loading' while we wait
+            return STATE_WAIT_LOAD;
+        }
+
+        u32 return_value = STATE_FATAL_ERROR;
+        switch (active_device) {
+            case device_disc_drive:
+                return_value = bs2tick_disc();
+                break;
+
+            case device_flippydrive:
+                return_value = bs2tick_flippydrive();
+                break;
+        }
+
+        // Given the return value, check if we need to automatically switch to another device
+        bs2tick_auto_device_switch();
+        if (selected_device != active_device) {
+            continue;
+        }
+
+        return return_value;
     }
-
-    u32 return_value = STATE_FATAL_ERROR;
-    switch (active_device) {
-        case device_disc_drive:
-            return_value = bs2tick_disc();
-            break;
-
-        case device_flippydrive:
-            return_value = bs2tick_flippydrive();
-            break;
-    }
-
-    return return_value;
 }
 
 __attribute_used__ void bs2start() {

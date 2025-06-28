@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
+#include <ctype.h>
 
 #include "sd.h"
 #include "halt.h"
@@ -27,6 +28,64 @@ char *buttons_names[] = {
     "y",     // Y		0x0800
     "start", // START	0x1000
 };
+
+static void trim_string(const char **inout_string, u32 *inout_length) {
+    while (*inout_length > 0 && isspace((unsigned char)(*inout_string)[0])) {
+        // Trim leading whitespace
+        *inout_string += 1;
+        *inout_length -= 1;
+    }
+    while (*inout_length > 0 && isspace((unsigned char)(*inout_string)[*inout_length - 1])) {
+        // Trim trailing whitespace
+        *inout_length -= 1;
+    }
+}
+
+static bool get_device_from_string(const char *string, u32 length, device_t *out_device) {
+    trim_string(&string, &length);
+
+    if (strncmp("disc_drive", string, length) == 0) {
+        *out_device = device_disc_drive;
+        return true;
+    }
+    if (strncmp("flippydrive", string, length) == 0) {
+        *out_device = device_flippydrive;
+        return true;
+    }
+    return false;
+}
+
+static bool tokenise_string(const char **inout_string, u32 *inout_substring_length, const char *delimeters) {
+    bool has_found_any_delimeters = *inout_substring_length > 0;
+    if (has_found_any_delimeters) {
+        // Advance `string` to the next delimiter
+        *inout_string += *inout_substring_length;
+        *inout_substring_length = 0;
+    }
+
+    while (*inout_substring_length == 0) {
+        if ((*inout_string)[0] == '\0') {
+            // Reached the end of the input string
+            return false;
+        }
+
+        if (has_found_any_delimeters) {
+            // Advance beyond that delimiter
+            *inout_string += 1;
+        }
+        has_found_any_delimeters = true;
+
+        // Find the next delimiter, and therefore the length of the substring up to that delimiter
+        const char *delimeter_ptr = strpbrk(*inout_string, delimeters);
+        if (delimeter_ptr) {
+            *inout_substring_length = delimeter_ptr - *inout_string;
+        } else {
+            *inout_substring_length = strlen(*inout_string);
+        }
+    }
+
+    return true;
+}
 
 void load_settings() {
     memset(&settings, 0, sizeof(settings));
@@ -148,6 +207,39 @@ void load_settings() {
             iprintf("Found %s = %s\n", button_config_name, dol_path);
 
             settings.boot_buttons[i] = (char*)dol_path;
+        }
+    }
+
+    // Boot order
+    settings.boot_devices_count = 0;
+    const char *remaining_boot_order = ini_get(conf, "cubeboot", "boot_order");
+    if (remaining_boot_order != NULL) {
+
+        u32 device_string_length = 0;
+        while (tokenise_string(&remaining_boot_order, &device_string_length, ",")) {
+            device_t found_device;
+            if (get_device_from_string(remaining_boot_order, device_string_length, &found_device)) {
+                bool already_in_boot_devices = false;
+                for (u32 i = 0; i < settings.boot_devices_count; i++) {
+                    already_in_boot_devices |= settings.boot_devices[i] == found_device;
+                }
+
+                if (!already_in_boot_devices) {
+                    settings.boot_devices[settings.boot_devices_count] = found_device;
+                    settings.boot_devices_count += 1;
+                } else {
+                    iprintf("Found duplicate boot device: %.*s\n", device_string_length, remaining_boot_order);
+                }
+            } else {
+                iprintf("Found unknown boot device: %.*s\n", device_string_length, remaining_boot_order);
+            }
+
+            if (settings.boot_devices_count >= MAX_BOOT_DEVICES) {
+                if (strlen(remaining_boot_order + device_string_length) > 0) {
+                    iprintf("Reached max boot devices (%d), skipping any remaining ones in config\n", MAX_BOOT_DEVICES);
+                }
+                break;
+            }
         }
     }
 
