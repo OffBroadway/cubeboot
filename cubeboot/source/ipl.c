@@ -83,8 +83,100 @@ extern u32 diff_msec(s64 start,s64 end);
 
 static bool valid = false;
 
+void post_ipl_loaded() {
+    iprintf("IPL index = %d\n", bios_index);
+
+    current_bios = &bios_table[bios_index];
+    iprintf("IPL %s loaded...\n", current_bios->name);
+
+    if (current_bios->type == IPL_PAL && VIDEO_GetCurrentTvMode() == VI_NTSC) {
+        iprintf("Switching to VI to PAL\n");
+        if (current_bios->version == IPL_PAL_11) {
+            rmode = &TVPal528IntDf;
+        } else {
+            rmode = &TVMpal480IntDf;
+        }
+        VIDEO_Configure(rmode);
+        VIDEO_SetNextFramebuffer(xfb);
+        VIDEO_ClearFrameBuffer(rmode, xfb, COLOR_BLACK);
+        VIDEO_SetBlack(FALSE);
+        VIDEO_Flush();
+        VIDEO_WaitVSync();
+        if(rmode->viTVMode&VI_NON_INTERLACE) VIDEO_WaitVSync();
+    }
+}
+
+void load_ipl_rom(bool is_running_dolphin) {
+    if (is_running_dolphin) {
+        __SYS_ReadROM(bs2, bs2_size, BS2_CODE_OFFSET); // IPL is not encrypted on Dolphin
+        iprintf("TEST IPL D, %08x\n", *(u32*)bs2);
+    } else {
+        iprintf("TEST IPL X\n");
+        __SYS_ReadROM(bios_buffer, IPL_SIZE, 0);
+
+        iprintf("TEST IPL A, %08x\n", *(u32*)bios_buffer);
+        iprintf("TEST IPL C, %08x\n", *(u32*)(bios_buffer + DECRYPT_START));
+        Descrambler(bios_buffer + DECRYPT_START, IPL_ROM_FONT_SJIS - DECRYPT_START);
+        memcpy(bs2, bios_buffer + BS2_CODE_OFFSET, bs2_size);
+        iprintf("TEST IPL D, %08x\n", *(u32*)bs2);
+    }
+}
+
+void load_ipl_file() {
+    int size = get_file_size(bios_path);
+    if (size == SD_FAIL) {
+        char err_buf[255];
+        sprintf(err_buf, "Failed to find %s\n", bios_path);
+        prog_halt(err_buf);
+        return;
+    }
+
+    if (size != IPL_SIZE) {
+        char err_buf[255];
+        sprintf(err_buf, "File %s is the wrong size %x\n", bios_path, size);
+        prog_halt(err_buf);
+        return;
+    }
+
+    if (load_file_buffer(bios_path, bios_buffer)) {
+        char err_buf[255];
+        sprintf(err_buf, "Failed to load %s\n", bios_path);
+        prog_halt(err_buf);
+        return;
+    }
+
+    Descrambler(bios_buffer + DECRYPT_START, IPL_ROM_FONT_SJIS - DECRYPT_START);
+    memcpy(bs2, bios_buffer + BS2_CODE_OFFSET, bs2_size);
+
+    u32 sda = get_sda_address();
+    iprintf("Read IPL sda=%08x\n", sda);
+
+    u32 crc = csp_crc32_memory(bs2, bs2_size);
+    iprintf("Read IPL crc=%08x\n", crc);
+
+#ifdef FORCE_IPL_LOAD
+    // temp before adding back IPL files
+    for(int i = 0; i < sizeof(bios_table) / sizeof(bios_table[0]); i++) {
+        bios_table[i].dirty_crc = crc;
+    }
+#endif
+
+    valid = false;
+    for(int i = 0; i < sizeof(bios_table) / sizeof(bios_table[0]); i++) {
+        if(bios_table[i].dirty_crc == crc && bios_table[i].sda == sda) {
+            bios_index = i;
+            valid = true;
+            break;
+        }
+    }
+
+    if (!valid) {
+        prog_halt("Bad IPL image\n");
+    }
+}
+
 void load_ipl(bool is_running_dolphin) {
-     ipl_metadata_t *blob_metadata = (void*)0x81500000 - sizeof(ipl_metadata_t);
+    ipl_metadata_t *blob_metadata = (void*)0x81500000 - sizeof(ipl_metadata_t);
 
     iprintf("ORIG Metadata:\n");
     iprintf("\tMagic: %x\n", blob_metadata->magic);
@@ -117,44 +209,6 @@ void load_ipl(bool is_running_dolphin) {
     }
 #endif
 
-#if 0
-    if (is_running_dolphin) {
-        __SYS_ReadROM(bs2, bs2_size, BS2_CODE_OFFSET); // IPL is not encrypted on Dolphin
-        iprintf("TEST IPL D, %08x\n", *(u32*)bs2);
-    } else {
-        iprintf("TEST IPL X\n");
-        __SYS_ReadROM(bios_buffer, IPL_SIZE, 0);
-
-        iprintf("TEST IPL A, %08x\n", *(u32*)bios_buffer);
-        iprintf("TEST IPL C, %08x\n", *(u32*)(bios_buffer + DECRYPT_START));
-        Descrambler(bios_buffer + DECRYPT_START, IPL_ROM_FONT_SJIS - DECRYPT_START);
-        memcpy(bs2, bios_buffer + BS2_CODE_OFFSET, bs2_size);
-        iprintf("TEST IPL D, %08x\n", *(u32*)bs2);
-    }
-
-#ifdef TEST_IPL_PATH
-    int ret = dvd_custom_open(TEST_IPL_PATH, FILE_TYPE_FLAG_FILE, IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLEFASTSEEK);
-    iprintf("OPEN ret: %08x\n", ret);
-    GCN_ALIGNED(file_status_t) status;
-    dvd_custom_status(&status);
-    // TODO: check for error
-    if (status.result != 0) {
-        prog_halt("Failed to open " TEST_IPL_PATH "\n");
-    }
-    dvd_read(bios_buffer, IPL_SIZE, 0, status.fd);
-    dvd_custom_close(status.fd);
-    iprintf("TEST IPL A, %08x\n", *(u32*)bios_buffer);
-    iprintf("TEST IPL C, %08x\n", *(u32*)(bios_buffer + DECRYPT_START));
-    Descrambler(bios_buffer + DECRYPT_START, IPL_ROM_FONT_SJIS - DECRYPT_START);
-    memcpy(bs2, bios_buffer + BS2_CODE_OFFSET, bs2_size);
-    iprintf("TEST IPL D, %08x\n", *(u32*)bs2);
-#endif
-
-
-    u32 crc = csp_crc32_memory(bs2, bs2_size);
-    iprintf("Read BS2 crc=%08x\n", crc);
-#endif
-
     u32 sda = get_sda_address();
     iprintf("Read BS2 sda=%08x\n", sda);
 
@@ -170,87 +224,19 @@ void load_ipl(bool is_running_dolphin) {
         }
     }
 
-    iprintf("BS2 is valid? = %d\n", valid);
-
 #ifdef FORCE_IPL_LOAD
     // TEST ONLY
     valid = false;
 #endif
+
+    iprintf("BS2 is valid? = %d\n", valid);
     if (!valid) {
-        int size = get_file_size(bios_path);
-        if (size == SD_FAIL) {
-            char err_buf[255];
-            sprintf(err_buf, "Failed to find %s\n", bios_path);
-            prog_halt(err_buf);
-            return;
-        }
-
-        if (size != IPL_SIZE) {
-            char err_buf[255];
-            sprintf(err_buf, "File %s is the wrong size %x\n", bios_path, size);
-            prog_halt(err_buf);
-            return;
-        }
-
-        if (load_file_buffer(bios_path, bios_buffer)) {
-            char err_buf[255];
-            sprintf(err_buf, "Failed to load %s\n", bios_path);
-            prog_halt(err_buf);
-            return;
-        }
-
-        Descrambler(bios_buffer + DECRYPT_START, IPL_ROM_FONT_SJIS - DECRYPT_START);
-        memcpy(bs2, bios_buffer + BS2_CODE_OFFSET, bs2_size);
-    } else {
-        goto ipl_loaded;
+        iprintf("FALLBACK: loading IPL from %s\n", bios_path);
+        load_ipl_file();
     }
 
-    sda = get_sda_address();
-    iprintf("Read IPL sda=%08x\n", sda);
-
-    crc = csp_crc32_memory(bs2, bs2_size);
-    iprintf("Read IPL crc=%08x\n", crc);
-
-#ifdef FORCE_IPL_LOAD
-    // temp before adding back IPL files
-    for(int i = 0; i < sizeof(bios_table) / sizeof(bios_table[0]); i++) {
-        bios_table[i].dirty_crc = crc;
-    }
-#endif
-
-    valid = false;
-    for(int i = 0; i < sizeof(bios_table) / sizeof(bios_table[0]); i++) {
-        if(bios_table[i].dirty_crc == crc && bios_table[i].sda == sda) {
-            bios_index = i;
-            valid = true;
-            break;
-        }
-    }
-
-    if (!valid) {
-        prog_halt("Bad IPL image\n");
-    }
-
-ipl_loaded:
-    current_bios = &bios_table[bios_index];
-    iprintf("IPL %s loaded...\n", current_bios->name);
-
-    // UNTESTED
-    if (current_bios->type == IPL_PAL && VIDEO_GetCurrentTvMode() == VI_NTSC) {
-        iprintf("Switching to VI to PAL\n");
-        if (current_bios->version == IPL_PAL_11) {
-            rmode = &TVPal528IntDf;
-        } else {
-            rmode = &TVMpal480IntDf;
-        }
-        VIDEO_Configure(rmode);
-        VIDEO_SetNextFramebuffer(xfb);
-        VIDEO_ClearFrameBuffer(rmode, xfb, COLOR_BLACK);
-        VIDEO_SetBlack(FALSE);
-        VIDEO_Flush();
-        VIDEO_WaitVSync();
-        if(rmode->viTVMode&VI_NON_INTERLACE) VIDEO_WaitVSync();
-    }
+    post_ipl_loaded();
+    return;
 }
 
 u32 get_sda_address() {

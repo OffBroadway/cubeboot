@@ -31,7 +31,6 @@
 
 #include "state.h"
 #include "settings.h"
-#include "logo.h"
 
 #include "config.h"
 #include "gcm.h"
@@ -55,19 +54,11 @@ extern const void _start;
 extern const void _edata;
 extern const void _end;
 
-// u32 can_load_dol = 0;
-
 void *xfb;
 GXRModeObj *rmode;
 
-void __SYS_PreInit() {
-    // if (state->boot_code == 0xCAFEBEEF) return;
-
-    SYS_SetArenaHi((void*)BS2_BASE_ADDR);
-
-    // current_dol_len = &_edata - &_start;
-    // memcpy(current_dol_buf, &_start, current_dol_len);
-}
+// this will be used during system init
+void *__attribute__((used)) __myArena1Hi = (void*)BS2_BASE_ADDR;
 
 int main(int argc, char **argv) {
     u64 startts, endts;
@@ -139,22 +130,6 @@ int main(int argc, char **argv) {
             VIDEO_WaitVSync();
     }
 
-    // setup the fifo and then init the flipper
-    void *gp_fifo = NULL;
-    gp_fifo = memalign(32, DEFAULT_FIFO_SIZE);
-    memset(gp_fifo, 0, DEFAULT_FIFO_SIZE);
-
-    GX_Init(gp_fifo, DEFAULT_FIFO_SIZE);
-
-    // clears the bg to color and clears the z buffer
-    GX_SetCopyClear((GXColor){0x00, 0x00, 0x00, 0xff}, 0x00ffffff);
-
-    GX_ClearVtxDesc();
-    GX_InvVtxCache();
-    GX_InvalidateTexAll();
-
-    VIDEO_SetBlack(FALSE); // for good measure
-    // // debug above
 #endif
 
 #ifdef DOLPHIN_PRINT_ENABLE
@@ -167,7 +142,8 @@ int main(int argc, char **argv) {
 #endif
 
 #ifdef VIDEO_ENABLE
-    iprintf("XFB = %08x [max=%x]\n", (u32)xfb, VIDEO_GetFrameBufferSize(&TVPal576ProgScale));
+    iprintf("XFB = %08x [max=%x]\n", (u32)xfb, VIDEO_GetFrameBufferSize(rmode));
+    // free(backing_framebuffer); // free the backing framebuffer, we don't need it anymore
 #endif
 
     ipl_metadata_t *metadata = (void*)0x81500000 - sizeof(ipl_metadata_t);
@@ -238,7 +214,8 @@ int main(int argc, char **argv) {
 
         if (shdr->sh_type == SHT_NOBITS && strncmp(patch_prefix, stringdata + shdr->sh_name, patch_prefix_len) != 0) {
             iprintf("Skipping NOBITS %s @ %08x!!\n", stringdata + shdr->sh_name, shdr->sh_addr);
-            if (shdr->sh_addr > (u32)&_end) memset((void*)shdr->sh_addr, 0, shdr->sh_size);
+            // TODO: this area may overlap heap (like with .data_lowmem)
+            // if (shdr->sh_addr > (u32)&_end) memset((void*)shdr->sh_addr, 0, shdr->sh_size);
         } else {
             // check if this is a patch section
             uint32_t sh_size = 0;
@@ -332,12 +309,12 @@ int main(int argc, char **argv) {
     set_patch_value(symshdr, syment, symstringdata, "preboot_delay_ms", settings.preboot_delay_ms);
     set_patch_value(symshdr, syment, symstringdata, "postboot_delay_ms", settings.postboot_delay_ms);
 
-    // Copy settings string
-    void *cube_logo_ptr = (void*)get_symbol_value(symshdr, syment, symstringdata, "cube_logo_path");
-    if (cube_logo_ptr != NULL && settings.cube_logo != NULL) {
-        iprintf("Copying cube_logo_path: %p\n", cube_logo_ptr);
-        strcpy(cube_logo_ptr, settings.cube_logo);
-    }
+    // // Copy settings string
+    // void *cube_logo_ptr = (void*)get_symbol_value(symshdr, syment, symstringdata, "cube_logo_path");
+    // if (cube_logo_ptr != NULL && settings.cube_logo != NULL) {
+    //     iprintf("Copying cube_logo_path: %p\n", cube_logo_ptr);
+    //     strcpy(cube_logo_ptr, settings.cube_logo);
+    // }
 
     // Copy other variables
     set_patch_value(symshdr, syment, symstringdata, "is_running_dolphin", is_running_dolphin);
@@ -347,6 +324,8 @@ int main(int argc, char **argv) {
 #ifdef VIDEO_ENABLE
     VIDEO_WaitVSync();
 #endif
+
+    iprintf("Patches applied\n");
 
     /*** Shutdown libOGC ***/
     GX_AbortFrame();

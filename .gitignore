@@ -1,4 +1,5 @@
 .vscode
+.DS_Store
 __pycache__
 build/
 dist/**

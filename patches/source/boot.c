@@ -44,7 +44,7 @@ void load_stub() {
     return;
 }
 
-__attribute_aligned_data_lowmem__ static DOLHEADER dol_hdr;
+__attribute__((aligned(32))) static DOLHEADER dol_hdr;
 static dol_info_t load_dol(uint64_t offset, uint8_t fd) {
     DOLHEADER *hdr = &dol_hdr;
     dvd_read(hdr, sizeof(DOLHEADER), offset, fd);
@@ -224,7 +224,7 @@ void chainload_boot_game(gm_file_entry_t *boot_entry, bool passthrough) {
         fst_size = boot_entry->extra.dvd_fst_size;
         max_fst_size = boot_entry->extra.dvd_max_fst_size;
     } else {
-        __attribute_aligned_data_lowmem__ static DiskHeader header;
+        __attribute__((aligned(32))) static DiskHeader header;
         dvd_read(&header, sizeof(DiskHeader), 0, 0); //Read in the disc header
         memcpy((void*)0x80000000, &header, 0x20);
         DCFlushRange((void*)0x80000000, 0x20);

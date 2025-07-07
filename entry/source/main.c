@@ -9,6 +9,8 @@
 
 #include <ogc/machine/processor.h>
 
+// #define DEBUG 1
+
 #ifdef DEBUG
 #define gprintf usb_OSReport
 #else

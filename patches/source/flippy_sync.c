@@ -5,7 +5,6 @@
 
 #include "flippy_sync.h"
 #include "reloc.h"
-#include "attr.h"
 #include "time.h"
 
 #ifdef NOSYS
@@ -185,7 +184,7 @@ int dvd_read_data(void* dst, unsigned int len, uint64_t offset, unsigned int fd)
 
     if(((uint32_t)dst & 0x1F) || (len & 0x1F) || (offset & 0x3)) //Buffer, length, or offset is not aligned
     {
-        __attribute_aligned_data_lowmem__ static u8 aligned_buffer[FD_IPC_MAXRESP];
+        static GCN_ALIGNED(u8) aligned_buffer[FD_IPC_MAXRESP];
 
         while (remaining > 0)
         {

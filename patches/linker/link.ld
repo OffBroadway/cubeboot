@@ -10,7 +10,6 @@ PHDRS {
 MEMORY {
     MRAM (rwx) : ORIGIN = 0x81600000, LENGTH = 1M
     LOWMEM (rwx) : ORIGIN = 0x80100000, LENGTH = 4M
-    PATCHMEM (rwx) : ORIGIN = 0x81800000 - 0x1000, LENGTH = 1M
 }
 
 /* used by usbgecko */
@@ -39,10 +38,10 @@ SECTIONS {
     } > MRAM : data
 
     .text : {
-        EXCLUDE_FILE(*pad_inject.o) *(.text);
+        *(.text);
         . = ALIGN(32);
 
-        EXCLUDE_FILE(*pad_inject.o) *(.rodata* .data* .bss* .sbss* .gnu.linkonce.r.*);
+        *(.rodata* .data* .bss* .sbss* .gnu.linkonce.r.*);
         . = ALIGN(32);
     } > MRAM : text = 0
 
@@ -52,16 +51,6 @@ SECTIONS {
     } > MRAM : text
 
     _patches_end = .;
-
-    . = 0x81800000 - 0x1000;
-
-    .pad_inject : {
-        *pad_inject.o (.text .text.*);
-        . = ALIGN(32);
-
-        *pad_inject.o (.rodata* .data* .bss* .sbss* .gnu.linkonce.r.*);
-        . = ALIGN(32);
-    } > PATCHMEM : text = 0
 }
 
 ASSERT(_lowmem_end <= 0x80100000 + 4M, "lowmem section too large");

@@ -21,7 +21,7 @@ include $(DEVKITPRO)/libogc2/gamecube_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	source source/picolibc source/pmalloc source/upng
+SOURCES		:=	source source/picolibc source/pmalloc
 DATA		:=	data
 INCLUDES	:=	include
 

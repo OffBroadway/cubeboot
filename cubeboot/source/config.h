@@ -2,7 +2,7 @@
 // #define FORCE_IPL_LOAD
 // #define TEST_SKIP_ANIMATION
 
-#define CONFIG_BETA_RC "14"
+#define CONFIG_BETA_RC "15"
 
 // #define USE_FAT_LIBFAT
 // #define USE_FAT_FATFS

@@ -83,8 +83,8 @@ __attribute_reloc__ void (*set_obj_cam)(model* m, MtxP matrix);
 __attribute_reloc__ MtxP (*get_camera_mtx)();
 
 // helpers
-__attribute_reloc__ f32 (*fast_sin)();
-__attribute_reloc__ f32 (*fast_cos)();
+__attribute_reloc__ f32 (*fast_sin)(s16 deg);
+__attribute_reloc__ f32 (*fast_cos)(s16 deg);
 __attribute_reloc__ void (*apply_save_rot)(s32 x, s32 y, s32 z, Mtx matrix);
 __attribute_reloc__ u32 *bs2start_ready;
 __attribute_reloc__ u32 *banner_pointer;

@@ -14,9 +14,6 @@
 #include "reloc.h"
 #include "menu.h"
 
-#include "metaphrasis.h"
-#include "upng/upng.h"
-
 #include "dolphin_arq.h"
 #include "flippy_sync.h"
 #include "gc_dvd.h"
@@ -66,7 +63,7 @@ __attribute_reloc__ void (*__OSStopAudioSystem)();
 
 // for setup
 __attribute_reloc__ void (*orig_thread_init)();
-__attribute_reloc__ void (*menu_init)();
+__attribute_reloc__ void (*menu_init)(int unk);
 __attribute_reloc__ void (*main)();
 
 __attribute_reloc__ model *bg_outer_model;
@@ -231,9 +228,7 @@ __attribute_used__ void mod_cube_colors() {
     return;
 }
 
-extern void *gm_memalign(size_t size, uint32_t alignment);
-extern void gm_freealign(void *memory);
-
+#if 0
 __attribute_aligned_data_lowmem__ static u8 color_image_buffer[GAMECUBE_LOGO_WIDTH * GAMECUBE_LOGO_HEIGHT * 4];
 static void load_cube_logo(const char *path) {
     if (path == NULL || strlen(path) == 0) {
@@ -298,6 +293,7 @@ cleanup:
     gm_freealign(file_buf);
     upng_free(img);
 }
+#endif
 
 __attribute_used__ void mod_cube_text() {
         tex_data *gc_text_tex = gc_text_model->data->tex->dat;
@@ -354,8 +350,10 @@ __attribute_used__ void mod_cube_anim() {
 __attribute_used__ void pre_thread_init() {
     dolphin_ARAMInit();
     orig_thread_init();
+
+    gm_init_heap();
+    gm_init_thread();
     if (!start_passthrough_game) {
-        gm_init_thread();
         gm_start_thread("/");
     }
 }
@@ -422,9 +420,6 @@ __attribute_used__ void pre_main() {
         rmode->vfilter[5] = 0;
         rmode->vfilter[6] = 0;
     }
-
-    gm_init_heap();
-    load_cube_logo(cube_logo_path); // processes using games heap (but everything is freed)
 
     main();
 
@@ -541,6 +536,12 @@ __attribute_used__ void bs2start() {
     }
 
     __builtin_unreachable();
+}
+
+void mega_trap(u32 r3, u32 r4, u32 r5, u32 r6) {
+    u32 caller = (u32)__builtin_return_address(0);
+    OSReport("[%08x] (r3=%08x r4=%08x r5=%08x, r6=%08x) You hit the mega trap dog\n", caller, r3, r4, r5, r6);
+    while(1);
 }
 
 // unused
