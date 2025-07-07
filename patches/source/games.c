@@ -1034,7 +1034,6 @@ void *gm_disc_thread_worker(void *param) {
             }
 
             finished_reading_disc = true;
-            // TODO: Spin down the disc?
             continue;
         }
 
@@ -1053,7 +1052,6 @@ void *gm_disc_thread_worker(void *param) {
         if (!game_info.valid) {
             disc_read_state = STATE_READ_ERROR;
             finished_reading_disc = true;
-            // TODO: Spin down the disc?
             continue;
         }
 
@@ -1198,6 +1196,5 @@ void gm_deinit_thread() {
         OSReport("File enum done\n");
         OSUnlockMutex(game_enum_mutex);
     }
-    // TODO: Handle the disc thread!
 }
 

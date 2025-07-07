@@ -2,6 +2,8 @@
 
 #include "device.h"
 
+#include <gctypes.h>
+
 #define STATE_WAIT_LOAD   0x0f // delay after animation
 #define STATE_START_GAME  0x10 // play full animation and start game
 #define STATE_NO_DISC     0x12 // play full animation before menu
@@ -10,6 +12,7 @@
 #define STATE_FATAL_ERROR 0x17 // 'An error has occurred' message, UI stops responding to inputs
 
 extern device_t selected_device;
+extern u16 *cube_menu_alpha;
 
 void bs2init();
 bool bs2_is_switching_device();

@@ -12,7 +12,7 @@ __attribute_reloc__ void (*draw_blob_text)(u32 type, const blob_header_t *blob, 
 __attribute_reloc__ void (*draw_blob_text_long)(u32 type, const blob_header_t *blob, const GXColor *color, const char *str, s32 len);
 __attribute_reloc__ void (*draw_blob_border)(u32 type, const blob_header_t *blob, const GXColor *color);
 __attribute_reloc__ void (*draw_blob_tex)(u32 type, const blob_header_t *blob, const GXColor *color, const tex_data *dat);
-__attribute_reloc__ void (*setup_tex_draw)(s32 unk0, s32 unk1, s32 unk2);
+__attribute_reloc__ void (*setup_tex_draw)(bool unk0, bool unk1, bool is_srgb);
 __attribute_reloc__ void (*draw_named_tex)(u32 type, const blob_header_t *blob, const GXColor *color, s16 x, s16 y);
 
 // for model gx

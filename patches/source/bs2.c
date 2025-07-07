@@ -88,14 +88,7 @@ bool bs2_is_switching_device() {
     return is_switching_device;
 }
 
-__attribute_data__ int frame_count = 0;
 u32 bs2tick_flippydrive() {
-    frame_count++;
-    if (!completed_time && cube_state->cube_anim_done) {
-        OSReport("FINISHED (%d frames)\n", frame_count);
-        completed_time = gettime();
-    }
-
     // For now, assume that the FlippyDrive is ready to go
     // Ideally, this should check if the network or SD card is accessible
     current_device_state = device_ready;
@@ -127,7 +120,13 @@ u32 bs2tick_disc() {
         current_device_state = device_waiting;
     }
 
-    // TODO: Do we need to handle post-boot delay?
+    // Handle the post-boot delay
+    if (found_disc_read_state == STATE_START_GAME && postboot_delay_ms) {
+        u64 elapsed = diff_msec(completed_time, gettime());
+        if (completed_time == 0 || elapsed < postboot_delay_ms) {
+            return STATE_WAIT_LOAD;
+        }
+    }
 
     return found_disc_read_state;
 }
@@ -228,7 +227,14 @@ void bs2tick_auto_device_switch() {
     }
 }
 
+__attribute_data__ int frame_count = 0;
 __attribute_used__ u32 bs2tick() {
+    frame_count++;
+    if (!completed_time && cube_state->cube_anim_done) {
+        OSReport("FINISHED (%d frames)\n", frame_count);
+        completed_time = gettime();
+    }
+
     while (true) {
         bs2tick_check_device_switch();
         if (is_switching_device) {

@@ -19,9 +19,6 @@
 
 __attribute_reloc__ s16 *cube_menu_rotation_vertical;
 
-// TODO: Can we find a home for this?
-extern u16 *cube_menu_alpha;
-
 static element_alpha_state_t device_icons_alpha = (element_alpha_state_t){ .current_alpha = 0, .fade_duration = 20, .start_delay = 0, .max_output = 0xFF };
 static element_alpha_state_t disc_drive_icon_alpha = (element_alpha_state_t){ .current_alpha = 0, .fade_duration = 20, .start_delay = 0, .max_output = 0xFF };
 static element_alpha_state_t flippydrive_icon_alpha = (element_alpha_state_t){ .current_alpha = 0, .fade_duration = 20, .start_delay = 0, .max_output = 0xFF };
@@ -64,8 +61,8 @@ void draw_device_icons() {
         GXColor disc_color = {0xFF, 0xFF, 0xFF, disc_drive_icon_output_alpha};
         GXColor flippydrive_color = {0xFF, 0xFF, 0xFF, flippydrive_icon_output_alpha};
 
-        // TODO: What parameters are appropriate?!
-        setup_tex_draw(1, 0, 1); // 101 / 110 / 100
+        // Not sure what the first two parameters do, but the third ensures it draws using linear colors
+        setup_tex_draw(true, false, false);
 
         draw_blob_tex(L_BUTTON_BLOB_TYPE, custom_ui_blob, &disc_color, (const tex_data *)l_button_bti);
         draw_blob_tex(DISC_BLOB_TYPE, custom_ui_blob, &disc_color, (const tex_data *)disc_bti);
