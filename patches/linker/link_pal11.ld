@@ -102,3 +102,5 @@ pal11_EXIImmEx = 0x8135a8f0;
 
 pal11_all_element_alphas = 0x81484edc;
 pal11_update_element_alpha = 0x8130a964;
+
+pal11_update_button_alphas = 0x81311c14;

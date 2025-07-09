@@ -102,3 +102,5 @@ ntsc12_101_EXIImmEx = 0x81363f24;
 
 ntsc12_101_all_element_alphas = 0x8148bc9c;
 ntsc12_101_update_element_alpha = 0x8130acf0;
+
+ntsc12_101_update_button_alphas = 0x81312098;

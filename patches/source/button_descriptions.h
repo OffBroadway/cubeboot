@@ -1,15 +1,6 @@
 #include <gctypes.h>
 
-typedef struct {
-    u16 current_alpha; // Typically 0x00-0x14
-    u16 unk0;
-    u16 unk1;
-    u16 unk2;
-    u16 unk3;
-    u16 unk4;
-    u16 unk5;
-    u16 unk6;
-} element_alpha_state_t;
+#include "element_alpha.h"
 
 typedef struct {
     struct {
