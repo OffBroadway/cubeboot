@@ -8,7 +8,7 @@ __attribute_reloc__ void (*update_button_alphas)();
 
 __attribute_reloc__ all_element_alphas_t* all_element_alphas;
 
-__attribute_used__ void update_gameplay_button_text() {
+static void update_gameplay_button_text() {
     // Disable button descriptions used by the outer menu
     update_element_alpha(&all_element_alphas->text.one_column.menu_selection, element_alpha_hidden);
     update_element_alpha(&all_element_alphas->text.two_columns.left_cancel, element_alpha_hidden);
@@ -26,7 +26,7 @@ __attribute_used__ void update_gameplay_button_text() {
     update_element_alpha(&all_element_alphas->text.three_columns.right_confirm, current_gameselect_state == SUBMENU_GAMESELECT_LOADER ? element_alpha_visible : element_alpha_hidden);
 }
 
-__attribute_used__ void update_gameplay_button_icons() {
+static void update_gameplay_button_icons() {
     // Disable button icons used by the outer menu
     update_element_alpha(&all_element_alphas->icons.one_column.control_stick, element_alpha_hidden);
     update_element_alpha(&all_element_alphas->icons.two_columns.left_b_button, element_alpha_hidden);
@@ -41,5 +41,14 @@ __attribute_used__ void update_gameplay_button_icons() {
 }
 
 __attribute_used__ void patch_update_button_alphas() {
-    update_button_alphas();
+    switch (*cur_menu_id) {
+        case MENU_GAMESELECT_TRANSITION_ID:
+            update_gameplay_button_text();
+            update_gameplay_button_icons();
+            break;
+
+        default:
+            update_button_alphas();
+            break;
+    }
 }

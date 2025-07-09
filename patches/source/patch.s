@@ -116,29 +116,5 @@ patch_inst_pal "_fix_video_mode_init" 0x81300520 0x81300520 0x81300610 bl get_tv
 
 patch_inst_global "_patch_pre_main" 0x81300090 bl pre_main
 
-// Within the function that updates the alpha of button descriptions,
-// patch two code paths corresponding to the 'gameplay' menu state
-.macro patched_update_gameplay_button_text
-    bl update_gameplay_button_text
-
-    // Annoyingly, this state's code path falls through into code for another state (which we don't want to touch) before moving onto the next part of the function, so we can't just use a no-op slide
-    // As the previous state's code finishes with the branch instruction we need, let's just use that
-    b -8
-
-    // May as well no-op out the rest of the code path
-    repeat_inst 20 nop
-.endm
-
-.macro patched_update_gameplay_button_icons
-    bl update_gameplay_button_icons
-    repeat_inst 24 nop
-    // Fortunately, we can just use the branch instruction that follows
-.endm
-
-patch_inst_ntsc "_patch_update_gameplay_button_text_jump_table" 0x81311b9c 0x81311dec 0x81312184 0x8131219c patched_update_gameplay_button_text
-patch_inst_pal "_patch_update_gameplay_button_text_jump_table" 0x81312688 0x81311d18 0x813127c8 patched_update_gameplay_button_text
-patch_inst_ntsc "_patch_update_gameplay_button_icons_jump_table" 0x81311e50 0x813120a0 0x81312438 0x81312450 patched_update_gameplay_button_icons
-patch_inst_pal "_patch_update_gameplay_button_icons_jump_table" 0x8131293c 0x81311fcc 0x81312a7c patched_update_gameplay_button_icons
-
 patch_inst_ntsc "_patch_update_button_alphas" 0x81312104 0x81312354 0x813126ec 0x81312704 bl patch_update_button_alphas
 patch_inst_pal "_patch_update_button_alphas" 0x81312c38 0x81312280 0x81312d78 bl patch_update_button_alphas
