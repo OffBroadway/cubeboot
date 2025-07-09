@@ -104,3 +104,6 @@ ntsc12_001_all_element_alphas = 0x8148b7fc;
 ntsc12_001_update_element_alpha = 0x8130acd8;
 
 ntsc12_001_update_button_alphas = 0x81312080;
+
+ntsc12_001_current_pal_buttons_language = 0;
+ntsc12_001_pal_button_language_elements = 0;

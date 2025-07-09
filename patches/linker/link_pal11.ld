@@ -104,3 +104,6 @@ pal11_all_element_alphas = 0x81484edc;
 pal11_update_element_alpha = 0x8130a964;
 
 pal11_update_button_alphas = 0x81311c14;
+
+pal11_current_pal_buttons_language = 0;
+pal11_pal_button_language_elements = 0;
