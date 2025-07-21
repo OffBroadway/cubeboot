@@ -19,11 +19,17 @@
 
 __attribute_reloc__ s16 *cube_menu_rotation_vertical;
 
+bool is_device_selector_enabled = true;
+
 static element_alpha_state_t device_icons_alpha = (element_alpha_state_t){ .current_alpha = 0, .fade_duration = 20, .start_delay = 0, .max_output = 0xFF };
 static element_alpha_state_t disc_drive_icon_alpha = (element_alpha_state_t){ .current_alpha = 0, .fade_duration = 20, .start_delay = 0, .max_output = 0xFF };
 static element_alpha_state_t flippydrive_icon_alpha = (element_alpha_state_t){ .current_alpha = 0, .fade_duration = 20, .start_delay = 0, .max_output = 0xFF };
 
 __attribute_used__ void top_level_menu_extra_inputs() {
+    if (!is_device_selector_enabled) {
+        return;
+    }
+
     s16 gameselect_vertical_cube_rotation = 0x4000;
 
     if (*next_menu_id == MENU_GAMESELECT_ID && *cube_menu_rotation_vertical == gameselect_vertical_cube_rotation && *cube_menu_alpha == 0) {
@@ -72,9 +78,13 @@ void draw_device_icons() {
 }
 
 void update_device_icon_alphas() {
-    bool should_show_device_icons = *next_menu_id == MENU_GAMESELECT_ID;
+    bool should_show_device_icons = *next_menu_id == MENU_GAMESELECT_ID && is_device_selector_enabled;
     update_element_alpha(&device_icons_alpha, should_show_device_icons ? element_alpha_visible : element_alpha_hidden);
 
     update_element_alpha(&disc_drive_icon_alpha, (selected_device == device_disc_drive) ? element_alpha_visible : element_alpha_dimmed);
     update_element_alpha(&flippydrive_icon_alpha, (selected_device == device_flippydrive) ? element_alpha_visible : element_alpha_dimmed);
+}
+
+void set_device_selector_enabled(bool is_enabled) {
+    is_device_selector_enabled = is_enabled;
 }

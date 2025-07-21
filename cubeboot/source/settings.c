@@ -241,6 +241,15 @@ void load_settings() {
                 break;
             }
         }
+
+        // allow_disc_drive
+        int allow_disc_drive = 0;
+        if (!ini_sget(conf, "cubeboot", "allow_disc_drive", "%d", &allow_disc_drive)) {
+            settings.allow_disc_drive = 1;
+        } else {
+            iprintf("Found allow_disc_drive = %d\n", allow_disc_drive);
+            settings.allow_disc_drive = allow_disc_drive;
+        }
     }
 
     // // must stay allocated!!

@@ -13,6 +13,7 @@
 
 extern device_t selected_device;
 extern u16 *cube_menu_alpha;
+extern u32 is_disc_drive_allowed;
 
 void bs2init();
 bool bs2_is_switching_device();

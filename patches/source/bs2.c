@@ -1,6 +1,7 @@
 #include "bs2.h"
 
 #include "attr.h"
+#include "device_selector.h"
 #include "boot.h"
 #include "dol.h"
 #include "element_alpha.h"
@@ -47,6 +48,8 @@ __attribute_data__ u32 force_swiss_boot = 0;
 __attribute_data__ u32 postboot_delay_ms = 0;
 __attribute_data__ u64 completed_time = 0;
 
+__attribute_data__ u32 is_disc_drive_allowed = 1;
+
 // used to start game
 __attribute_reloc__ u32 (*PADSync)();
 __attribute_reloc__ void (*__OSStopAudioSystem)();
@@ -60,17 +63,42 @@ extern u32 *banner_ready;
 extern const BNR **banner_pointer;
 extern u32 start_passthrough_game;
 
-void bs2init() {
-    if (boot_devices_count > 0) {
-        selected_device = boot_devices[0];
-    } else {
-        selected_device = start_passthrough_game ? device_disc_drive : device_flippydrive;
+bool bs2_is_device_allowed(device_t device) {
+    switch (device) {
+        case device_disc_drive:
+            return is_disc_drive_allowed;
+
+        default:
+            return true;
     }
+}
+
+u32 bs2_get_next_allowed_device_index(u32 start_index) {
+    for (u32 i = start_index; i < boot_devices_count; i++) {
+        if (bs2_is_device_allowed(boot_devices[i])) {
+            return i;
+        }
+    }
+
+    // No more compatible devices
+    return boot_devices_count;
+}
+
+void bs2init() {
+    set_device_selector_enabled(is_disc_drive_allowed);
+
+    current_boot_device_index = bs2_get_next_allowed_device_index(0);
+
+    if (current_boot_device_index < boot_devices_count) {
+        selected_device = boot_devices[current_boot_device_index];
+        finished_automatic_switching = false;
+    } else {
+        selected_device = start_passthrough_game && is_disc_drive_allowed ? device_disc_drive : device_flippydrive;
+        finished_automatic_switching = true;
+    }
+
     active_device = selected_device;
     is_switching_device = false;
-
-    current_boot_device_index = 0;
-    finished_automatic_switching = boot_devices_count <= 0;
     current_device_state = device_waiting;
 
     switch (active_device) {
@@ -216,8 +244,10 @@ void bs2tick_auto_device_switch() {
 
     case device_not_ready:
         // The current device isn't currently usable (e.g. no disc); switch to the next one
-        if (current_boot_device_index < boot_devices_count - 1) {
-            current_boot_device_index += 1;
+        u32 new_boot_device_index = bs2_get_next_allowed_device_index(current_boot_device_index + 1);
+
+        if (new_boot_device_index < boot_devices_count) {
+            current_boot_device_index = new_boot_device_index;
             selected_device = boot_devices[current_boot_device_index];
         } else {
             // We've tried every device, and none are ready; just stick with the last one

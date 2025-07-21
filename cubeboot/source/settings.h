@@ -18,6 +18,7 @@ typedef struct settings {
     char *boot_buttons[MAX_BUTTONS];
     device_t boot_devices[MAX_BOOT_DEVICES];
     u32 boot_devices_count;
+    u32 allow_disc_drive;
 } settings_t;
 
 extern char *buttons_names[];

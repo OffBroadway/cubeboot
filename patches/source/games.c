@@ -1161,6 +1161,12 @@ void gm_start_thread(const char *target) {
 }
 
 void gm_start_disc_thread() {
+    if (!is_disc_drive_allowed) {
+        OSReport("ERROR: attempted to start the disc thread, but disc drive access is disabled in config\n");
+        disc_read_state = STATE_FATAL_ERROR;
+        return;
+    }
+
     if (game_enum_running || game_disc_running) {
         OSReport("ERROR: game enum or disc thread is already running\n");
         return;
