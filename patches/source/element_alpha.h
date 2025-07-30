@@ -10,7 +10,7 @@ typedef struct {
     u8 unk0;
     u8 max_output;
     u16 unknown_output_multiplier;
-    u32 unk1;
+    u32 blob_offset; // Used by `draw_blob_fixed()` to find the relevant element
 } element_alpha_state_t;
 
 typedef enum {
