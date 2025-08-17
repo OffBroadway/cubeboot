@@ -99,3 +99,6 @@ pal11_EXIDeselect = 0x8135b1b8;
 pal11_EXISync = 0x8135aa7c;
 pal11_EXIImm = 0x8135a694;
 pal11_EXIImmEx = 0x8135a8f0;
+
+pal11_boot_setup_check = 0x813020c0;
+pal11_boot_rtc_check = 0x813020b8;

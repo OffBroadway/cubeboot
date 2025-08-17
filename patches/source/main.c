@@ -47,6 +47,7 @@ __attribute_data__ static u8 *cube_text_tex = NULL;
 __attribute_data__ char cube_logo_path[MAX_FILE_NAME] = {0};
 __attribute_data__ u32 force_progressive = 0;
 __attribute_data__ u32 force_swiss_boot = 0;
+__attribute_data__ u32 suppress_boot_setup_and_rtc_errors = 1;
 
 // used if we are switching to 60Hz on a PAL IPL
 __attribute_data__ static int fix_pal_ntsc = 0;
@@ -82,6 +83,9 @@ __attribute_data__ static GXColorS10 color_bg_outer_1;
 // start
 __attribute_data__ gm_file_entry_t boot_entry;
 __attribute_data__ gm_file_entry_t second_boot_entry;
+
+__attribute_reloc__ u32 (*boot_setup_check)();
+__attribute_reloc__ u32 (*boot_rtc_check)();
 
 __attribute_used__ void mod_cube_colors() {
     if (cube_color == 0) {
@@ -356,6 +360,22 @@ __attribute_used__ void pre_thread_init() {
     if (!start_passthrough_game) {
         gm_start_thread("/");
     }
+}
+
+__attribute_used__ s32 patch_boot_setup_check() {
+    if (suppress_boot_setup_and_rtc_errors) {
+        return 0;
+    }
+
+    return boot_setup_check();
+}
+
+__attribute_used__ s32 patch_boot_rtc_check() {
+    if (suppress_boot_setup_and_rtc_errors) {
+        return 0;
+    }
+
+    return boot_rtc_check();
 }
 
 __attribute_used__ void pre_menu_init(int unk) {

@@ -101,3 +101,6 @@ pal10_EXIDeselect = 0x8135e878;
 pal10_EXISync = 0x8135e13c;
 pal10_EXIImm = 0x8135dd54;
 pal10_EXIImmEx = 0x8135dfb0;
+
+pal10_boot_setup_check = 0x813020c0;
+pal10_boot_rtc_check = 0x813020b8;
