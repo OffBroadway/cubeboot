@@ -990,7 +990,7 @@ void *gm_disc_thread_worker(void *param) {
     disc_read_state = STATE_WAIT_LOAD;
 
     dvd_custom_bypass_enter();
-    udelay_threaded(10 * 1000);
+    udelay_threaded(20 * 1000);
 
     // TODO: How do we recover if no DVD drive is installed?
 
