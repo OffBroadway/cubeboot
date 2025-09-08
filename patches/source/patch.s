@@ -115,3 +115,6 @@ patch_inst_pal "_patch_menu_alpha_setup" 0x81312c3c 0x81312284 0x81312d7c bl pre
 patch_inst_pal "_fix_video_mode_init" 0x81300520 0x81300520 0x81300610 bl get_tvmode
 
 patch_inst_global "_patch_pre_main" 0x81300090 bl pre_main
+
+patch_inst_ntsc "_patch_update_button_alphas" 0x81312104 0x81312354 0x813126ec 0x81312704 bl patch_update_button_alphas
+patch_inst_pal "_patch_update_button_alphas" 0x81312c38 0x81312280 0x81312d78 bl patch_update_button_alphas

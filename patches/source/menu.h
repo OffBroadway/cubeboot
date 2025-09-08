@@ -1,3 +1,5 @@
+#include <gctypes.h>
+
 #define MENU_SELECTION_ID 0
 #define MENU_GAMESELECT_ID 1
 #define MENU_GAMESELECT_TRANSITION_ID 2
@@ -24,6 +26,8 @@
 #define SOUND_MENU_FINAL 0x16
 #define SOUND_CARD_MOVE 0x0b
 #define SOUND_CARD_ERROR 0x0d
+
+extern u32 current_gameselect_state;
 
 extern int selected_slot;
 extern int top_line_num;

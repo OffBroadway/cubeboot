@@ -104,3 +104,11 @@ ntsc10_EXIDeselect = 0x81335838;
 ntsc10_EXISync = 0x81335134;
 ntsc10_EXIImm = 0x81334d4c;
 ntsc10_EXIImmEx = 0x81334fa8;
+
+ntsc10_all_element_alphas = 0x81465a9c;
+ntsc10_update_element_alpha = 0x8130aa58;
+
+ntsc10_update_button_alphas = 0x81311a98;
+
+ntsc10_current_pal_buttons_language = 0;
+ntsc10_pal_button_language_elements = 0;

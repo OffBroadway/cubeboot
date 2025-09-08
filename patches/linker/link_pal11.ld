@@ -99,3 +99,11 @@ pal11_EXIDeselect = 0x8135b1b8;
 pal11_EXISync = 0x8135aa7c;
 pal11_EXIImm = 0x8135a694;
 pal11_EXIImmEx = 0x8135a8f0;
+
+pal11_all_element_alphas = 0x81484edc;
+pal11_update_element_alpha = 0x8130a964;
+
+pal11_update_button_alphas = 0x81311c14;
+
+pal11_current_pal_buttons_language = 0;
+pal11_pal_button_language_elements = 0;
