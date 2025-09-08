@@ -50,6 +50,8 @@ __attribute_data__ u64 completed_time = 0;
 
 __attribute_data__ u32 is_disc_drive_allowed = 1;
 
+static bool has_bs2init_run = false;
+
 // used to start game
 __attribute_reloc__ u32 (*PADSync)();
 __attribute_reloc__ void (*__OSStopAudioSystem)();
@@ -110,6 +112,8 @@ void bs2init() {
             gm_start_thread("/");
             break;
     }
+
+    has_bs2init_run = true;
 }
 
 bool bs2_is_switching_device() {
@@ -227,7 +231,7 @@ void bs2tick_auto_device_switch() {
 
     if (*main_menu_id >= MAIN_MENU_ID_ANIMATING_TO_MENU) {
         // The GameCube logo is finished and we're transitioning to the main menu;
-        // disable automtatic switching, handing control to the user
+        // disable automatic switching, handing control to the user
         finished_automatic_switching = true;
         return;
     }
@@ -259,6 +263,10 @@ void bs2tick_auto_device_switch() {
 
 __attribute_data__ int frame_count = 0;
 __attribute_used__ u32 bs2tick() {
+    if (!has_bs2init_run) {
+        return STATE_WAIT_LOAD;
+    }
+
     frame_count++;
     if (!completed_time && cube_state->cube_anim_done) {
         OSReport("FINISHED (%d frames)\n", frame_count);
