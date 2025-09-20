@@ -1073,7 +1073,14 @@ void *gm_disc_thread_worker(void *param) {
             break;
         }
 
-        dvd_threaded_read(stock_banner_ptr, sizeof(BNR), game_info.bnr_offset, fd, should_stop_disc_thread_worker);
+        ret = dvd_threaded_read(stock_banner_ptr, sizeof(BNR), game_info.bnr_offset, fd, should_stop_disc_thread_worker);
+        error = dvd_threaded_get_error();
+        if (ret != 0 || error != 0) {
+            disc_read_state = STATE_READ_ERROR;
+            finished_reading_disc = true;
+            continue;
+        }
+
         disc_read_region = (char)game_info.game_id[3];
         disc_read_banner_ready = true;
 
