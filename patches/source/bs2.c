@@ -329,7 +329,6 @@ __attribute_used__ void bs2start() {
         }
 
         custom_OSReport("Game ID: %c%c%c%c\n", lowmem->b_disk_info.game_code[0], lowmem->b_disk_info.game_code[1], lowmem->b_disk_info.game_code[2], lowmem->b_disk_info.game_code[3]);
-        dvd_audio_config(lowmem->b_disk_info.audio_streaming, lowmem->b_disk_info.stream_buffer_size);
 
         char diskName[64] = "DISC GAME\0";
         setup_gameid_commands(&lowmem->b_disk_info, diskName);

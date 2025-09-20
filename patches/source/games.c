@@ -1041,6 +1041,20 @@ void *gm_disc_thread_worker(void *param) {
             break;
         }
 
+        // Set up audio streaming
+        struct dolphin_lowmem *lowmem = (struct dolphin_lowmem*)0x80000000;
+        dvd_threaded_audio_config(lowmem->b_disk_info.audio_streaming, lowmem->b_disk_info.stream_buffer_size);
+        error = dvd_threaded_get_error();
+        if (error != 0) {
+            disc_read_state = STATE_READ_ERROR;
+            finished_reading_disc = true;
+            continue;
+        }
+
+        if (request_disc_stop_thread) {
+            break;
+        }
+
         // TODO: Run the apploader, if that's at all possible
 
         if (request_disc_stop_thread) {

@@ -30,6 +30,7 @@
 #define DVD_OEM_READ 0xA8000000
 #define DVD_OEM_ERROR 0xE0000000
 #define DVD_OEM_STOP_MOTOR 0xE3000000
+#define DVD_OEM_AUDIO 0xE4000000
 
 static vu32* const _di_regs = (vu32*)0xCC006000;
 
@@ -100,6 +101,30 @@ int dvd_threaded_read_id(dvd_should_cancel_callback should_cancel) {
         return 1;
     }
     return 0;
+}
+
+void dvd_threaded_audio_config(char use_streaming, char size) {
+    _di_regs[DI_SR] = (DI_SR_BRKINTMASK | DI_SR_TCINTMASK | DI_SR_DEINT | DI_SR_DEINTMASK);
+    _di_regs[DI_CVR] = 0; // clear cover int
+
+	if(use_streaming) {
+        if (!size) size = 10;
+        _di_regs[DI_CMDBUF0] = DVD_OEM_AUDIO | 0x10000 | size;
+        _di_regs[DI_CMDBUF1] = 0;
+        _di_regs[DI_CMDBUF2] = 0;
+	} else {
+        _di_regs[DI_CMDBUF0] = DVD_OEM_AUDIO;
+        _di_regs[DI_CMDBUF1] = 0;
+        _di_regs[DI_CMDBUF2] = 0;
+	}
+
+    _di_regs[DI_MAR] = 0;
+    _di_regs[DI_LENGTH] = 0;
+    _di_regs[DI_CR] = DI_CR_TSTART; // start transfer
+
+    while (_di_regs[DI_CR] & DI_CR_TSTART) {
+        OSYieldThread();
+    }
 }
 
 unsigned int dvd_threaded_get_error() {
