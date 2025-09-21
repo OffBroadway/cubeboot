@@ -26,8 +26,8 @@ patch_inst vNTSC_10(_fix_banner_bnr2) 0x81302778 nop
 patch_inst_ntsc "_patch_font_init" 0x81301240 0x8130107c 0x81301430 0x81301434 bl setup_fonts
 patch_inst_pal "_patch_font_init" 0x8130107c 0x8130107c 0x813011e8 bl setup_fonts
 
-patch_inst_ntsc "_patch_card_status_a" 0x8131c770 0x8131ce9c 0x8131d234 0x8131d24c bl save_card_status
-patch_inst_pal "_patch_card_status_a" 0x8131d848 0x8131cdc8 0x8131d988 bl save_card_status
+patch_inst_ntsc "_patch_read_save_banner_text" 0x8131c4e4 0x8131cc10 0x8131cfa8 0x8131cfc0 bl read_save_banner_text_and_game_id
+patch_inst_pal "_patch_read_save_banner_text" 0x8131d5bc 0x8131cb3c 0x8131d6fc bl read_save_banner_text_and_game_id
 
 patch_inst_ntsc "_patch_card_info_a" 0x8131a694 0x8131aca0 0x8131b038 0x8131b050 bl patched_card_info
 patch_inst_pal "_patch_card_info_a" 0x8131b64c 0x8131abcc 0x8131b78c bl patched_card_info

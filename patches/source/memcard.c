@@ -30,13 +30,14 @@ typedef struct CARDDir {
 } CARDDir;
 
 __attribute_reloc__ s32 (*__CARDGetStatusEx)(s32 chan, s32 fileNo, CARDDir* dirent);
+__attribute_reloc__ s32 (*read_save_banner_text)(s32 chan, s32 fileNo, CARDDir *dirent, void *unknown);
 __attribute_reloc__ char* (*get_card_info)(s32 chan, s32 fileNo);
 __attribute_reloc__ void (*draw_card_info)(char unk);
 
 __attribute_data__ gameid_t card_game_ids[2][CARD_MAX_FILE];
-__attribute_used__ s32 save_card_status(s32 chan, s32 fileNo, CARDDir* dirent) {
-    s32 ret = __CARDGetStatusEx(chan, fileNo, dirent);
-    if (ret == 0) {
+__attribute_used__ s32 read_save_banner_text_and_game_id(s32 chan, s32 fileNo, CARDDir *dirent, void *unknown) {
+    s32 ret = read_save_banner_text(chan, fileNo, dirent, unknown);
+    if (ret >= 0) {
         gameid_t *id = &card_game_ids[chan][fileNo];
         memcpy(id, &dirent->gameName[0], sizeof(gameid_t));
     }
