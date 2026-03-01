@@ -105,6 +105,8 @@ pal12_EXISync = 0x81367428;
 pal12_EXIImm = 0x81367040;
 pal12_EXIImmEx = 0x8136729c;
 
+pal12_is_key_repeat = 0x81302f48;
+
 pal12_stock_banner_ptr = 0x80a7d4a0;
 
 pal12_get_element_alpha = 0x8130aaa4;

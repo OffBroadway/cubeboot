@@ -106,6 +106,8 @@ ntsc12_001_EXIImmEx = 0x81363dc0;
 
 ntsc12_001_stock_banner_ptr = 0x809f8440;
 
+ntsc12_001_is_key_repeat = 0x8130317c;
+
 ntsc12_001_get_element_alpha = 0x8130adc0;
 ntsc12_001_update_element_alpha = 0x8130acd8;
 ntsc12_001_banner_element_alpha = 0x814b3b98;

@@ -46,6 +46,8 @@ __attribute_reloc__ void (*setup_cube_anim)();
 __attribute_reloc__ model_data *save_icon;
 __attribute_reloc__ model_data *save_empty;
 
+__attribute_reloc__ bool (*is_key_repeat)();
+
 // for menu elements
 // __attribute_reloc__ void (*draw_start_info)(u8 alpha);
 __attribute_reloc__ void (*draw_start_anim)(u8 alpha);
@@ -938,31 +940,10 @@ __attribute_used__ s32 handle_gameselect_inputs() {
     }
 
     if (current_gameselect_state == SUBMENU_GAMESELECT_LOADER) {
-        if (pad_status->analog_down & ANALOG_RIGHT) {
-            if ((selected_slot % 8) == (8 - 1)) {
-                Jac_PlaySe(SOUND_CARD_ERROR);
-            }
-            else {
-                Jac_PlaySe(SOUND_CARD_MOVE);
-                selected_slot++;
-            }
-        }
-
-        if (pad_status->analog_down & ANALOG_LEFT) {
-            if ((selected_slot % 8) == 0) {
-                Jac_PlaySe(SOUND_CARD_ERROR);
-            }
-            else {
-                Jac_PlaySe(SOUND_CARD_MOVE);
-                selected_slot--;
-            }
-        }
-
+        // Handle vertical inputs first, followed by horizontal inputs
+        // This allows the sound effect for horizontal input to take priority (matching the memory card menu)
         if (pad_status->analog_down & ANALOG_DOWN) {
-            if (number_of_lines - top_line_num == 4 && (selected_slot + 8) > (number_of_lines * 8 - 1)) {
-                // OSReport("SKIP MOVE DOWN: top_line_num = %d\n", top_line_num);
-                Jac_PlaySe(SOUND_CARD_ERROR);
-            } else {
+            if (number_of_lines - top_line_num != 4 || (selected_slot + 8) < (number_of_lines * 8)) {
                 Jac_PlaySe(SOUND_CARD_MOVE);
                 line_backing_t *line_backing = &browser_lines[selected_slot / 8];
                 if (get_position_after(line_backing) >= DRAW_BOUND_BOTTOM - DRAW_OFFSET_Y - 10) {
@@ -974,14 +955,14 @@ __attribute_used__ s32 handle_gameselect_inputs() {
                 } else {
                     selected_slot += 8;
                 }
+            } else if (!is_key_repeat()) {
+                // OSReport("SKIP MOVE DOWN: top_line_num = %d\n", top_line_num);
+                Jac_PlaySe(SOUND_CARD_ERROR);
             }
         }
 
         if (pad_status->analog_down & ANALOG_UP) {
-            if (top_line_num == 0 && (selected_slot - 8) < 0) {
-                // OSReport("SKIP MOVE UP: top_line_num = %d\n", top_line_num);
-                Jac_PlaySe(SOUND_CARD_ERROR);
-            } else {
+            if (top_line_num != 0 || (selected_slot - 8) >= 0) {
                 Jac_PlaySe(SOUND_CARD_MOVE);
                 line_backing_t *line_backing = &browser_lines[selected_slot / 8];
                 if (top_line_num != 0 && get_position_after(line_backing) <= DRAW_BOUND_TOP + DRAW_OFFSET_Y - 10) {
@@ -993,10 +974,31 @@ __attribute_used__ s32 handle_gameselect_inputs() {
                 } else {
                     selected_slot -= 8;
                 }
+            } else if (!is_key_repeat()) {
+                // OSReport("SKIP MOVE UP: top_line_num = %d\n", top_line_num);
+                Jac_PlaySe(SOUND_CARD_ERROR);
             }
-            
+
             // OSReport("top_line_num = %d\n", top_line_num);
             // OSReport("selected_slot = %d\n", selected_slot);
+        }
+
+        if (pad_status->analog_down & ANALOG_RIGHT) {
+            if ((selected_slot % 8) != (8 - 1)) {
+                Jac_PlaySe(SOUND_CARD_MOVE);
+                selected_slot++;
+            } else if (!is_key_repeat()) {
+                Jac_PlaySe(SOUND_CARD_ERROR);
+            }
+        }
+
+        if (pad_status->analog_down & ANALOG_LEFT) {
+            if ((selected_slot % 8) != 0) {
+                Jac_PlaySe(SOUND_CARD_MOVE);
+                selected_slot--;
+            } else if (!is_key_repeat()) {
+                Jac_PlaySe(SOUND_CARD_ERROR);
+            }
         }
     }
 

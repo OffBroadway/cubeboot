@@ -104,6 +104,8 @@ ntsc12_101_EXISync = 0x813640b0;
 ntsc12_101_EXIImm = 0x81363cc8;
 ntsc12_101_EXIImmEx = 0x81363f24;
 
+ntsc12_101_is_key_repeat = 0x81303194;
+
 ntsc12_101_stock_banner_ptr = 0x809f8440;
 
 ntsc12_101_get_element_alpha = 0x8130add8;

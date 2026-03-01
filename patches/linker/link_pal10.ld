@@ -106,6 +106,8 @@ pal10_EXISync = 0x8135e13c;
 pal10_EXIImm = 0x8135dd54;
 pal10_EXIImmEx = 0x8135dfb0;
 
+pal10_is_key_repeat = 0x81302de0;
+
 pal10_stock_banner_ptr = 0x80a7d4a0;
 
 pal10_get_element_alpha = 0x8130a964;
