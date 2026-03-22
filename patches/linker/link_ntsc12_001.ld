@@ -83,6 +83,7 @@ ntsc12_001___CARDGetStatusEx = 0x8135d110;
 ntsc12_001_get_card_info = 0x8131c320;
 ntsc12_001_draw_card_info = 0x8131af58;
 ntsc12_001_card_thread_mq = 0x8148d590;
+ntsc12_001_read_save_banner_text = 0x8131cdf4;
 
 ntsc12_001_SetEffectivePriority = 0x81362304;
 ntsc12_001___OSGetEffectivePriority = 0x813622c8;

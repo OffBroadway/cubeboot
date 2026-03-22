@@ -85,6 +85,7 @@ pal10___CARDGetStatusEx = 0x813730dc;
 pal10_get_card_info = 0x8131c934;
 pal10_draw_card_info = 0x8131b56c;
 pal10_card_thread_mq = 0x814b7eb0;
+pal10_read_save_banner_text = 0x8131d408;
 
 pal10_SetEffectivePriority = 0x813629c4;
 pal10___OSGetEffectivePriority = 0x81362988;
