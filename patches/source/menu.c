@@ -116,7 +116,7 @@ void setup_icon_positions();
 __attribute__((aligned(4))) static tex_data icon_texture;
 __attribute__((aligned(4))) static tex_data banner_texture;
 
-void draw_text(char *s, s16 size, u16 x, u16 y, GXColor *color) {
+void draw_text(const char *s, s16 size, u16 x, u16 y, GXColor *color) {
     static struct {
         text_group group;
         text_metadata metadata;
@@ -518,6 +518,36 @@ void fix_gameselect_view() {
     GXSetCurrentMtx(0);
 }
 
+// Based on Swiss's getGCIRegion()
+static const char *get_region_from_gameid(const char *gameID)
+{
+	if (!strncmp(gameID, "DOLX00", 6) || !strncmp(gameID, "SWISS0", 6))
+		return "ALL";
+
+	switch (gameID[3]) {
+		case 'J':
+		case 'K':
+		case 'W':
+			return "JPN";
+		case 'E':
+			return "USA";
+		case 'D':
+		case 'F':
+		case 'H':
+		case 'I':
+		case 'P':
+		case 'S':
+		case 'U':
+		case 'X':
+		case 'Y':
+			return "EUR";
+		case 'A':
+			return "ALL";
+		default:
+			return NULL;
+	}
+}
+
 __attribute_data__ u32 current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
 __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8 broken_alpha_2) {
     // color
@@ -526,7 +556,7 @@ __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8
     GXColor white = {0xFF, 0xFF, 0xFF, ui_alpha};
 
     // text
-    draw_text("cubeboot loader", 20, 20, 4, &white);
+    draw_text("Select a game to play.", 20, 20, 4, &white);
 
     // icons
     for (int pass = 0; pass < 2; pass++) {
@@ -594,8 +624,8 @@ __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8
         else switch_lang_eng();
 
         // info
-        draw_blob_text(make_type('t','i','t','l'), menu_blob, &white, entry->desc.fullGameName, 0x1f);
-        draw_blob_text(make_type('i','n','f','o'), menu_blob, &white, entry->desc.description, 0x1f);
+        draw_blob_text(make_type('t','i','t','l'), menu_blob, &white, entry->desc.gameName, 0x20);
+        draw_blob_text(make_type('i','n','f','o'), menu_blob, &white, entry->desc.company, 0x20);
 
         switch_lang_eng();
         if (entry->type == GM_FILE_TYPE_PROGRAM || entry->type == GM_FILE_TYPE_DIRECTORY) {
@@ -622,8 +652,14 @@ __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8
         } else if (entry->type == GM_FILE_TYPE_GAME) {
             // game source
             switch_lang_eng();
+
+            const char *region_text = get_region_from_gameid((const char *)entry->extra.game_id);
+            if (region_text == NULL) {
+                region_text = "ISO";
+            }
+
             draw_blob_border(make_type('f','r','m','c'), menu_blob, &white);
-            draw_text("ISO", 20, 125, 540, &white);
+            draw_text(region_text, 20, 125, 540, &white);
 
             if (entry->asset.banner.state == GM_LOAD_STATE_LOADED) {
                 // banner image

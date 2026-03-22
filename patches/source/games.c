@@ -761,10 +761,17 @@ void gm_check_files(int path_count) {
 
             // get the basename
             char *base = strrchr(entry->path, '/');
-            strcpy(backing->desc.fullGameName, base + 1);
+            strncpy(backing->desc.fullGameName, base + 1, sizeof(backing->desc.fullGameName));
+            backing->desc.fullGameName[sizeof(backing->desc.fullGameName) - 1] = '\0';
+
+            strncpy(backing->desc.gameName, base + 1, sizeof(backing->desc.gameName));
+            backing->desc.gameName[sizeof(backing->desc.gameName) - 1] = '\0';
+
             if (entry->type == GM_FILE_TYPE_PROGRAM) {
+                strcpy(backing->desc.company, "Homebrew Program");
                 strcpy(backing->desc.description, "Homebrew Program");
             } else {
+                strcpy(backing->desc.company, "Directory");
                 strcpy(backing->desc.description, "Directory");
             }
 
