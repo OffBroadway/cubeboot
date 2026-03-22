@@ -2,6 +2,7 @@
 
 #include "const.h"
 #include "device.h"
+#include "settings_types.h"
 
 #define MAX_BOOT_DEVICES 8
 
@@ -19,6 +20,7 @@ typedef struct settings {
     device_t boot_devices[MAX_BOOT_DEVICES];
     u32 boot_devices_count;
     u32 allow_disc_drive;
+    menu_grid_type_t menu_grid_type;
 } settings_t;
 
 extern char *buttons_names[];

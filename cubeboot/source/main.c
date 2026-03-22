@@ -309,6 +309,8 @@ int main(int argc, char **argv) {
     set_patch_value(symshdr, syment, symstringdata, "preboot_delay_ms", settings.preboot_delay_ms);
     set_patch_value(symshdr, syment, symstringdata, "postboot_delay_ms", settings.postboot_delay_ms);
 
+    set_patch_value(symshdr, syment, symstringdata, "menu_grid_type", settings.menu_grid_type);
+
     // // Copy settings string
     // void *cube_logo_ptr = (void*)get_symbol_value(symshdr, syment, symstringdata, "cube_logo_path");
     // if (cube_logo_ptr != NULL && settings.cube_logo != NULL) {

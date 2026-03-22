@@ -1,0 +1,1 @@
+../../cubeboot/include/settings_types.h
