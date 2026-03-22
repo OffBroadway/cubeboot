@@ -3,23 +3,13 @@ on: push
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: devkitpro/devkitppc:20231110
+    container: ghcr.io/extremscorner/libogc2:20251109
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Setup
         run: |
-          apt-get update && apt-get install -y genisoimage git golang nodejs build-essential gcc-arm-none-eabi python3-distutils python3-setuptools
-          curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3 get-pip.py
-          pip3 install -r patches/scripts/requirements.txt
-      - name: Build libogc2
-        run: |
-          git clone https://github.com/extremscorner/libogc2.git
-          (cd libogc2; make install)
-      - name: Build libfat
-        run: |
-          git clone https://github.com/extremscorner/libfat.git
-          (cd libfat; sed -i '/rice/d' Makefile; make ogc-install)
+          apt-get update && apt-get install -y genisoimage git golang nodejs build-essential gcc-arm-none-eabi python3-pyelftools
       - name: Build cubeboot
         run: cd entry; make clean && make
       # - name: Build apploader
@@ -46,7 +36,7 @@ jobs:
           mv ./cubeboot/cubeboot.dol dist/next/cubeboot.dol
           # mv ./PicoBoot/picoboot.uf2 dist/next/cubeboot.uf2
       - name: Archive
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/next/
