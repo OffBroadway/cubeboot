@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <assert.h>
 #include <gctypes.h>
 #include "reloc.h"
 #include "attr.h"
@@ -17,7 +18,10 @@
 #define ANIM_DIRECTION_DOWN 1
 #define MAX_LINES 240 // 240 lines * 8 slots = 1920 slots
 
+__attribute_data__ menu_grid_type_t menu_grid_type;
+
 bool grid_setup_done = false;
+int columns_per_line = 8;
 __attribute_data_empty__ line_backing_t browser_lines[MAX_LINES];
 
 // ===============================================================================
@@ -36,6 +40,25 @@ f32 get_position_after(line_backing_t *line_backing) {
 }
 
 // other stuff
+void grid_setup_columns_per_line() {
+    switch (menu_grid_type) {
+        case MENU_GRID_SQUARE_ICONS:
+        default:
+            columns_per_line = 8;
+            break;
+
+        case MENU_GRID_BANNERS:
+            columns_per_line = 3;
+            break;
+
+        case MENU_GRID_SMALL_BANNERS:
+            columns_per_line = 4;
+            break;
+    }
+
+    assert(columns_per_line <= MAX_COLUMNS_PER_LINE);
+}
+
 void grid_setup_func() {
     OSReport("browser_lines = %p\n", browser_lines);
     OSReport("number_of_lines = %d\n", number_of_lines);
@@ -50,7 +73,7 @@ void grid_setup_func() {
     }
 
     // initial
-    selected_slot = START_LINE * 8;
+    selected_slot = START_LINE * columns_per_line;
     top_line_num = START_LINE;
 
     for (int line_num = 0; line_num < number_of_lines; line_num++) {

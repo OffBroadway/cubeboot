@@ -35,6 +35,7 @@ pal11_draw_named_tex = 0x8130a36c;
 pal11_get_camera_mtx = 0x81302f88;
 pal11_set_obj_pos = 0x8130537c;
 pal11_set_obj_cam = 0x813053c8;
+pal11_projection_parameters = 0x8147c960;
 
 pal11___pformatter = 0x81378c18;
 pal11___StringWrite = 0x81378b54;
@@ -99,6 +100,8 @@ pal11_EXIDeselect = 0x8135b1b8;
 pal11_EXISync = 0x8135aa7c;
 pal11_EXIImm = 0x8135a694;
 pal11_EXIImmEx = 0x8135a8f0;
+
+pal11_is_key_repeat = 0x81302de0;
 
 pal11_boot_setup_check = 0x813020c0;
 pal11_boot_rtc_check = 0x813020b8;

@@ -35,6 +35,7 @@ ntsc12_101_draw_named_tex = 0x8130a6f8;
 ntsc12_101_get_camera_mtx = 0x8130333c;
 ntsc12_101_set_obj_pos = 0x81305730;
 ntsc12_101_set_obj_cam = 0x8130577c;
+ntsc12_101_projection_parameters = 0x81482b00;
 
 ntsc12_101___pformatter = 0x8137a654;
 ntsc12_101___StringWrite = 0x8137a5e8;
@@ -99,6 +100,8 @@ ntsc12_101_EXIDeselect = 0x813648f4;
 ntsc12_101_EXISync = 0x813640b0;
 ntsc12_101_EXIImm = 0x81363cc8;
 ntsc12_101_EXIImmEx = 0x81363f24;
+
+ntsc12_101_is_key_repeat = 0x81303194;
 
 ntsc12_101_boot_setup_check = 0x8130248c;
 ntsc12_101_boot_rtc_check = 0x81302484;

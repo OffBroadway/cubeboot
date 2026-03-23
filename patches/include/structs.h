@@ -155,6 +155,8 @@ typedef struct model_part_t {
     s16 unk2;
 } model_part;
 
+typedef struct vtx1_header_t vtx1_header_t;
+
 typedef struct model_data_t {
     void* unka; // used at load time
     void* unkb; // used at load time
@@ -165,7 +167,7 @@ typedef struct model_data_t {
 
     void* unk0;
     void* unk1;
-    void* unk2;
+    vtx1_header_t* vertices;
     void* unk3;
     void* unk4;
     void* unk5;

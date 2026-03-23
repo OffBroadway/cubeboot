@@ -35,6 +35,7 @@ pal10_draw_named_tex = 0x8130a284;
 pal10_get_camera_mtx = 0x81302f88;
 pal10_set_obj_pos = 0x8130537c;
 pal10_set_obj_cam = 0x813053c8;
+pal10_projection_parameters = 0x814adb40;
 
 pal10_Jac_StopSoundAll = 0x8135abe0;
 pal10_InitializeUART = 0x81363f00;
@@ -101,6 +102,8 @@ pal10_EXIDeselect = 0x8135e878;
 pal10_EXISync = 0x8135e13c;
 pal10_EXIImm = 0x8135dd54;
 pal10_EXIImmEx = 0x8135dfb0;
+
+pal10_is_key_repeat = 0x81302de0;
 
 pal10_boot_setup_check = 0x813020c0;
 pal10_boot_rtc_check = 0x813020b8;

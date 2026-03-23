@@ -13,6 +13,7 @@
 #include "grid.h"
 #include "games.h"
 #include "gameid.h"
+#include "extruded_save_cube.h"
 
 #include "dolphin_dvd.h"
 
@@ -46,6 +47,7 @@ __attribute_reloc__ model_data *save_empty;
 // for audio
 __attribute_reloc__ void (*Jac_PlaySe)(u32);
 __attribute_reloc__ void (*Jac_StopSoundAll)();
+__attribute_reloc__ bool (*is_key_repeat)();
 
 // for model gx
 __attribute_reloc__ void (*model_init)(model* m, int process);
@@ -96,7 +98,7 @@ typedef struct {
     Mtx m;
 } position_t;
 
-static position_t icons_positions[8];
+static position_t icons_positions[MAX_COLUMNS_PER_LINE];
 
 typedef struct {
     s32 rot_diff_x;
@@ -296,6 +298,8 @@ __attribute_used__ void custom_gameselect_init() {
     banner_texture.unk9 = 0x00;
     banner_texture.unk10 = 0x00;
 
+    set_up_extruded_cube_vertices(save_icon, save_empty);
+
     // // init anim list
     // ????
 
@@ -306,11 +310,22 @@ __attribute_used__ void custom_gameselect_init() {
 int selected_slot = 0;
 int top_line_num = 0;
 
+static bool using_extruded_cubes() {
+    return menu_grid_type == MENU_GRID_BANNERS || menu_grid_type == MENU_GRID_SMALL_BANNERS;
+}
+
 __attribute_used__ void draw_save_icon(position_t *pos, u32 slot_num, u8 alpha, bool selected) {
     f32 sc = pos->scale;
     guVector scale = {sc, sc, sc};
-    bool has_texture = false;
+    bool use_extruded_models = using_extruded_cubes();
 
+    if (menu_grid_type == MENU_GRID_SMALL_BANNERS) {
+        scale.x *= 0.75f;
+        scale.y *= 0.75f;
+        scale.z *= 0.75f;
+    }
+
+    bool has_texture = false;
     gm_file_entry_t *entry = gm_get_game_entry(slot_num);
     if (entry != NULL) {
         if (entry->type == GM_FILE_TYPE_PROGRAM || entry->type == GM_FILE_TYPE_DIRECTORY) {
@@ -337,6 +352,10 @@ __attribute_used__ void draw_save_icon(position_t *pos, u32 slot_num, u8 alpha, 
         } else {
             set_empty_icon_unselected();
         }
+    }
+
+    if (use_extruded_models) {
+        use_extruded_save_cubes(textured_icon->data, empty_icon->data);
     }
 
     // setup camera
@@ -367,6 +386,10 @@ __attribute_used__ void draw_save_icon(position_t *pos, u32 slot_num, u8 alpha, 
             icon_tex->format = GX_TF_RGB5A3;
             icon_tex->width = 32;
             icon_tex->height = 32;
+
+            // Ensure that these square icons are always drawn at a square aspect ratio,
+            // even when stretching the cubes to match the aspect ratio of banners
+            use_original_save_cubes(textured_icon->data, empty_icon->data);
         } else {
             u16 *source_texture_data = (u16*)entry->asset.banner.buf->data;
             u32 target_texture_data = (u32)source_texture_data;
@@ -383,6 +406,8 @@ __attribute_used__ void draw_save_icon(position_t *pos, u32 slot_num, u8 alpha, 
     } else {
         draw_model(m);
     }
+
+    use_original_save_cubes(textured_icon->data, empty_icon->data);
 
     return;
 }
@@ -467,22 +492,49 @@ void patch_anim_draw() {
 // #define WITH_SPACE 1
 
 void setup_icon_positions() {
+    int base_x;
+    switch (menu_grid_type) {
+        case MENU_GRID_SQUARE_ICONS:
+        default:
 #if defined(WITH_SPACE) && WITH_SPACE
-    const int base_x = -208;
+            base_x = -208;
 #else
-    const int base_x = -196;
+            base_x = -196;
 #endif
+            break;
 
-    for (int col = 0; col < 8; col++) {
+        case MENU_GRID_BANNERS:
+            base_x = -168;
+            break;
+
+        case MENU_GRID_SMALL_BANNERS:
+            base_x = -189;
+            break;
+    }
+
+    for (int col = 0; col < columns_per_line; col++) {
         position_t *pos = &icons_positions[col];
         pos->scale = 1.3;
         pos->opacity = 1.0;
 
-
-        f32 pos_x = base_x + (col * DRAW_OFFSET_Y);
+        f32 pos_x = 0.0f;
+        switch (menu_grid_type) {
+            case MENU_GRID_SQUARE_ICONS:
+            default:
+                pos_x = base_x + (col * DRAW_OFFSET_X_SQUARE_ICONS);
 #if defined(WITH_SPACE) && WITH_SPACE
-        if (col >= 4) pos_x += 24; // card spacing
+                if (col >= 4) pos_x += 24; // card spacing
 #endif
+                break;
+
+            case MENU_GRID_BANNERS:
+                pos_x = base_x + (col * DRAW_OFFSET_X_BANNERS);
+                break;
+
+            case MENU_GRID_SMALL_BANNERS:
+                pos_x = base_x + (col * DRAW_OFFSET_X_SMALL_BANNERS);
+                break;
+        }
 
         C_MTXIdentity(pos->m);
         pos->m[0][3] = pos_x;
@@ -492,9 +544,12 @@ void setup_icon_positions() {
 }
 
 __attribute_used__ void update_icon_positions() {
+    // Extruded cubes are about 3x wider, so reduce the rotation accordingly
+    f32 rot_y_multiplier = using_extruded_cubes() ? 1000.0f / 3.0f : 1000.0f;
+
     f32 mult = 0.7; // 1.0 is more accurate
     selected_icon_mod.rot_diff_x = fast_cos(anim_step * 70) * 350 * mult;
-    selected_icon_mod.rot_diff_y = fast_cos(anim_step * 35 - 15000) * 1000 * mult;
+    selected_icon_mod.rot_diff_y = fast_cos(anim_step * 35 - 15000) * rot_y_multiplier * mult;
     selected_icon_mod.rot_diff_z = fast_cos(anim_step * 35) * 1000 * mult;
 
     selected_icon_mod.move_diff_y = fast_sin(35 * anim_step - 0x4000) * 10.0 * mult;
@@ -535,8 +590,8 @@ __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8
             if (line_backing->transparency > 0 && line_backing->raw_position_y >= 0 && line_backing->raw_position_y < SCREEN_BOUND_TOTAL_Y) {
                 f32 real_position_y = SCREEN_BOUND_TOP - line_backing->raw_position_y;
                 // OSReport("line %d: %f\n", line_num, real_position_y);
-                for (int col = 0; col < 8; col++) {
-                    int slot_num = (line_num * 8) + col;
+                for (int col = 0; col < columns_per_line; col++) {
+                    int slot_num = (line_num * columns_per_line) + col;
 
                     // bool has_texture = (slot_num < game_backing_count);
                     bool selected = (slot_num == selected_slot);
@@ -823,65 +878,65 @@ __attribute_used__ s32 handle_gameselect_inputs() {
     }
 
     if (current_gameselect_state == SUBMENU_GAMESELECT_LOADER) {
-        if (pad_status->analog_down & ANALOG_RIGHT) {
-            if ((selected_slot % 8) == (8 - 1)) {
-                Jac_PlaySe(SOUND_CARD_ERROR);
-            }
-            else {
-                Jac_PlaySe(SOUND_CARD_MOVE);
-                selected_slot++;
-            }
-        }
-
-        if (pad_status->analog_down & ANALOG_LEFT) {
-            if ((selected_slot % 8) == 0) {
-                Jac_PlaySe(SOUND_CARD_ERROR);
-            }
-            else {
-                Jac_PlaySe(SOUND_CARD_MOVE);
-                selected_slot--;
-            }
-        }
-
+        // Handle vertical inputs first, followed by horizontal inputs
+        // This allows the sound effect for horizontal input to take priority (matching the memory card menu)
         if (pad_status->analog_down & ANALOG_DOWN) {
-            if (number_of_lines - top_line_num == 4 && (selected_slot + 8) > (number_of_lines * 8 - 1)) {
-                // OSReport("SKIP MOVE DOWN: top_line_num = %d\n", top_line_num);
-                Jac_PlaySe(SOUND_CARD_ERROR);
-            } else {
+            if (number_of_lines - top_line_num != 4 || (selected_slot + columns_per_line) < (number_of_lines * columns_per_line)) {
                 Jac_PlaySe(SOUND_CARD_MOVE);
-                line_backing_t *line_backing = &browser_lines[selected_slot / 8];
+                line_backing_t *line_backing = &browser_lines[selected_slot / columns_per_line];
                 if (get_position_after(line_backing) >= DRAW_BOUND_BOTTOM - DRAW_OFFSET_Y - 10) {
                     if (gm_can_move() && grid_dispatch_navigate_down() == GRID_MOVE_SUCCESS) {
                         gm_line_changed(1);
-                        selected_slot += 8;
+                        selected_slot += columns_per_line;
                         top_line_num++;
                     }
                 } else {
-                    selected_slot += 8;
+                    selected_slot += columns_per_line;
                 }
+            } else if (!is_key_repeat()) {
+                // OSReport("SKIP MOVE DOWN: top_line_num = %d\n", top_line_num);
+                Jac_PlaySe(SOUND_CARD_ERROR);
             }
         }
 
         if (pad_status->analog_down & ANALOG_UP) {
-            if (top_line_num == 0 && (selected_slot - 8) < 0) {
-                // OSReport("SKIP MOVE UP: top_line_num = %d\n", top_line_num);
-                Jac_PlaySe(SOUND_CARD_ERROR);
-            } else {
+            if (top_line_num != 0 || (selected_slot - columns_per_line) >= 0) {
                 Jac_PlaySe(SOUND_CARD_MOVE);
-                line_backing_t *line_backing = &browser_lines[selected_slot / 8];
+                line_backing_t *line_backing = &browser_lines[selected_slot / columns_per_line];
                 if (top_line_num != 0 && get_position_after(line_backing) <= DRAW_BOUND_TOP + DRAW_OFFSET_Y - 10) {
                     if (gm_can_move() && grid_dispatch_navigate_up() == GRID_MOVE_SUCCESS) {
                         gm_line_changed(-1);
-                        selected_slot -= 8;
+                        selected_slot -= columns_per_line;
                         top_line_num--;
                     }
                 } else {
-                    selected_slot -= 8;
+                    selected_slot -= columns_per_line;
                 }
+            } else if (!is_key_repeat()) {
+                // OSReport("SKIP MOVE UP: top_line_num = %d\n", top_line_num);
+                Jac_PlaySe(SOUND_CARD_ERROR);
             }
-            
+
             // OSReport("top_line_num = %d\n", top_line_num);
             // OSReport("selected_slot = %d\n", selected_slot);
+        }
+
+        if (pad_status->analog_down & ANALOG_RIGHT) {
+            if ((selected_slot % columns_per_line) != (columns_per_line - 1)) {
+                Jac_PlaySe(SOUND_CARD_MOVE);
+                selected_slot++;
+            } else if (!is_key_repeat()) {
+                Jac_PlaySe(SOUND_CARD_ERROR);
+            }
+        }
+
+        if (pad_status->analog_down & ANALOG_LEFT) {
+            if ((selected_slot % columns_per_line) != 0) {
+                Jac_PlaySe(SOUND_CARD_MOVE);
+                selected_slot--;
+            } else if (!is_key_repeat()) {
+                Jac_PlaySe(SOUND_CARD_ERROR);
+            }
         }
     }
 

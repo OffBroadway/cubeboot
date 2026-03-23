@@ -20,6 +20,8 @@ void mcp_set_gameid(gm_file_entry_t *entry) {
 }
 
 void setup_gameid_commands(struct gcm_disk_info *di, char diskName[64]) {
+    if (disable_mcp_select) return;
+
     const s32 chan = 0;
     u32 id;
     s32 ret;

@@ -64,6 +64,7 @@ ntsc11_game_blob_text = 0x814b25c8;
 ntsc11_get_camera_mtx = 0x81302f94;
 ntsc11_set_obj_pos = 0x8130537c;
 ntsc11_set_obj_cam = 0x813053c8;
+ntsc11_projection_parameters = 0x81481ca0;
 
 ntsc11_fast_sin = 0x81307cd0;
 ntsc11_fast_cos = 0x81307cec;
@@ -104,6 +105,8 @@ ntsc11_EXIDeselect = 0x8135b298;
 ntsc11_EXISync = 0x8135ab5c;
 ntsc11_EXIImm = 0x8135a774;
 ntsc11_EXIImmEx = 0x8135a9d0;
+
+ntsc11_is_key_repeat = 0x81302de0;
 
 ntsc11_boot_setup_check = 0x813020c0;
 ntsc11_boot_rtc_check = 0x813020b8;

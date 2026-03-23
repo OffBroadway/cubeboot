@@ -34,9 +34,6 @@
 #include "time.h"
 
 #define PRELOAD_LINE_COUNT 2
-#define ASSETS_PER_LINE 8
-#define ASSETS_PER_PAGE (ASSETS_PER_LINE * DRAW_TOTAL_ROWS)
-#define ASSETS_INITIAL_COUNT (ASSETS_PER_PAGE + (PRELOAD_LINE_COUNT * ASSETS_PER_LINE)) // assuming we start at the top
 #define ASSET_BUFFER_COUNT 128
 
 // Globals
@@ -48,6 +45,9 @@ OSMutex *game_enum_mutex = &game_enum_mutex_obj;
 
 char game_enum_path[128] = {0};
 bool game_enum_running = false;
+
+int assets_per_page;
+int assets_initial_count;
 
 // TODO: use a log2 malloc copy strategy for this
 __attribute_data_lowmem__ static gm_path_entry_t __gm_early_path_list[2000];
@@ -692,7 +692,7 @@ void gm_check_files(int path_count) {
         // OSReport("Checking header %s [%d]\n", entry->path, entry->type);
 
         bool force_unload = false;
-        if (gm_entry_count - (top_line_num * ASSETS_PER_LINE) > ASSETS_INITIAL_COUNT) {
+        if (gm_entry_count - (top_line_num * columns_per_line) > assets_initial_count) {
             force_unload = true;
         }
 
@@ -819,8 +819,8 @@ void gm_check_files(int path_count) {
 void gm_line_load(int line_num) {
     // OSReport("Line load %d\n", line_num);
 
-    for (int i = 0; i < ASSETS_PER_LINE; i++) {
-        int index = (line_num * ASSETS_PER_LINE) + i;
+    for (int i = 0; i < columns_per_line; i++) {
+        int index = (line_num * columns_per_line) + i;
         if (index >= gm_entry_count) break;
 
         gm_file_entry_t *entry = gm_entry_backing[index];
@@ -836,8 +836,8 @@ void gm_line_load(int line_num) {
 void gm_line_free(int line_num) {
     // OSReport("Line free %d\n", line_num);
 
-    for (int i = 0; i < ASSETS_PER_LINE; i++) {
-        int index = (line_num * ASSETS_PER_LINE) + i;
+    for (int i = 0; i < columns_per_line; i++) {
+        int index = (line_num * columns_per_line) + i;
         if (index >= gm_entry_count) break;
 
         gm_file_entry_t *entry = gm_entry_backing[index];
@@ -928,10 +928,15 @@ void gm_debug_func() {
 #endif
 
 void gm_setup_grid(int line_count, bool initial) {
-    number_of_lines = (line_count + 7) >> 3;
+    grid_setup_columns_per_line();
+
+    number_of_lines = (line_count + (columns_per_line - 1)) / columns_per_line;
     if (number_of_lines < 4) {
         number_of_lines = 4;
     }
+
+    assets_per_page = columns_per_line * DRAW_TOTAL_ROWS;
+    assets_initial_count = assets_per_page + (PRELOAD_LINE_COUNT * columns_per_line); // assuming we start at the top
 
     if (initial) {
         // Setup the grid

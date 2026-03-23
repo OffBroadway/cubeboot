@@ -95,6 +95,15 @@ void load_settings() {
         settings.progressive_enabled = progressive_enabled;
     }
 
+    // Force widescreen
+    u32 force_widescreen = 0;
+    if (!ini_sget(conf, "cubeboot", "force_widescreen", "%d", &force_widescreen)) {
+        settings.force_widescreen = 0;
+    } else {
+        iprintf("Found force_widescreen = %d\n", force_widescreen);
+        settings.force_widescreen = force_widescreen;
+    }
+
     // preboot delay
     u32 preboot_delay_ms = 0;
     if (!ini_sget(conf, "cubeboot", "preboot_delay_ms", "%u", &preboot_delay_ms)) {
@@ -157,6 +166,19 @@ void load_settings() {
             iprintf("Found %s = %s\n", button_config_name, dol_path);
 
             settings.boot_buttons[i] = (char*)dol_path;
+        }
+    }
+
+    // menu grid type
+    settings.menu_grid_type = MENU_GRID_SQUARE_ICONS;
+    const char *menu_grid_type = ini_get(conf, "cubeboot", "menu_grid_type");
+    if (menu_grid_type != NULL) {
+        if (strcmp(menu_grid_type, "square_icons") == 0) {
+            settings.menu_grid_type = MENU_GRID_SQUARE_ICONS;
+        } else if (strcmp(menu_grid_type, "banners") == 0) {
+            settings.menu_grid_type = MENU_GRID_BANNERS;
+        } else if (strcmp(menu_grid_type, "small_banners") == 0) {
+            settings.menu_grid_type = MENU_GRID_SMALL_BANNERS;
         }
     }
 
