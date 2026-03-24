@@ -70,6 +70,13 @@ void load_settings() {
         settings.cube_logo = (char*)cube_logo;
     }
 
+    // default folder
+    const char *default_folder = ini_get(conf, "cubeboot", "default_folder");
+    if (default_folder != NULL) {
+        iprintf("Found default_folder = %s\n", default_folder);
+        settings.default_folder = (char*)default_folder;
+    }
+
     // default program
     const char *default_program = ini_get(conf, "cubeboot", "default_program");
     if (default_program != NULL) {

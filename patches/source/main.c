@@ -45,6 +45,7 @@ __attribute_data__ u32 start_passthrough_game = 0;
 
 __attribute_data__ static u8 *cube_text_tex = NULL;
 __attribute_data__ char cube_logo_path[MAX_FILE_NAME] = {0};
+__attribute_data__ char default_folder[MAX_FILE_NAME] = {0};
 __attribute_data__ u32 force_progressive = 0;
 __attribute_data__ u32 force_widescreen = 0;
 __attribute_data__ u32 force_swiss_boot = 0;
@@ -365,6 +366,29 @@ __attribute_used__ void mod_cube_anim() {
     }
 }
 
+__attribute_used__ char* resolve_default_folder() {
+    if (default_folder[0] == '\0') {
+        OSReport("No default folder set, opening root\n");
+        return "/";
+    }
+
+    const char *path = default_folder;
+    static char path_buf[MAX_FILE_NAME];
+    if (default_folder[0] != '/') {
+        snprintf(path_buf, sizeof(path_buf), "/%s", default_folder);
+        path = path_buf;
+    }
+
+    if (dvd_custom_open(path, FILE_ENTRY_TYPE_DIR, 0) != 0) {
+        OSReport("Could not open default folder: %s, opening root\n", path);
+        return "/";
+    }
+    dvd_custom_close(dvd_custom_status()->fd);
+
+    OSReport("Using default folder: %s\n", path);
+    return path;
+}
+
 __attribute_used__ void pre_thread_init() {
     dolphin_ARAMInit();
     orig_thread_init();
@@ -372,7 +396,7 @@ __attribute_used__ void pre_thread_init() {
     gm_init_heap();
     gm_init_thread();
     if (!start_passthrough_game) {
-        gm_start_thread("/");
+        gm_start_thread(resolve_default_folder());
     }
 }
 

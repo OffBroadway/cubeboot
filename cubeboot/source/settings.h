@@ -6,6 +6,7 @@
 typedef struct settings {
     u32 cube_color;
     char *cube_logo;
+    char *default_folder;
     u32 force_swiss_default;
     u32 show_watermark;
     u32 disable_mcp_select;
