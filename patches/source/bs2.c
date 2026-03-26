@@ -18,6 +18,7 @@
 
 #include <gctypes.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define MAIN_MENU_ID_SETUP_ERROR 0
 #define MAIN_MENU_ID_READING_DISC_ANIMATION 1
@@ -330,7 +331,9 @@ __attribute_used__ void bs2start() {
 
         custom_OSReport("Game ID: %c%c%c%c\n", lowmem->b_disk_info.game_code[0], lowmem->b_disk_info.game_code[1], lowmem->b_disk_info.game_code[2], lowmem->b_disk_info.game_code[3]);
 
-        char diskName[64] = "DISC GAME\0";
+        // TODO: Get the correct BNRDesc for the current language
+        char diskName[64];
+        strcpy(diskName, stock_banner_ptr->desc[0].gameName);
         setup_gameid_commands(&lowmem->b_disk_info, diskName);
     }
 

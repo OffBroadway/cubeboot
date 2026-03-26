@@ -109,7 +109,7 @@ _Static_assert(sizeof(bool) == 1); // just make sure this is a single byte
 #define BANNER_SINGLE_LANG 0
 #define BANNER_MULTI_LANG 1
 
-typedef struct {
+typedef struct dolphin_game_into_t {
 	bool valid;
 	u8 game_id[6];
 	u8 disc_num;

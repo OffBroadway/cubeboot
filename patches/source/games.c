@@ -25,6 +25,7 @@
 #include "dolphin_dvd.h"
 #include "dvd_threaded.h"
 #include "flippy_sync.h"
+#include "gameid.h"
 #include "gc_dvd.h"
 
 #include "metaphrasis.h"
@@ -986,6 +987,7 @@ atomic_bool request_disc_start_game = false;
 atomic_uint disc_read_state = STATE_WAIT_LOAD;
 atomic_bool disc_read_banner_ready = false;
 atomic_char disc_read_region = '?';
+dolphin_game_into_t disc_game_info;
 
 bool should_stop_disc_thread_worker() {
     return request_disc_stop_thread;
@@ -1067,8 +1069,8 @@ void *gm_disc_thread_worker(void *param) {
         }
 
         // Get the banner
-        dolphin_game_into_t game_info = get_game_info_with_open_game(fd, should_stop_disc_thread_worker);
-        if (!game_info.valid) {
+        disc_game_info = get_game_info_with_open_game(fd, should_stop_disc_thread_worker);
+        if (!disc_game_info.valid) {
             disc_read_state = STATE_READ_ERROR;
             finished_reading_disc = true;
             continue;
@@ -1078,7 +1080,7 @@ void *gm_disc_thread_worker(void *param) {
             break;
         }
 
-        ret = dvd_threaded_read(stock_banner_ptr, sizeof(BNR), game_info.bnr_offset, fd, should_stop_disc_thread_worker);
+        ret = dvd_threaded_read(stock_banner_ptr, sizeof(BNR), disc_game_info.bnr_offset, fd, should_stop_disc_thread_worker);
         error = dvd_threaded_get_error();
         if (ret != 0 || error != 0) {
             disc_read_state = STATE_READ_ERROR;
@@ -1086,7 +1088,7 @@ void *gm_disc_thread_worker(void *param) {
             continue;
         }
 
-        disc_read_region = (char)game_info.game_id[3];
+        disc_read_region = (char)disc_game_info.game_id[3];
         disc_read_banner_ready = true;
 
         // The disc's loaded!

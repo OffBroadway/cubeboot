@@ -93,6 +93,8 @@ typedef struct {
 
 static selected_mod_t selected_icon_mod;
 
+static bool last_disc_ready_to_start = false;
+
 // Define constants for max dimensions
 void setup_icon_positions();
 
@@ -766,6 +768,39 @@ __attribute_used__ void original_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, 
     return;
 }
 
+static void on_submenu_shown() {
+    switch (current_gameselect_state) {
+        case SUBMENU_GAMESELECT_LOADER:
+            break;
+
+        case SUBMENU_GAMESELECT_START:
+            setup_gameselect_anim();
+            setup_cube_anim();
+
+            switch (selected_device) {
+                case device_disc_drive:
+                {
+                    bool ready_to_start = disc_read_state == STATE_START_GAME;
+                    if (ready_to_start) {
+                        // TODO: Get the correct BNRDesc for the current language
+                        mcp_set_gameid_for_disc(&disc_game_info, &stock_banner_ptr->desc[0]);
+                    }
+                    last_disc_ready_to_start = ready_to_start;
+                    break;
+                }
+                case device_flippydrive:
+                {
+                    gm_file_entry_t *entry = gm_get_game_entry(selected_slot);
+                    if (entry && entry->type == GM_FILE_TYPE_GAME) {
+                        mcp_set_gameid(entry);
+                    }
+                    break;
+                }
+            }
+            break;
+    }
+}
+
 static bool first_transition = true;
 static bool in_submenu_transition = false;
 static u8 custom_menu_transition_alpha = 0xFF;
@@ -790,6 +825,11 @@ __attribute_used__ void pre_menu_alpha_setup() {
 
         custom_menu_transition_alpha = current_gameselect_state == SUBMENU_GAMESELECT_LOADER ? 0xFF : 0;
         original_menu_transition_alpha = current_gameselect_state == SUBMENU_GAMESELECT_START ? 0xFF : 0;
+
+        // Force the game ID to be re-sent, in case the disc has changed since the menu was last opened
+        last_disc_ready_to_start = false;
+
+        on_submenu_shown();
 
         if (first_transition) {
             Jac_PlaySe(SOUND_MENU_ENTER);
@@ -833,15 +873,7 @@ static void push_menu_stack(u32 new_state) {
     in_submenu_transition = true;
 
     // Run code when transitioning to the new menu
-    switch (current_gameselect_state) {
-        case SUBMENU_GAMESELECT_LOADER:
-            break;
-
-        case SUBMENU_GAMESELECT_START:
-            setup_gameselect_anim();
-            setup_cube_anim();
-            break;
-    }
+    on_submenu_shown();
 }
 
 static bool pop_menu_stack() {
@@ -940,10 +972,6 @@ __attribute_used__ s32 handle_gameselect_inputs() {
             } else {
                 push_menu_stack(SUBMENU_GAMESELECT_START);
 
-                if (entry->type == GM_FILE_TYPE_GAME) {
-                    mcp_set_gameid(entry);
-                }
-
                 // OSReport("Selected slot: %d (%p)\n", selected_slot, asset);
             }
         }
@@ -960,6 +988,13 @@ __attribute_used__ s32 handle_gameselect_inputs() {
         switch (selected_device) {
             case device_disc_drive:
                 ready_to_start = disc_read_state == STATE_START_GAME;
+
+                if (ready_to_start && !last_disc_ready_to_start) {
+                    // TODO: Get the correct BNRDesc for the current language
+                    mcp_set_gameid_for_disc(&disc_game_info, &stock_banner_ptr->desc[0]);
+                }
+
+                last_disc_ready_to_start = ready_to_start;
                 break;
             case device_flippydrive:
                 entry = gm_get_game_entry(selected_slot);

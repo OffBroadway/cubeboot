@@ -9,6 +9,8 @@
 
 #include "decomp_ar.h"
 
+typedef struct dolphin_game_into_t dolphin_game_into_t;
+
 // Backing
 typedef enum {
     GM_LOAD_STATE_NONE,
@@ -114,6 +116,9 @@ extern atomic_bool request_disc_start_game;
 extern atomic_uint disc_read_state;
 extern atomic_bool disc_read_banner_ready;
 extern atomic_char disc_read_region;
+
+// Only usable when `disc_read_banner_ready` is true and/or `disc_read_state` is `STATE_START_GAME`
+extern dolphin_game_into_t disc_game_info;
 
 extern BNR* stock_banner_ptr;
 
