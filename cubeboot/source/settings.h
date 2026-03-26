@@ -13,6 +13,7 @@ typedef struct settings {
     u32 show_watermark;
     u32 disable_mcp_select;
     u32 progressive_enabled;
+    u32 force_widescreen;
     u32 preboot_delay_ms;
     u32 postboot_delay_ms;
     char *default_program;

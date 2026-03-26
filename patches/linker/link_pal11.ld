@@ -35,6 +35,7 @@ pal11_draw_named_tex = 0x8130a36c;
 pal11_get_camera_mtx = 0x81302f88;
 pal11_set_obj_pos = 0x8130537c;
 pal11_set_obj_cam = 0x813053c8;
+pal11_projection_parameters = 0x8147c960;
 
 pal11___pformatter = 0x81378c18;
 pal11___StringWrite = 0x81378b54;

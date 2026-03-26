@@ -68,6 +68,7 @@ ntsc11_game_blob_could_not_read_disc = 0x814b2608;
 ntsc11_get_camera_mtx = 0x81302f94;
 ntsc11_set_obj_pos = 0x8130537c;
 ntsc11_set_obj_cam = 0x813053c8;
+ntsc11_projection_parameters = 0x81481ca0;
 
 ntsc11_fast_sin = 0x81307cd0;
 ntsc11_fast_cos = 0x81307cec;

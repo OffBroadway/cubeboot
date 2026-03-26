@@ -41,6 +41,7 @@ ntsc10_draw_named_tex = 0x8130a460;
 ntsc10_get_camera_mtx = 0x813030ac;
 ntsc10_set_obj_pos = 0x81305494;
 ntsc10_set_obj_cam = 0x813054e0;
+ntsc10_projection_parameters = 0x8145dce0;
 ntsc10_fast_sin = 0x81307de8;
 ntsc10_fast_cos = 0x81307e04;
 ntsc10_apply_save_rot = 0x81307628;

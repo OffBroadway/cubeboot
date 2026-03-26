@@ -35,6 +35,7 @@ pal12_draw_named_tex = 0x8130a3c4;
 pal12_get_camera_mtx = 0x813030f0;
 pal12_set_obj_pos = 0x813054e4;
 pal12_set_obj_cam = 0x81305530;
+pal12_projection_parameters = 0x814ae700;
 
 pal12___gx = 0x80000000;
 pal12___pformatter = 0x8137d9cc;

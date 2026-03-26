@@ -35,6 +35,7 @@ ntsc12_001_draw_named_tex = 0x8130a6e0;
 ntsc12_001_get_camera_mtx = 0x81303324;
 ntsc12_001_set_obj_pos = 0x81305718;
 ntsc12_001_set_obj_cam = 0x81305764;
+ntsc12_001_projection_parameters = 0x81482680;
 
 ntsc12_001___pformatter = 0x8137a1d0;
 ntsc12_001___StringWrite = 0x8137a164;

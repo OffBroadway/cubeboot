@@ -34,6 +34,7 @@ __attribute_data__ u32 start_passthrough_game = 0;
 __attribute_data__ static u8 *cube_text_tex = NULL;
 __attribute_data__ char cube_logo_path[MAX_FILE_NAME] = {0};
 __attribute_data__ u32 force_progressive = 0;
+__attribute_data__ u32 force_widescreen = 0;
 
 // used if we are switching to 60Hz on a PAL IPL
 __attribute_data__ static int fix_pal_ntsc = 0;
@@ -62,6 +63,23 @@ __attribute_data__ static GXColorS10 color_bg_outer_1;
 // start
 __attribute_data__ gm_file_entry_t boot_entry;
 __attribute_data__ gm_file_entry_t second_boot_entry;
+
+// These are technically floating-point constants that happen to be laid out together,
+// but they're laid out together in all IPL versions
+typedef struct {
+    struct {
+        float aspect_ratio;
+    } perspective;
+
+    struct {
+        float top;
+        float bottom;
+        float left;
+        float right;
+    } orthographic;
+} projection_parameters_t;
+
+__attribute_reloc__ projection_parameters_t *projection_parameters;
 
 __attribute_used__ void mod_cube_colors() {
     if (cube_color == 0) {
@@ -398,6 +416,18 @@ __attribute_used__ void pre_main() {
         rmode->vfilter[4] = 21;
         rmode->vfilter[5] = 0;
         rmode->vfilter[6] = 0;
+    }
+
+    if (force_widescreen) {
+        // In all IPL versions, the default projection matrices use:
+        // - a perspective aspect ratio of 1.3214285
+        // - an orthographic screen size of (t: 224, b: -224, l: -296, r: 292)
+        // (Note that the perspective and orthographic aspect ratios don't seem to match up, and neither are actually 4:3)
+        // We'll stretch these by the same ratio as 4:3 -> 16:9, and round the left/right values to integers
+        const float stretch = 4.0f / 3.0f;
+        projection_parameters->perspective.aspect_ratio = 1.3214285f * stretch;
+        projection_parameters->orthographic.left = floorf(-296.0f * stretch);
+        projection_parameters->orthographic.right = floorf(292.0f * stretch);
     }
 
     main();

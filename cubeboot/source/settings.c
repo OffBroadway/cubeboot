@@ -154,6 +154,15 @@ void load_settings() {
         settings.progressive_enabled = progressive_enabled;
     }
 
+    // Force widescreen
+    u32 force_widescreen = 0;
+    if (!ini_sget(conf, "cubeboot", "force_widescreen", "%d", &force_widescreen)) {
+        settings.force_widescreen = 0;
+    } else {
+        iprintf("Found force_widescreen = %d\n", force_widescreen);
+        settings.force_widescreen = force_widescreen;
+    }
+
     // preboot delay
     u32 preboot_delay_ms = 0;
     if (!ini_sget(conf, "cubeboot", "preboot_delay_ms", "%u", &preboot_delay_ms)) {
