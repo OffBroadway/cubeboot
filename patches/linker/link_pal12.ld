@@ -103,3 +103,6 @@ pal12_EXIImm = 0x81367040;
 pal12_EXIImmEx = 0x8136729c;
 
 pal12_is_key_repeat = 0x81302f48;
+
+pal12_boot_setup_check = 0x81302240;
+pal12_boot_rtc_check = 0x81302238;

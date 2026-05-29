@@ -102,3 +102,6 @@ pal11_EXIImm = 0x8135a694;
 pal11_EXIImmEx = 0x8135a8f0;
 
 pal11_is_key_repeat = 0x81302de0;
+
+pal11_boot_setup_check = 0x813020c0;
+pal11_boot_rtc_check = 0x813020b8;

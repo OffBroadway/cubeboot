@@ -107,3 +107,6 @@ ntsc11_EXIImm = 0x8135a774;
 ntsc11_EXIImmEx = 0x8135a9d0;
 
 ntsc11_is_key_repeat = 0x81302de0;
+
+ntsc11_boot_setup_check = 0x813020c0;
+ntsc11_boot_rtc_check = 0x813020b8;

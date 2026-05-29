@@ -85,11 +85,11 @@ patch_inst_pal "_gameselect_draw_helper" 0x81327e04 0x8132735c 0x81327f44 routin
 patch_inst_ntsc "_force_valid_encoding" 0x81345130 0x8136cdd4 0x8135a3e8 0x8135a3e8 routine_load_r0_r3_val1
 patch_inst_pal "_force_valid_encoding" 0x813703b4 0x8136ccf4 0x8135d768 routine_load_r0_r3_val1
 
-patch_inst_ntsc "_ignore_boot_error_setup" 0x8130bad8 0x8130bcd8 0x8130c04c 0x8130c064 li r0, 0x3
-patch_inst_pal "_ignore_boot_error_setup" 0x8130bf30 0x8130bc04 0x8130c070 li r0, 0x3
+patch_inst_ntsc "_ignore_boot_error_setup" 0x8130bacc 0x8130bccc 0x8130c040 0x8130c058 bl patch_boot_setup_check
+patch_inst_pal "_ignore_boot_error_setup" 0x8130bf24 0x8130bbf8 0x8130c064 bl patch_boot_setup_check
 
-patch_inst_ntsc "_ignore_boot_error_rtc" 0x8130bac0 0x8130bcc0 0x8130c034 0x8130c04c li r0, 0x3
-patch_inst_pal "_ignore_boot_error_rtc" 0x8130bf18 0x8130bbec 0x8130c058 li r0, 0x3
+patch_inst_ntsc "_ignore_boot_error_rtc" 0x8130bab4 0x8130bcb4 0x8130c028 0x8130c040 bl patch_boot_rtc_check
+patch_inst_pal "_ignore_boot_error_rtc" 0x8130bf0c 0x8130bbe0 0x8130c04c bl patch_boot_rtc_check
 
 patch_inst_ntsc "_stub_dvdwait" 0x00000000 0x8130108c 0x81301440 0x81301444 nop
 patch_inst_pal  "_stub_dvdwait" 0x8130108c 0x8130108c 0x813011f8 nop

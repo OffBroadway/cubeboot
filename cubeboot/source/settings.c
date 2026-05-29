@@ -140,6 +140,15 @@ void load_settings() {
         settings.disable_mcp_select = disable_mcp_select;
     }
 
+    // suppress_rtc_errors
+    int suppress_rtc_errors = 1;
+    if (!ini_sget(conf, "cubeboot", "suppress_rtc_errors", "%d", &suppress_rtc_errors)) {
+        settings.suppress_rtc_errors = 1;
+    } else {
+        iprintf("Found suppress_boot_setup_and_rtc_errors = %d\n", suppress_rtc_errors);
+        settings.suppress_rtc_errors = suppress_rtc_errors;
+    }
+
     // button presses
     for (int i = 0; i < (sizeof(buttons_names) / sizeof(char *)); i++) {
         char *button_name = buttons_names[i];

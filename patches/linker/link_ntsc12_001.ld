@@ -102,3 +102,6 @@ ntsc12_001_EXIImm = 0x81363b64;
 ntsc12_001_EXIImmEx = 0x81363dc0;
 
 ntsc12_001_is_key_repeat = 0x8130317c;
+
+ntsc12_001_boot_setup_check = 0x81302474;
+ntsc12_001_boot_rtc_check = 0x8130246c;

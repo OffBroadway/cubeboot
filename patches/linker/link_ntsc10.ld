@@ -107,3 +107,6 @@ ntsc10_EXIImm = 0x81334d4c;
 ntsc10_EXIImmEx = 0x81334fa8;
 
 ntsc10_is_key_repeat = 0x81302ef8;
+
+ntsc10_boot_setup_check = 0x813022b8;
+ntsc10_boot_rtc_check = 0x813022b0;

@@ -104,3 +104,6 @@ pal10_EXIImm = 0x8135dd54;
 pal10_EXIImmEx = 0x8135dfb0;
 
 pal10_is_key_repeat = 0x81302de0;
+
+pal10_boot_setup_check = 0x813020c0;
+pal10_boot_rtc_check = 0x813020b8;
