@@ -13,7 +13,7 @@ typedef struct settings {
     u32 force_widescreen;
     u32 preboot_delay_ms;
     u32 postboot_delay_ms;
-    u32 suppress_boot_setup_and_rtc_errors;
+    u32 suppress_rtc_errors;
     char *default_program;
     char *boot_buttons[MAX_BUTTONS];
     menu_grid_type_t menu_grid_type;

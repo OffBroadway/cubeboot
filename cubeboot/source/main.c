@@ -303,7 +303,7 @@ int main(int argc, char **argv) {
     set_patch_value(symshdr, syment, symstringdata, "force_progressive", settings.progressive_enabled);
     set_patch_value(symshdr, syment, symstringdata, "force_widescreen", settings.force_widescreen);
     set_patch_value(symshdr, syment, symstringdata, "force_swiss_boot", settings.force_swiss_default);
-    set_patch_value(symshdr, syment, symstringdata, "suppress_boot_setup_and_rtc_errors", settings.suppress_boot_setup_and_rtc_errors);
+    set_patch_value(symshdr, syment, symstringdata, "suppress_boot_setup_and_rtc_errors", settings.suppress_rtc_errors);
 
     set_patch_value(symshdr, syment, symstringdata, "disable_mcp_select", settings.disable_mcp_select);
     set_patch_value(symshdr, syment, symstringdata, "show_watermark", settings.show_watermark);
