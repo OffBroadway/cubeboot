@@ -1,6 +1,7 @@
 #include "dvd_threaded.h"
 #include "dolphin_os.h"
 #include "os.h"
+#include "time.h"
 
 // DI regs from YAGCD
 #define DI_SR      0 // 0xCC006000 - DI Status Register
@@ -27,10 +28,21 @@
 #define DI_CFG     9 // 0xCC006024 - DI Configuration Register
 
 #define DVD_OEM_READ 0xA8000000
+#define DVD_OEM_ERROR 0xE0000000
+#define DVD_OEM_STOP_MOTOR 0xE3000000
+#define DVD_OEM_AUDIO 0xE4000000
 
 static vu32* const _di_regs = (vu32*)0xCC006000;
 
-int dvd_threaded_read(void* dst, unsigned int len, uint64_t offset, unsigned int fd) {
+void dvd_break() {
+    _di_regs[DI_SR] = DI_SR_BRK;
+
+    while (_di_regs[DI_SR] & DI_SR_BRK) {
+        OSYieldThread();
+    }
+}
+
+int dvd_threaded_read(void* dst, unsigned int len, uint64_t offset, unsigned int fd, dvd_should_cancel_callback should_cancel) {
 
     if (offset >> 2 > 0xFFFFFFFF) return -1;
 
@@ -46,6 +58,11 @@ int dvd_threaded_read(void* dst, unsigned int len, uint64_t offset, unsigned int
     _di_regs[DI_CR] = (DI_CR_DMA | DI_CR_TSTART); // start transfer
 
 	while (_di_regs[DI_CR] & DI_CR_TSTART) {
+        if (should_cancel && should_cancel()) {
+            dvd_break();
+            return 1;
+        }
+
         OSYieldThread();
     }
 
@@ -56,4 +73,86 @@ int dvd_threaded_read(void* dst, unsigned int len, uint64_t offset, unsigned int
         return 1;
     }
 	return 0;
+}
+
+int dvd_threaded_read_id(dvd_should_cancel_callback should_cancel) {
+    _di_regs[DI_SR] = (DI_SR_BRKINTMASK | DI_SR_TCINTMASK | DI_SR_DEINT | DI_SR_DEINTMASK);
+    _di_regs[DI_CVR] = 0; // clear cover int
+
+    _di_regs[DI_CMDBUF0] = DVD_OEM_READ | 0x40;
+    _di_regs[DI_CMDBUF1] = 0;
+    _di_regs[DI_CMDBUF2] = 0x20;
+
+    _di_regs[DI_MAR] = 0;
+    _di_regs[DI_LENGTH] = 0x20;
+    _di_regs[DI_CR] = (DI_CR_DMA | DI_CR_TSTART); // start transfer
+
+    while (_di_regs[DI_CR] & DI_CR_TSTART) {
+        if (should_cancel && should_cancel()) {
+            dvd_break();
+            return 1;
+        }
+
+        OSYieldThread();
+    }
+
+    // check if ERR was asserted
+    if (_di_regs[DI_SR] & DI_SR_DEINT) {
+        return 1;
+    }
+    return 0;
+}
+
+void dvd_threaded_audio_config(char use_streaming, char size) {
+    _di_regs[DI_SR] = (DI_SR_BRKINTMASK | DI_SR_TCINTMASK | DI_SR_DEINT | DI_SR_DEINTMASK);
+    _di_regs[DI_CVR] = 0; // clear cover int
+
+	if(use_streaming) {
+        if (!size) size = 10;
+        _di_regs[DI_CMDBUF0] = DVD_OEM_AUDIO | 0x10000 | size;
+        _di_regs[DI_CMDBUF1] = 0;
+        _di_regs[DI_CMDBUF2] = 0;
+	} else {
+        _di_regs[DI_CMDBUF0] = DVD_OEM_AUDIO;
+        _di_regs[DI_CMDBUF1] = 0;
+        _di_regs[DI_CMDBUF2] = 0;
+	}
+
+    _di_regs[DI_MAR] = 0;
+    _di_regs[DI_LENGTH] = 0;
+    _di_regs[DI_CR] = DI_CR_TSTART; // start transfer
+
+    while (_di_regs[DI_CR] & DI_CR_TSTART) {
+        OSYieldThread();
+    }
+}
+
+unsigned int dvd_threaded_get_error() {
+    _di_regs[DI_CMDBUF0] = DVD_OEM_ERROR;
+    _di_regs[DI_IMMBUF] = 0;
+    _di_regs[DI_CR] = DI_CR_TSTART; // IMM
+
+    while (_di_regs[DI_CR] & DI_CR_TSTART) {
+        OSYieldThread();
+    }
+
+    return _di_regs[DI_IMMBUF];
+}
+
+void dvd_threaded_stop_motor() {
+    _di_regs[DI_CMDBUF0] = DVD_OEM_STOP_MOTOR;
+    _di_regs[DI_IMMBUF] = 0;
+    _di_regs[DI_CR] = DI_CR_TSTART; // IMM
+
+    while (_di_regs[DI_CR] & DI_CR_TSTART) {
+        OSYieldThread();
+    }
+}
+
+void dvd_threaded_reset() {
+	_di_regs[DI_CVR] = 2;
+	volatile unsigned long v = *(volatile unsigned long*)0xcc003024;
+	*(volatile unsigned long*)0xcc003024 = (v & ~4) | 1;
+	udelay_threaded(12);
+	*(volatile unsigned long*)0xcc003024 = v | 5;
 }

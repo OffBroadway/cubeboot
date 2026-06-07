@@ -8,6 +8,9 @@
 
 #include <ogc/machine/processor.h>
 
+#include "audio.h"
+#include "bs2.h"
+#include "draw.h"
 #include "usbgecko.h"
 #include "menu.h"
 #include "grid.h"
@@ -26,6 +29,8 @@
 
 #include "time.h"
 
+#include "element_alpha.h"
+
 // TODO: this is all zeros except for one BNRDesc, so replace it with a sparse version
 #include "default_opening_bin.h"
 #include "gcm.h"
@@ -35,8 +40,6 @@
 __attribute_reloc__ void (*menu_alpha_setup)();
 
 // for custom menus
-__attribute_reloc__ void (*prep_text_mode)();
-__attribute_reloc__ void (*gx_draw_text)(u16 index, text_group* text, text_draw_group* text_draw, GXColor* color);
 __attribute_reloc__ void (*setup_gameselect_menu)(u8 alpha_0, u8 alpha_1, u8 alpha_2);
 __attribute_reloc__ GXColorS10 *(*get_save_color)(u32 color_index, s32 save_type);
 __attribute_reloc__ void (*setup_gameselect_anim)();
@@ -44,29 +47,12 @@ __attribute_reloc__ void (*setup_cube_anim)();
 __attribute_reloc__ model_data *save_icon;
 __attribute_reloc__ model_data *save_empty;
 
-// for audio
-__attribute_reloc__ void (*Jac_PlaySe)(u32);
-__attribute_reloc__ void (*Jac_StopSoundAll)();
 __attribute_reloc__ bool (*is_key_repeat)();
 
-// for model gx
-__attribute_reloc__ void (*model_init)(model* m, int process);
-__attribute_reloc__ void (*draw_model)(model* m);
-__attribute_reloc__ void (*draw_partial)(model* m, model_part* part);
-__attribute_reloc__ void (*change_model)(model* m);
-
 // for menu elements
-__attribute_reloc__ void (*draw_grid)(Mtx position, u8 alpha);
-__attribute_reloc__ void (*draw_box)(u32 index, box_draw_group* header, GXColor* texa, int inside_x, int inside_y, int inside_width, int inside_height);
 // __attribute_reloc__ void (*draw_start_info)(u8 alpha);
 __attribute_reloc__ void (*draw_start_anim)(u8 alpha);
-__attribute_reloc__ void (*draw_blob_fixed)(void *blob_ptr, void *blob_a, void *blob_b, GXColor *color);
-__attribute_reloc__ void (*draw_blob_text)(u32 type, void *blob, GXColor *color, char *str, s32 len);
-__attribute_reloc__ void (*draw_blob_text_long)(u32 type, void *blob, GXColor *color, char *str, s32 len);
-__attribute_reloc__ void (*draw_blob_border)(u32 type, void *blob, GXColor *color);
-__attribute_reloc__ void (*draw_blob_tex)(u32 type, void *blob, GXColor *color, tex_data *dat);
-__attribute_reloc__ void (*setup_tex_draw)(s32 unk0, s32 unk1, s32 unk2);
-__attribute_reloc__ void (*draw_named_tex)(u32 type, void *blob, GXColor *color, s16 x, s16 y);
+__attribute_reloc__ void *banner_element_alpha;
 
 // unknown blob (from memcard menu)
 __attribute_reloc__ void **ptr_menu_blob;
@@ -74,22 +60,18 @@ __attribute_data__ void *menu_blob = NULL;
 
 // unknown blobs (from gameselect menu)
 __attribute_reloc__ void *game_blob_text;
+__attribute_reloc__ void *game_blob_insert_disc;
+__attribute_reloc__ void *game_blob_reading_disc;
+__attribute_reloc__ void *game_blob_could_not_read_disc;
 __attribute_reloc__ void **ptr_game_blob_a;
 __attribute_data__ void *game_blob_a = NULL;
 __attribute_reloc__ void **ptr_game_blob_b;
 __attribute_data__ void *game_blob_b = NULL;
 
-// for camera gx
-__attribute_reloc__ void (*set_obj_pos)(model* m, MtxP matrix, guVector vector);
-__attribute_reloc__ void (*set_obj_cam)(model* m, MtxP matrix);
-__attribute_reloc__ MtxP (*get_camera_mtx)();
-
 // helpers
-__attribute_reloc__ f32 (*fast_sin)(s16 deg);
-__attribute_reloc__ f32 (*fast_cos)(s16 deg);
 __attribute_reloc__ void (*apply_save_rot)(s32 x, s32 y, s32 z, Mtx matrix);
 __attribute_reloc__ u32 *bs2start_ready;
-__attribute_reloc__ u32 *banner_pointer;
+__attribute_reloc__ const BNR **banner_pointer;
 __attribute_reloc__ u32 *banner_ready;
 
 typedef struct {
@@ -110,6 +92,8 @@ typedef struct {
 } selected_mod_t;
 
 static selected_mod_t selected_icon_mod;
+
+static bool last_disc_ready_to_start = false;
 
 // Define constants for max dimensions
 void setup_icon_positions();
@@ -201,7 +185,7 @@ void set_textured_icon_unselected() {
 
 __attribute_used__ void custom_gameselect_init() {
     // default banner
-    *banner_pointer = (u32)&default_opening_bin[0];
+    *banner_pointer = (const BNR *)&default_opening_bin[0];
     *banner_ready = 1;
 
     // menu setup
@@ -573,6 +557,9 @@ void fix_gameselect_view() {
 }
 
 __attribute_data__ u32 current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
+u32 gameselect_menu_stack[] = { -1 };
+u32 gameselect_menu_stack_count = 0;
+
 __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8 broken_alpha_2) {
     // color
     u8 ui_alpha = alpha_1;
@@ -697,26 +684,69 @@ __attribute_used__ void original_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, 
     u8 ui_alpha = alpha_1;
     GXColor white = {0xFF, 0xFF, 0xFF, ui_alpha};
 
-    gm_file_entry_t *entry = gm_get_game_entry(selected_slot);
-    if (entry == NULL) return; // protect against transition during enum
-    if (entry->extra.game_id[3] == 'J') switch_lang_jpn();
+    u16 banner_alpha = 0;
+    get_element_alpha(banner_element_alpha, &banner_alpha, NULL);
+    GXColor banner_white = {0xFF, 0xFF, 0xFF, (banner_alpha * ui_alpha) / 0xFF};
+
+    char game_region = '?';
+    u8* pixelData = NULL;
+    BNRDesc *desc = NULL;
+    bool show_full_banner = true;
+
+    switch (selected_device) {
+        case device_disc_drive: {
+            game_region = disc_read_region;
+
+            bool is_valid_disc_bnr = strncmp(stock_banner_ptr->magic, "BNR1", 4) || strncmp(stock_banner_ptr->magic, "BNR2", 4);
+
+            if (is_valid_disc_bnr) {
+                pixelData = stock_banner_ptr->pixelData;
+
+                int language = 0;
+                if (stock_banner_ptr->magic[3] == '2' /*&& is_pal_console */) {
+                    // BNR2 banners support multiple PAL languages, so use the appropriate one for this PAL console
+                    // TODO: How do we get the current PAL language?
+                }
+                desc = &stock_banner_ptr->desc[language];
+            }
+            break;
+        }
+        case device_flippydrive: {
+            gm_file_entry_t *entry = gm_get_game_entry(selected_slot);
+            if (entry == NULL) return; // protect against transition during enum
+
+            game_region = entry->extra.game_id[3];
+
+            if (entry->type == GM_FILE_TYPE_GAME && entry->asset.banner.state == GM_LOAD_STATE_LOADED) {
+                pixelData = entry->asset.banner.buf->data;
+            }
+
+            desc = &entry->desc;
+            show_full_banner = entry->type == GM_FILE_TYPE_GAME;
+            break;
+        }
+    }
+
+    if (game_region == 'J') switch_lang_jpn();
     else switch_lang_eng();
 
-    if (entry->type == GM_FILE_TYPE_GAME && entry->asset.banner.state == GM_LOAD_STATE_LOADED) {
+    if (pixelData) {
         // game banner
         setup_tex_draw(1, 0, 1);
-        banner_texture.offset = (s32)((u32)(entry->asset.banner.buf->data) - (u32)&banner_texture);
-        draw_blob_tex(make_type('b','a','n','a'), game_blob_b, &white, &banner_texture);
+        banner_texture.offset = (s32)((u32)(pixelData) - (u32)&banner_texture);
+        draw_blob_tex(make_type('b','a','n','a'), game_blob_b, &banner_white, &banner_texture);
     }
 
     // game info
     prep_text_mode();
-    draw_blob_text(make_type('t','i','t','l'), game_blob_b, &white, entry->desc.fullGameName, 0x40);
-    if (entry->type == GM_FILE_TYPE_GAME) {
-        draw_blob_text(make_type('m','a','k','r'), game_blob_b, &white, entry->desc.fullCompany, 0x40);
-        draw_blob_text_long(make_type('i','n','f','o'), game_blob_b, &white, entry->desc.description, 0x80);
-    } else {
-        draw_blob_text(make_type('m','a','k','r'), game_blob_b, &white, entry->desc.description, 0x40);
+    if (desc) {
+        draw_blob_text(make_type('t','i','t','l'), game_blob_b, &banner_white, desc->fullGameName, 0x40);
+        if (show_full_banner) {
+            draw_blob_text(make_type('m','a','k','r'), game_blob_b, &banner_white, desc->fullCompany, 0x40);
+            draw_blob_text_long(make_type('i','n','f','o'), game_blob_b, &banner_white, desc->description, 0x80);
+        } else {
+            draw_blob_text(make_type('m','a','k','r'), game_blob_b, &banner_white, desc->description, 0x40);
+        }
     }
 
     // press start anim
@@ -729,7 +759,46 @@ __attribute_used__ void original_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, 
     switch_lang_orig();
     draw_blob_fixed(game_blob_text, game_blob_a, game_blob_b, &white);
 
+    // Messages relating to reading a disc
+    if (selected_device == device_disc_drive) {
+        draw_blob_fixed(game_blob_insert_disc, game_blob_a, game_blob_b, &white);
+        draw_blob_fixed(game_blob_reading_disc, game_blob_a, game_blob_b, &white);
+        draw_blob_fixed(game_blob_could_not_read_disc, game_blob_a, game_blob_b, &white);
+    }
     return;
+}
+
+static void on_submenu_shown() {
+    switch (current_gameselect_state) {
+        case SUBMENU_GAMESELECT_LOADER:
+            break;
+
+        case SUBMENU_GAMESELECT_START:
+            setup_gameselect_anim();
+            setup_cube_anim();
+
+            switch (selected_device) {
+                case device_disc_drive:
+                {
+                    bool ready_to_start = disc_read_state == STATE_START_GAME;
+                    if (ready_to_start) {
+                        // TODO: Get the correct BNRDesc for the current language
+                        mcp_set_gameid_for_disc(&disc_game_info, &stock_banner_ptr->desc[0]);
+                    }
+                    last_disc_ready_to_start = ready_to_start;
+                    break;
+                }
+                case device_flippydrive:
+                {
+                    gm_file_entry_t *entry = gm_get_game_entry(selected_slot);
+                    if (entry && entry->type == GM_FILE_TYPE_GAME) {
+                        mcp_set_gameid(entry);
+                    }
+                    break;
+                }
+            }
+            break;
+    }
 }
 
 static bool first_transition = true;
@@ -739,9 +808,28 @@ static u8 original_menu_transition_alpha = 0;
 __attribute_used__ void pre_menu_alpha_setup() {
     menu_alpha_setup(); // run original function
 
-    if (*cur_menu_id == MENU_GAMESELECT_ID && *prev_menu_id == MENU_GAMESELECT_TRANSITION_ID) {
-        OSReport("Resetting back to SUBMENU_GAMESELECT_LOADER\n");
-        current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
+    if (*cur_menu_id == MENU_GAMESELECT_ID && *next_menu_id == MENU_GAMESELECT_TRANSITION_ID) {
+        switch (selected_device) {
+            case device_disc_drive:
+                OSReport("Resetting back to SUBMENU_GAMESELECT_START\n");
+                current_gameselect_state = SUBMENU_GAMESELECT_START;
+                break;
+
+            case device_flippydrive:
+                OSReport("Resetting back to SUBMENU_GAMESELECT_LOADER\n");
+                current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
+                break;
+        }
+
+        gameselect_menu_stack_count = 0;
+
+        custom_menu_transition_alpha = current_gameselect_state == SUBMENU_GAMESELECT_LOADER ? 0xFF : 0;
+        original_menu_transition_alpha = current_gameselect_state == SUBMENU_GAMESELECT_START ? 0xFF : 0;
+
+        // Force the game ID to be re-sent, in case the disc has changed since the menu was last opened
+        last_disc_ready_to_start = false;
+
+        on_submenu_shown();
 
         if (first_transition) {
             Jac_PlaySe(SOUND_MENU_ENTER);
@@ -760,7 +848,8 @@ __attribute_used__ void mod_gameselect_draw(u8 alpha_0, u8 alpha_1, u8 alpha_2) 
     u8 original_alpha_1 = original_menu_transition_alpha;
 
     if (alpha_1 != 0xFF) {
-        custom_alpha_1 = alpha_1;
+        custom_alpha_1 = ((int)custom_alpha_1 * alpha_1) / 0xFF;
+        original_alpha_1 = ((int)original_alpha_1 * alpha_1) / 0xFF;
     }
 
     if (custom_alpha_1 != 0) custom_gameselect_menu(alpha_0, custom_alpha_1, alpha_2);
@@ -768,6 +857,46 @@ __attribute_used__ void mod_gameselect_draw(u8 alpha_0, u8 alpha_1, u8 alpha_2) 
 
     return;
 }
+
+static void push_menu_stack(u32 new_state) {
+    if (gameselect_menu_stack_count >= countof(gameselect_menu_stack)) {
+        // Out of menu stack space
+        return;
+    }
+
+    Jac_PlaySe(SOUND_SUBMENU_CONFIRM);
+
+    gameselect_menu_stack[gameselect_menu_stack_count] = current_gameselect_state;
+    gameselect_menu_stack_count += 1;
+    current_gameselect_state = new_state;
+
+    in_submenu_transition = true;
+
+    // Run code when transitioning to the new menu
+    on_submenu_shown();
+}
+
+static bool pop_menu_stack() {
+    Jac_PlaySe(SOUND_MENU_EXIT);
+
+    if (gameselect_menu_stack_count > 0) {
+        gameselect_menu_stack_count -= 1;
+        current_gameselect_state = gameselect_menu_stack[gameselect_menu_stack_count];
+
+        in_submenu_transition = true;
+        return false;
+
+    } else {
+        anim_step = 0; // anim reset
+        if (selected_device == device_flippydrive) {
+            // banner reset - only relevant for the FlippyDrive (the disc drive always uses a single banner)
+            *banner_pointer = (const BNR *)&default_opening_bin[0];
+        }
+        return true;
+    }
+}
+
+static bool starting_game = false;
 
 __attribute_used__ s32 handle_gameselect_inputs() {
     update_icon_positions();
@@ -813,21 +942,17 @@ __attribute_used__ s32 handle_gameselect_inputs() {
     }
 
     if (pad_status->buttons_down & PAD_BUTTON_B) {
-        if (current_gameselect_state == SUBMENU_GAMESELECT_START && !in_submenu_transition) {
-            in_submenu_transition = true;
-            current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
-            Jac_PlaySe(SOUND_SUBMENU_EXIT);
-        } else if (!in_submenu_transition) {
-            // TODO: check current path depth
-            if (strcmp(game_enum_path, "/") != 0) {
+        if (!in_submenu_transition) {
+            if (current_gameselect_state == SUBMENU_GAMESELECT_LOADER && strcmp(game_enum_path, "/") != 0) {
                 gm_deinit_thread();
                 Jac_PlaySe(SOUND_MENU_EXIT);
                 gm_start_thread("..");
+
             } else {
-                anim_step = 0; // anim reset
-                *banner_pointer = (u32)&default_opening_bin[0]; // banner reset
-                Jac_PlaySe(SOUND_MENU_EXIT);
-                return MENU_GAMESELECT_ID;
+                if (pop_menu_stack()) {
+                    // If we're reached the end of the stack, then need to return to the menu
+                    return MENU_GAMESELECT_ID;
+                }
             }
         }
     }
@@ -839,22 +964,13 @@ __attribute_used__ s32 handle_gameselect_inputs() {
                 OSReport("Selected DIR slot: %d (%p)\n", selected_slot, entry);
 
                 gm_deinit_thread();
-                Jac_PlaySe(SOUND_SUBMENU_ENTER);
+                Jac_PlaySe(SOUND_SUBMENU_CONFIRM);
 
                 char path[128];
                 sprintf(path, "%s/", entry->path);
                 gm_start_thread(path);
             } else {
-                in_submenu_transition = true;
-                current_gameselect_state = SUBMENU_GAMESELECT_START;
-
-                Jac_PlaySe(SOUND_SUBMENU_ENTER);
-                setup_gameselect_anim();
-                setup_cube_anim();
-
-                if (entry->type == GM_FILE_TYPE_GAME) {
-                    mcp_set_gameid(entry);
-                }
+                push_menu_stack(SUBMENU_GAMESELECT_START);
 
                 // OSReport("Selected slot: %d (%p)\n", selected_slot, asset);
             }
@@ -865,16 +981,51 @@ __attribute_used__ s32 handle_gameselect_inputs() {
     //     ...
     // }
 
-    if (pad_status->buttons_down & PAD_BUTTON_START && current_gameselect_state == SUBMENU_GAMESELECT_START) {
-        Jac_StopSoundAll();
-        Jac_PlaySe(SOUND_MENU_FINAL);
-        gm_file_entry_t *entry = gm_get_game_entry(selected_slot);
-        memcpy(&boot_entry, entry, sizeof(gm_file_entry_t));
-        if (boot_entry.second != NULL) {
-            memcpy(&second_boot_entry, boot_entry.second, sizeof(gm_file_entry_t));
-            boot_entry.second = &second_boot_entry;
+
+    if (current_gameselect_state == SUBMENU_GAMESELECT_START) {
+        bool ready_to_start = false;
+        gm_file_entry_t *entry = NULL;
+        switch (selected_device) {
+            case device_disc_drive:
+                ready_to_start = disc_read_state == STATE_START_GAME;
+
+                if (ready_to_start && !last_disc_ready_to_start) {
+                    // TODO: Get the correct BNRDesc for the current language
+                    mcp_set_gameid_for_disc(&disc_game_info, &stock_banner_ptr->desc[0]);
+                }
+
+                last_disc_ready_to_start = ready_to_start;
+                break;
+            case device_flippydrive:
+                entry = gm_get_game_entry(selected_slot);
+                ready_to_start = entry != NULL;
+                break;
         }
-        *bs2start_ready = 1;
+
+        if (!*bs2start_ready) {
+            if (starting_game) {
+                // Disc startup has been interrupted (e.g. disc cover opened during animation)
+                // We have to restart the background music that we previously stopped
+                Jac_PlayBgm(0);
+                starting_game = false;
+            }
+
+            if (pad_status->buttons_down & PAD_BUTTON_START && ready_to_start) {
+                Jac_StopSoundAll();
+                Jac_PlaySe(SOUND_MENU_FINAL);
+
+                if (selected_device == device_flippydrive) {
+                    memcpy(&boot_entry, entry, sizeof(gm_file_entry_t));
+                    if (boot_entry.second != NULL) {
+                        memcpy(&second_boot_entry, boot_entry.second, sizeof(gm_file_entry_t));
+                        boot_entry.second = &second_boot_entry;
+                    }
+                }
+
+                *bs2start_ready = 1;
+                starting_game = true;
+            }
+        }
     }
 
     if (current_gameselect_state == SUBMENU_GAMESELECT_LOADER) {

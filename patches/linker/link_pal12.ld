@@ -42,6 +42,7 @@ pal12___pformatter = 0x8137d9cc;
 pal12___StringWrite = 0x8137d960;
 
 pal12_Jac_StopSoundAll = 0x8135ad20;
+pal12_Jac_PlayBgm = 0x8135ad60;
 pal12_menu_alpha_setup = 0x81312bd4;
 pal12_get_save_color = 0x81320f10;
 pal12_setup_gameselect_anim = 0x81327b50;
@@ -60,12 +61,15 @@ pal12_fast_cos = 0x81307e54;
 pal12_banner_ready = 0x814af588;
 pal12_banner_pointer = 0x814af5e8;
 pal12_game_blob_text = 0x814dfc88;
+pal12_game_blob_insert_disc = 0x814dfc98;
+pal12_game_blob_reading_disc = 0x814dfcb8;
+pal12_game_blob_could_not_read_disc = 0x814dfcc8;
 pal12_ptr_menu_blob = 0x814af77c;
 pal12_ptr_game_blob_a = 0x814af86c;
 pal12_ptr_game_blob_b = 0x814af868;
 pal12_bs2start_ready = 0x814af870;
 pal12_cur_menu_id = 0x814af6ec;
-pal12_prev_menu_id = 0x814af6f0;
+pal12_next_menu_id = 0x814af6f0;
 pal12_save_empty = 0x814cc128;
 pal12_save_icon = 0x814cc160;
 
@@ -103,3 +107,17 @@ pal12_EXIImm = 0x81367040;
 pal12_EXIImmEx = 0x8136729c;
 
 pal12_is_key_repeat = 0x81302f48;
+
+pal12_stock_banner_ptr = 0x80a7d4a0;
+
+pal12_get_element_alpha = 0x8130aaa4;
+pal12_update_element_alpha = 0x8130a9bc;
+pal12_banner_element_alpha = 0x814dfc78;
+pal12_top_level_banner_element_alpha = 0x814b7a7c;
+
+pal12_cube_menu_rotation_vertical = 0x814b7672;
+pal12_cube_menu_alpha = 0x814b7678;
+
+pal12_draw_buttons = 0x813151cc;
+pal12_setup_buttons_matrix = 0x81303218;
+pal12_update_button_alphas = 0x813126c0;

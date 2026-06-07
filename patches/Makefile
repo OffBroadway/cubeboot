@@ -35,7 +35,7 @@ endif
 # options for code generation
 #---------------------------------------------------------------------------------
 
-CFLAGS		= -O2 -Wall -Wno-main -ffixed-r12 -ffixed-r13 -ffunction-sections -fdata-sections -Wno-unused-function -Werror-implicit-function-declaration $(MACHDEP) $(INCLUDE)
+CFLAGS		= -O2 -std=gnu23 -Wall -Wno-main -ffixed-r12 -ffixed-r13 -ffunction-sections -fdata-sections -Wno-unused-function -Werror-implicit-function-declaration $(MACHDEP) $(INCLUDE)
 CXXFLAGS	= $(CFLAGS)
 
 LINKER_SCRIPTS	:=
@@ -147,6 +147,14 @@ fake.o: patch.o
 # This rule links in binary data with the .bin extension
 #---------------------------------------------------------------------------------
 %.bin.o	%_bin.h: %.bin
+#---------------------------------------------------------------------------------
+	@echo $(notdir $<)
+	$(bin2o)
+
+#---------------------------------------------------------------------------------
+# This rule links in binary texture data with the .bti extension
+#---------------------------------------------------------------------------------
+%.bti.o	%_bti.h: %.bti
 #---------------------------------------------------------------------------------
 	@echo $(notdir $<)
 	$(bin2o)

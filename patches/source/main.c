@@ -6,34 +6,22 @@
 #include "attr.h"
 #include "util.h"
 #include "os.h"
+#include "ipc.h"
 
 #include "usbgecko.h"
 #include "state.h"
-#include "time.h"
 
+#include "bs2.h"
 #include "reloc.h"
 #include "menu.h"
 
 #include "dolphin_arq.h"
-#include "flippy_sync.h"
-#include "gc_dvd.h"
 #include "games.h"
 
 #include "video.h"
-#include "dol.h"
-#include "boot.h"
-#include "gameid.h"
 
 #define CUBE_TEX_WIDTH 84
 #define CUBE_TEX_HEIGHT 84
-
-#define GAMECUBE_LOGO_WIDTH 352
-#define GAMECUBE_LOGO_HEIGHT 40
-
-#define STATE_WAIT_LOAD  0x0f // delay after animation
-#define STATE_START_GAME 0x10 // play full animation and start game
-#define STATE_NO_DISC    0x12 // play full animation before menu
-#define STATE_COVER_OPEN 0x13 // force direct to menu
 
 // __attribute_data__ u32 prog_entrypoint;
 // __attribute_data__ u32 prog_dst;
@@ -47,20 +35,12 @@ __attribute_data__ static u8 *cube_text_tex = NULL;
 __attribute_data__ char cube_logo_path[MAX_FILE_NAME] = {0};
 __attribute_data__ u32 force_progressive = 0;
 __attribute_data__ u32 force_widescreen = 0;
-__attribute_data__ u32 force_swiss_boot = 0;
 
 // used if we are switching to 60Hz on a PAL IPL
 __attribute_data__ static int fix_pal_ntsc = 0;
 
 // used for optional delays
 __attribute_data__ u32 preboot_delay_ms = 0;
-__attribute_data__ u32 postboot_delay_ms = 0;
-__attribute_data__ u64 completed_time = 0;
-
-// used to start game
-__attribute_reloc__ u32 (*PADSync)();
-__attribute_reloc__ void (*__OSStopAudioSystem)();
-// __attribute_reloc__ void (*run)(register void* entry_point, register u32 clear_start, register u32 clear_size);
 
 // for setup
 __attribute_reloc__ void (*orig_thread_init)();
@@ -371,16 +351,15 @@ __attribute_used__ void pre_thread_init() {
 
     gm_init_heap();
     gm_init_thread();
-    if (!start_passthrough_game) {
-        gm_start_thread("/");
-    }
+
+    bs2init();
 }
 
 __attribute_used__ void pre_menu_init(int unk) {
     menu_init(unk);
 
     // change default menu
-    *prev_menu_id = MENU_GAMESELECT_TRANSITION_ID;
+    *next_menu_id = MENU_GAMESELECT_TRANSITION_ID;
     *cur_menu_id = MENU_GAMESELECT_ID;
 
     custom_gameselect_init();
@@ -458,114 +437,6 @@ __attribute_used__ void pre_main() {
 
 __attribute_used__ u32 get_tvmode() {
     return rmode->viTVMode;
-}
-
-__attribute_data__ int frame_count = 0;
-__attribute_used__ u32 bs2tick() {
-    frame_count++;
-    if (!completed_time && cube_state->cube_anim_done) {
-        OSReport("FINISHED (%d frames)\n", frame_count);
-        completed_time = gettime();
-    }
-
-    if (start_passthrough_game) {
-        if (postboot_delay_ms) {
-            u64 elapsed = diff_msec(completed_time, gettime());
-            if (completed_time > 0 && elapsed > postboot_delay_ms) {
-                return STATE_START_GAME;
-            } else {
-                return STATE_WAIT_LOAD;
-            }
-        }
-        return STATE_START_GAME;
-    }
-
-    // this helps the start menu show correctly
-    if (*main_menu_id >= 3) {
-        return STATE_START_GAME;
-    }
-
-#ifdef TEST_SKIP_ANIMATION
-    return STATE_COVER_OPEN;
-#endif
-
-    // TODO: allow the user to decide if they want to logo to play
-    return STATE_NO_DISC;
-}
-
-__attribute_used__ void bs2start() {
-    OSReport("DONE\n");
-
-    // read boot info into lowmem
-    struct dolphin_lowmem *lowmem = (struct dolphin_lowmem*)0x80000000;
-
-    if (!start_passthrough_game) {
-        gm_deinit_thread();
-    } else {
-        dvd_custom_bypass_enter();
-        udelay(10 * 1000);
-
-        int ret = dvd_read_id();
-        int err = dvd_get_error();
-        if (ret != 0 || err != 0) {
-            custom_OSReport("Failed to read disc ID\n");
-            dvd_custom_bypass_exit();
-            udelay(10 * 1000);
-
-            load_stub(); // exit to loader again
-            u32 *sig = (u32*)0x80001804;
-            if ((*sig++ == 0x53545542 || *sig++ == 0x53545542) && *sig == 0x48415858) {
-                static void (*reload)(void) = (void(*)(void))0x80001800;
-                run(reload);
-            }
-        }
-
-        custom_OSReport("Game ID: %c%c%c%c\n", lowmem->b_disk_info.game_code[0], lowmem->b_disk_info.game_code[1], lowmem->b_disk_info.game_code[2], lowmem->b_disk_info.game_code[3]);
-        dvd_audio_config(lowmem->b_disk_info.audio_streaming, lowmem->b_disk_info.stream_buffer_size);
-
-        char diskName[64] = "DISC GAME\0";
-        setup_gameid_commands(&lowmem->b_disk_info, diskName);
-    }
-
-    // no IPL code should be running after this point
-
-    while (!PADSync());
-    OSDisableInterrupts();
-    __OSStopAudioSystem();
-
-    u32 start_addr = 0x80100000;
-    u32 end_addr = 0x81600000;
-    u32 len = end_addr - start_addr;
-
-    memset((void*)start_addr, 0, len); // cleanup
-    DCFlushRange((void*)start_addr, len);
-    ICInvalidateRange((void*)start_addr, len);
-
-    // Passthrough mode
-    if (start_passthrough_game) {
-        chainload_boot_game(NULL, true);
-    }
-
-    char *boot_path = boot_entry.path;
-    if (boot_entry.type == GM_FILE_TYPE_PROGRAM) {
-        custom_OSReport("Booting DOL\n");
-        load_stub();
-
-        dol_info_t info = load_dol_file(boot_path, false);
-        run(info.entrypoint);
-    } else {
-        custom_OSReport("Booting ISO\n");
-
-        if (!force_swiss_boot) {
-            custom_OSReport("Booting ISO (custom apploader)\n");
-            chainload_boot_game(&boot_entry, false);
-        } else {
-            custom_OSReport("Booting ISO (swiss chainload)\n");
-            chainload_swiss_game(boot_path, false);
-        }
-    }
-
-    __builtin_unreachable();
 }
 
 void mega_trap(u32 r3, u32 r4, u32 r5, u32 r6) {

@@ -1,1 +1,2 @@
 pyelftools==0.28
+gclib @ git+https://github.com/LagoLunatic/gclib@64127742467acb633d51685b9b1798ab45bb4034

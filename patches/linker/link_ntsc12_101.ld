@@ -41,6 +41,7 @@ ntsc12_101___pformatter = 0x8137a654;
 ntsc12_101___StringWrite = 0x8137a5e8;
 
 ntsc12_101_Jac_StopSoundAll = 0x813579a0;
+ntsc12_101_Jac_PlayBgm = 0x813579e0;
 ntsc12_101_menu_alpha_setup = 0x81312560;
 ntsc12_101_get_save_color = 0x813207d4;
 ntsc12_101_setup_gameselect_anim = 0x813273ec;
@@ -59,12 +60,15 @@ ntsc12_101_fast_cos = 0x813080a0;
 ntsc12_101_banner_ready = 0x81483948;
 ntsc12_101_banner_pointer = 0x814839a8;
 ntsc12_101_game_blob_text = 0x814b4048;
+ntsc12_101_game_blob_insert_disc = 0x814b4058;
+ntsc12_101_game_blob_reading_disc = 0x814b4078;
+ntsc12_101_game_blob_could_not_read_disc = 0x814b4088;
 ntsc12_101_ptr_menu_blob = 0x81483b3c;
 ntsc12_101_ptr_game_blob_a = 0x81483c2c;
 ntsc12_101_ptr_game_blob_b = 0x81483c28;
 ntsc12_101_bs2start_ready = 0x81483c30;
 ntsc12_101_cur_menu_id = 0x81483aac;
-ntsc12_101_prev_menu_id = 0x81483ab0;
+ntsc12_101_next_menu_id = 0x81483ab0;
 ntsc12_101_save_empty = 0x814a04e8;
 ntsc12_101_save_icon = 0x814a0520;
 
@@ -102,3 +106,17 @@ ntsc12_101_EXIImm = 0x81363cc8;
 ntsc12_101_EXIImmEx = 0x81363f24;
 
 ntsc12_101_is_key_repeat = 0x81303194;
+
+ntsc12_101_stock_banner_ptr = 0x809f8440;
+
+ntsc12_101_get_element_alpha = 0x8130add8;
+ntsc12_101_update_element_alpha = 0x8130acf0;
+ntsc12_101_banner_element_alpha = 0x814b4038;
+ntsc12_101_top_level_banner_element_alpha = 0x8148be3c;
+
+ntsc12_101_cube_menu_rotation_vertical = 0x8148ba32;
+ntsc12_101_cube_menu_alpha = 0x8148ba38;
+
+ntsc12_101_draw_buttons = 0x813149b4;
+ntsc12_101_setup_buttons_matrix = 0x81303464;
+ntsc12_101_update_button_alphas = 0x81312098;

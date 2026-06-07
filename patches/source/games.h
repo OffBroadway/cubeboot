@@ -1,12 +1,15 @@
 #pragma once
 
 #include <gctypes.h>
+#include <stdatomic.h>
 
 #include "dolphin_os.h"
 #include "icon.h"
 #include "bnr.h"
 
 #include "decomp_ar.h"
+
+typedef struct dolphin_game_into_t dolphin_game_into_t;
 
 // Backing
 typedef enum {
@@ -107,10 +110,26 @@ extern char game_enum_path[];
 extern gm_file_entry_t boot_entry;
 extern gm_file_entry_t second_boot_entry;
 
+// For DVD-reading thread
+extern atomic_bool request_disc_stop_thread;
+extern atomic_bool request_disc_start_game;
+extern atomic_uint disc_read_state;
+extern atomic_bool disc_read_banner_ready;
+extern atomic_char disc_read_region;
+
+// Only usable when `disc_read_banner_ready` is true and/or `disc_read_state` is `STATE_START_GAME`
+extern dolphin_game_into_t disc_game_info;
+
+extern BNR* stock_banner_ptr;
+
+extern bool game_enum_running;
+extern bool game_disc_running;
+
 void gm_init_heap();
 void gm_init_thread();
 void gm_deinit_thread();
 void gm_start_thread(const char *target);
+void gm_start_disc_thread();
 void gm_line_changed(int delta);
 bool gm_can_move();
 gm_file_entry_t *gm_get_game_entry(int index);

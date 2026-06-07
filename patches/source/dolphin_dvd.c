@@ -32,13 +32,19 @@ typedef struct {
     u32 length;
 } bnr_info_t;
 
-static bnr_info_t get_banner_offset_slow(DiskHeader *header, uint32_t fd) {
+static bnr_info_t get_banner_offset_slow(DiskHeader *header, uint32_t fd, dvd_should_cancel_callback should_cancel) {
+    bnr_info_t invalid_info = (bnr_info_t) {
+        .offset = 0,
+        .length = 0,
+    };
     u32 size = OSRoundUp32B(header->FSTSize);
     u32 offset = header->FSTOffset;
     u8 *fst = (void*)0x81700000;
 
     // read FST
-    dvd_threaded_read(fst, size, offset, fd);
+    if (dvd_threaded_read(fst, size, offset, fd, should_cancel) != 0) {
+        return invalid_info;
+    }
 
     FSTEntry *entry_table = (FSTEntry*)fst;
     u32 total_entries = entry_table[0].len;
@@ -76,44 +82,29 @@ static bnr_info_t get_banner_offset_slow(DiskHeader *header, uint32_t fd) {
     }
 
     OSYieldThread(); // allow rescheduling
-    return (bnr_info_t) {
-        .offset = 0,
-        .length = 0,
-    };
+    return invalid_info;
 }
 
 // Get the BNR offset on the disc
-dolphin_game_into_t get_game_info(char *game_path) {
+dolphin_game_into_t get_game_info_with_open_game(u8 fd, dvd_should_cancel_callback should_cancel) {
+    dolphin_game_into_t invalid_info = (dolphin_game_into_t) { .valid = false };
     __attribute__((aligned(32))) static u32 small_buf[8]; // for BNR reads
 
-    const uint8_t flags = IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLESPEEDEMU;
-    int ret = dvd_custom_open(game_path, FILE_ENTRY_TYPE_FILE, flags);
-    if (ret != 0) {
-        OSReport("ERROR: Failed to open %s\n", game_path);
-        return (dolphin_game_into_t) { .valid = false };
-    }
-
-    // OSReport("DEBUG: file opened %s\n", game_path);
-
-    file_status_t *status = dvd_custom_status();
-    if (status->result != 0) {
-        OSReport("ERROR: Failed to get status for %s\n", game_path);
-
-        dvd_custom_close(status->fd);
-        return (dolphin_game_into_t) { .valid = false };
-    }
-
-    // OSReport("DEBUG: status loaded %d\n", status->fd);
-
     __attribute__((aligned(32))) static DiskHeader header;
-    dvd_threaded_read(&header, sizeof(DiskHeader), 0, status->fd); //Read in the disc header
+    // Read in the disc header
+    if (dvd_threaded_read(&header, sizeof(DiskHeader), 0, fd, should_cancel) != 0) {
+        return invalid_info;
+    }
 
     // OSReport("DEBUG: disk header loaded\n");
 
     u32 fast_bnr_offset = get_banner_offset_fast(&header);
     // OSReport("DEBUG: Fast BNR offset: %08x\n", fast_bnr_offset);
     if (fast_bnr_offset != 0) {
-        dvd_threaded_read(small_buf, 32, fast_bnr_offset, status->fd); //Read in the banner data
+        // Read in the banner data
+        if (dvd_threaded_read(small_buf, 32, fast_bnr_offset, fd, should_cancel) != 0) {
+            return invalid_info;
+        }
 
         u32 magic = small_buf[0];
         if (magic == BANNER_MAGIC_1 || magic == BANNER_MAGIC_2) {
@@ -128,8 +119,6 @@ dolphin_game_into_t get_game_info(char *game_path) {
             info.fst_offset = header.FSTOffset;
             info.fst_size = header.FSTSize;
             info.max_fst_size = header.MaxFSTSize;
-
-            dvd_custom_close(status->fd);
             return info;
         }
     }
@@ -138,14 +127,16 @@ dolphin_game_into_t get_game_info(char *game_path) {
 
     if (header.FSTSize > 0x100000) {
         OSReport("ERROR: FST size is too large: %08x\n", header.FSTSize);
-        dvd_custom_close(status->fd);
         return (dolphin_game_into_t) { .valid = false };
     }
 
     // If we didn't find the banner in the fast location, try the FST
-    bnr_info_t bnr_info = get_banner_offset_slow(&header, status->fd);
+    bnr_info_t bnr_info = get_banner_offset_slow(&header, fd, should_cancel);
     if (bnr_info.offset != 0) {
-        dvd_threaded_read(small_buf, 32, bnr_info.offset, status->fd); //Read in the banner data
+        // Read in the banner data
+        if (dvd_threaded_read(small_buf, 32, bnr_info.offset, fd, should_cancel) != 0) {
+            return invalid_info;
+        }
 
         u32 magic = small_buf[0];
         if (magic == BANNER_MAGIC_1 || magic == BANNER_MAGIC_2) {
@@ -160,15 +151,34 @@ dolphin_game_into_t get_game_info(char *game_path) {
             info.fst_offset = header.FSTOffset;
             info.fst_size = header.FSTSize;
             info.max_fst_size = header.MaxFSTSize;
-
-            dvd_custom_close(status->fd);
             return info;
         }
     }
 
     // OSReport("DEBUG: FST was loaded\n");
 
-    // invalid file
+    return invalid_info;
+}
+
+dolphin_game_into_t get_game_info(char *game_path) {
+    const uint8_t flags = IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLESPEEDEMU;
+    int ret = dvd_custom_open(game_path, FILE_ENTRY_TYPE_FILE, flags);
+    if (ret != 0) {
+        OSReport("ERROR: Failed to open %s\n", game_path);
+        return (dolphin_game_into_t) { .valid = false };
+    }
+
+    // OSReport("DEBUG: file opened\n");
+
+    file_status_t *status = dvd_custom_status();
+    if (status->result != 0) {
+        OSReport("ERROR: Failed to get status for %s\n", game_path);
+
+        dvd_custom_close(status->fd);
+        return (dolphin_game_into_t) { .valid = false };
+    }
+
+    dolphin_game_into_t game_info = get_game_info_with_open_game(status->fd, NULL);
     dvd_custom_close(status->fd);
-    return (dolphin_game_into_t) { .valid = false };
+    return game_info;
 }

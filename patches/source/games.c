@@ -23,11 +23,14 @@
 #include "dolphin_os.h"
 #include "dolphin_arq.h"
 #include "dolphin_dvd.h"
-#include "flippy_sync.h"
 #include "dvd_threaded.h"
+#include "flippy_sync.h"
+#include "gameid.h"
+#include "gc_dvd.h"
 
 #include "metaphrasis.h"
 
+#include "bs2.h"
 #include "games.h"
 #include "grid.h"
 #include "menu.h"
@@ -45,6 +48,7 @@ OSMutex *game_enum_mutex = &game_enum_mutex_obj;
 
 char game_enum_path[128] = {0};
 bool game_enum_running = false;
+bool game_disc_running = false;
 
 int assets_per_page;
 int assets_initial_count;
@@ -55,6 +59,8 @@ __attribute_data_lowmem__ static gm_path_entry_t *__gm_sorted_path_list[2000];
 __attribute_data_lowmem__ static gm_file_entry_t *gm_entry_backing[2000];
 
 static u32 gm_entry_count = 0;
+
+__attribute_reloc__ BNR* stock_banner_ptr;
 
 gm_file_entry_t *gm_get_game_entry(int index) {
     if (index >= gm_entry_count) return NULL;
@@ -590,7 +596,7 @@ static int gm_load_banner(gm_file_entry_t *entry, u32 aram_offset, bool force_un
     }
 
     __attribute_aligned_data_lowmem__ static BNR banner_buffer;
-    dvd_threaded_read(&banner_buffer, sizeof(BNR), entry->extra.dvd_bnr_offset, status->fd);
+    dvd_threaded_read(&banner_buffer, sizeof(BNR), entry->extra.dvd_bnr_offset, status->fd, NULL);
     dvd_custom_close(status->fd);
 
     entry->asset.banner.state = GM_LOAD_STATE_LOADING;
@@ -641,7 +647,7 @@ static bool gm_load_icon(gm_file_entry_t *entry, u32 aram_offset, bool force_unl
     void *file_buf = gm_malloc(file_size);
 
     // read
-    dvd_threaded_read(file_buf, file_size, 0, status->fd);
+    dvd_threaded_read(file_buf, file_size, 0, status->fd, NULL);
     dvd_custom_close(status->fd);
 
     ok_png png = gm_png_decode(file_buf, file_size);
@@ -965,6 +971,146 @@ void *gm_thread_worker(void* param) {
     return NULL;
 }
 
+// Stops the disc-reading loop, so we can switch to the FlippyDrive
+atomic_bool request_disc_stop_thread = false;
+
+// Stops the disc-reading loop, so we can start the loaded disc
+atomic_bool request_disc_start_game = false;
+
+#define ERROR_A_OK                   0x00
+#define ERROR_A_LID_OPEN             0x01
+#define ERROR_A_NO_DISC_DISC_CHANGED 0x02
+#define ERROR_A_NO_DISC              0x03
+#define ERROR_A_MOTOR_OFF            0x04
+#define ERROR_A_DISC_NOT_INITIALIZED 0x05
+
+atomic_uint disc_read_state = STATE_WAIT_LOAD;
+atomic_bool disc_read_banner_ready = false;
+atomic_char disc_read_region = '?';
+dolphin_game_into_t disc_game_info;
+
+bool should_stop_disc_thread_worker() {
+    return request_disc_stop_thread;
+}
+
+void *gm_disc_thread_worker(void *param) {
+    disc_read_state = STATE_WAIT_LOAD;
+
+    dvd_custom_bypass_enter();
+    udelay_threaded(20 * 1000);
+
+    // TODO: How do we recover if no DVD drive is installed?
+
+    bool finished_reading_disc = false;
+    const u8 fd = 0; // The DVD drive doesn't use file descriptors; leave its bits set to 0
+    while (!request_disc_stop_thread && !request_disc_start_game) {
+        OSYieldThread();
+
+        bool is_cover_open = dvd_cover_status();
+        if (finished_reading_disc && !is_cover_open) {
+            // If we've successfully read the disc, or encountered a disc read error (e.g. no disc),
+            // wait until the cover's opened before doing anything else
+            continue;
+        }
+
+        finished_reading_disc = false;
+
+        if (is_cover_open) {
+            // Cover is open - wait until the cover's been closed
+            disc_read_state = STATE_COVER_OPEN;
+            disc_read_banner_ready = false;
+            continue;
+        }
+
+        disc_read_state = STATE_WAIT_LOAD;
+
+        dvd_threaded_reset();
+
+        int ret = dvd_threaded_read_id(should_stop_disc_thread_worker);
+        u32 error = dvd_threaded_get_error();
+        if (ret != 0 || error != 0) {
+            u32 error_a = error >> 24;
+            // u32 error_r = error & 0x00FFFFFF;
+
+            if (error_a == ERROR_A_LID_OPEN) {
+                disc_read_state = STATE_COVER_OPEN;
+            } else if (error_a == ERROR_A_NO_DISC || error_a == ERROR_A_NO_DISC_DISC_CHANGED) {
+                disc_read_state = STATE_NO_DISC;
+            } else {
+                disc_read_state = STATE_READ_ERROR;
+            }
+
+            finished_reading_disc = true;
+            continue;
+        }
+
+        if (request_disc_stop_thread) {
+            break;
+        }
+
+        // Set up audio streaming
+        struct dolphin_lowmem *lowmem = (struct dolphin_lowmem*)0x80000000;
+        dvd_threaded_audio_config(lowmem->b_disk_info.audio_streaming, lowmem->b_disk_info.stream_buffer_size);
+        error = dvd_threaded_get_error();
+        if (error != 0) {
+            disc_read_state = STATE_READ_ERROR;
+            finished_reading_disc = true;
+            continue;
+        }
+
+        if (request_disc_stop_thread) {
+            break;
+        }
+
+        // TODO: Run the apploader, if that's at all possible
+
+        if (request_disc_stop_thread) {
+            break;
+        }
+
+        // Get the banner
+        disc_game_info = get_game_info_with_open_game(fd, should_stop_disc_thread_worker);
+        if (!disc_game_info.valid) {
+            disc_read_state = STATE_READ_ERROR;
+            finished_reading_disc = true;
+            continue;
+        }
+
+        if (request_disc_stop_thread) {
+            break;
+        }
+
+        ret = dvd_threaded_read(stock_banner_ptr, sizeof(BNR), disc_game_info.bnr_offset, fd, should_stop_disc_thread_worker);
+        error = dvd_threaded_get_error();
+        if (ret != 0 || error != 0) {
+            disc_read_state = STATE_READ_ERROR;
+            finished_reading_disc = true;
+            continue;
+        }
+
+        disc_read_region = (char)disc_game_info.game_id[3];
+        disc_read_banner_ready = true;
+
+        // The disc's loaded!
+        finished_reading_disc = true;
+        disc_read_state = STATE_START_GAME;
+    }
+
+    if (request_disc_stop_thread) {
+        dvd_threaded_stop_motor();
+        dvd_custom_bypass_exit();
+    } else {
+        bool ready_to_start = request_disc_start_game && finished_reading_disc && disc_read_state == STATE_START_GAME;
+        if (!ready_to_start) {
+            while (true);
+        }
+    }
+
+    game_disc_running = false;
+
+    return NULL;
+}
+
 void gm_init_thread() {
     OSInitMutex(game_enum_mutex);
 }
@@ -973,8 +1119,8 @@ void gm_init_thread() {
 static OSThread thread_obj;
 static u8 thread_stack[32 * 1024]; // TODO: move to lowmem slab?
 void gm_start_thread(const char *target) {
-    if (game_enum_running) {
-        OSReport("ERROR: game enum thread is already running\n");
+    if (game_enum_running || game_disc_running) {
+        OSReport("ERROR: game enum or disc thread is already running\n");
         return;
     }
 
@@ -1042,9 +1188,41 @@ void gm_start_thread(const char *target) {
     dolphin_OSResumeThread(&thread_obj);
 }
 
+void gm_start_disc_thread() {
+    if (!is_disc_drive_allowed) {
+        OSReport("ERROR: attempted to start the disc thread, but disc drive access is disabled in config\n");
+        disc_read_state = STATE_FATAL_ERROR;
+        return;
+    }
+
+    if (game_enum_running || game_disc_running) {
+        OSReport("ERROR: game enum or disc thread is already running\n");
+        return;
+    }
+
+    OSReport("Starting game disc thread %s\n", path);
+
+    game_disc_running = true;
+    DCBlockStore((void*)OSRoundDown32B((u32)&game_disc_running));
+
+    request_disc_stop_thread = false;
+    request_disc_start_game = false;
+    disc_read_state = STATE_WAIT_LOAD;
+
+    // OSUnlockMutex(game_enum_mutex);
+
+    // Start the thread
+    u32 thread_stack_size = sizeof(thread_stack);
+    void *thread_stack_top = thread_stack + thread_stack_size;
+    s32 thread_priority = DEFAULT_THREAD_PRIO + 3;
+
+    dolphin_OSCreateThread(&thread_obj, gm_disc_thread_worker, NULL, thread_stack_top, thread_stack_size, thread_priority, 0);
+    dolphin_OSResumeThread(&thread_obj);
+}
+
 
 void gm_deinit_thread() {
-    if (game_enum_running) {
+    if (game_enum_running || game_disc_running) {
         OSReport("Stopping file enum\n");
         OSLockMutex(game_enum_mutex);
         OSReport("Waiting for thread to exit, %d\n", game_enum_running);

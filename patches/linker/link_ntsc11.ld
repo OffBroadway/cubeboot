@@ -1,5 +1,6 @@
 ntsc11_Jac_PlaySe = 0x813574a0;
 ntsc11_Jac_StopSoundAll = 0x81357600;
+ntsc11_Jac_PlayBgm = 0x81357640;
 
 ntsc11_PADSync = 0x81368c34;
 ntsc11_OSDisableInterrupts = 0x8135bc70;
@@ -28,7 +29,7 @@ ntsc11_bg_inner_model = 0x81483ab8;
 ntsc11_gc_text_model = 0x81483d40;
 
 ntsc11_menu_alpha_setup = 0x813121b0;
-ntsc11_prev_menu_id = 0x81481558;
+ntsc11_next_menu_id = 0x81481558;
 ntsc11_cur_menu_id = 0x81481554;
 
 ntsc11_get_save_color = 0x81320424;
@@ -60,6 +61,9 @@ ntsc11_ptr_menu_blob = 0x814815e4;
 ntsc11_ptr_game_blob_a = 0x814816d4;
 ntsc11_ptr_game_blob_b = 0x814816d0;
 ntsc11_game_blob_text = 0x814b25c8;
+ntsc11_game_blob_insert_disc = 0x814b25d8;
+ntsc11_game_blob_reading_disc = 0x814b25f8;
+ntsc11_game_blob_could_not_read_disc = 0x814b2608;
 
 ntsc11_get_camera_mtx = 0x81302f94;
 ntsc11_set_obj_pos = 0x8130537c;
@@ -107,3 +111,17 @@ ntsc11_EXIImm = 0x8135a774;
 ntsc11_EXIImmEx = 0x8135a9d0;
 
 ntsc11_is_key_repeat = 0x81302de0;
+
+ntsc11_stock_banner_ptr = 0x809f8440;
+
+ntsc11_get_element_alpha = 0x8130aa4c;
+ntsc11_update_element_alpha = 0x8130a964;
+ntsc11_banner_element_alpha = 0x814b25b8;
+ntsc11_top_level_banner_element_alpha = 0x8148a3bc;
+
+ntsc11_cube_menu_rotation_vertical = 0x81489fb2;
+ntsc11_cube_menu_alpha = 0x81489fb8;
+
+ntsc11_draw_buttons = 0x81314604;
+ntsc11_setup_buttons_matrix = 0x813030b0;
+ntsc11_update_button_alphas = 0x81311ce8;

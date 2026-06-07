@@ -4,6 +4,8 @@
 #include <gctypes.h>
 #include <ogc/dvd.h>
 
+#include "dvd_threaded.h"
+
 #define T_FILE 0
 #define T_DIR 1
 
@@ -107,7 +109,7 @@ _Static_assert(sizeof(bool) == 1); // just make sure this is a single byte
 #define BANNER_SINGLE_LANG 0
 #define BANNER_MULTI_LANG 1
 
-typedef struct {
+typedef struct dolphin_game_into_t {
 	bool valid;
 	u8 game_id[6];
 	u8 disc_num;
@@ -122,6 +124,7 @@ typedef struct {
 
 _Static_assert(sizeof(dolphin_game_into_t) == 32);
 
+dolphin_game_into_t get_game_info_with_open_game(u8 fd, dvd_should_cancel_callback should_cancel);
 dolphin_game_into_t get_game_info(char *game_path);
 
 #endif

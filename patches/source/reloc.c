@@ -10,7 +10,7 @@ __attribute_reloc__ void (*OSReport)(const char* text, ...);
 #endif
 
 __attribute_reloc__ bios_pad *pad_status;
-__attribute_reloc__ u32 *prev_menu_id;
+__attribute_reloc__ u32 *next_menu_id;
 __attribute_reloc__ u32 *cur_menu_id;
 __attribute_reloc__ u32 *main_menu_id;
 __attribute_reloc__ GXRModeObj *rmode;

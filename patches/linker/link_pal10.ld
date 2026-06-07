@@ -38,6 +38,7 @@ pal10_set_obj_cam = 0x813053c8;
 pal10_projection_parameters = 0x814adb40;
 
 pal10_Jac_StopSoundAll = 0x8135abe0;
+pal10_Jac_PlayBgm = 0x8135ac20;
 pal10_InitializeUART = 0x81363f00;
 pal10_WriteUARTN = 0x81363f50;
 pal10___pformatter = 0x8137c2d8;
@@ -67,7 +68,10 @@ pal10_ptr_menu_blob = 0x814ad484;
 pal10_ptr_game_blob_b = 0x814ad570;
 pal10_banner_pointer = 0x814ad2f0;
 pal10_game_blob_text = 0x814de4c8;
-pal10_prev_menu_id = 0x814ad3f8;
+pal10_game_blob_insert_disc = 0x814de4d8;
+pal10_game_blob_reading_disc = 0x814de4f8;
+pal10_game_blob_could_not_read_disc = 0x814de508;
+pal10_next_menu_id = 0x814ad3f8;
 pal10_save_empty = 0x814ca968;
 
 pal10_orig_thread_init = 0x8131c5c4;
@@ -104,3 +108,17 @@ pal10_EXIImm = 0x8135dd54;
 pal10_EXIImmEx = 0x8135dfb0;
 
 pal10_is_key_repeat = 0x81302de0;
+
+pal10_stock_banner_ptr = 0x80a7d4a0;
+
+pal10_get_element_alpha = 0x8130a964;
+pal10_update_element_alpha = 0x8130a87c;
+pal10_banner_element_alpha = 0x814de4b8;
+pal10_top_level_banner_element_alpha = 0x814b62bc;
+
+pal10_cube_menu_rotation_vertical = 0x814b5eb2;
+pal10_cube_menu_alpha = 0x814b5eb8;
+
+pal10_draw_buttons = 0x8131508c;
+pal10_setup_buttons_matrix = 0x813030b0;
+pal10_update_button_alphas = 0x81312580;

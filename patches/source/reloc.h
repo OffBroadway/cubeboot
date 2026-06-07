@@ -12,7 +12,7 @@ extern void (*OSReport)(const char* text, ...);
 extern void custom_OSReport(const char *fmt, ...);
 
 extern bios_pad *pad_status;
-extern u32 *prev_menu_id;
+extern u32 *next_menu_id;
 extern u32 *cur_menu_id;
 extern u32 *main_menu_id;
 extern GXRModeObj *rmode;
