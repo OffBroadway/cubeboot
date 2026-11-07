@@ -17,6 +17,15 @@
 #include "dolphin_dvd.h"
 #include "gc_dvd.h"
 
+// cubeboot_vmc: virtual memory cards (vmc/, docs/virtual_memory_card.md)
+#include "vmc/cbvmc_loader.h"
+#include "vmc/cbvmc_flash_hook.h"
+#include "vmc/cbvmc_ipl_plan.h"
+extern uint32_t cbvmc_ipl_diag;                  // vmc_diag (cbvmc_flash_hook.c)
+#include "vmc/cbvmc_scan.h"
+#include "cbvmc_resident_bin.h"
+#include "cbvmc_install_bin.h"
+
 #define SYS_VIDEO_NTSC   0
 #define SYS_VIDEO_PAL    1
 #define SYS_VIDEO_MPAL   2
@@ -167,6 +176,18 @@ const char GXPokeARGBPatch_bin[0x18] = { // PIC
 
 const int GXPokeARGBPatch_length = 0x18;
 
+// cubeboot_vmc: best-effort write of the scan report to /cubeboot/vmc_scan.txt (one file, replaced each boot). Any failure is ignored.
+static void cbvmc_write_report(char *text, u32 len) {
+    const char *path = "/cubeboot/vmc_scan.txt";
+    dvd_custom_unlink((char*)path);
+    if (dvd_custom_open(path, FILE_ENTRY_TYPE_FILE, IPC_FILE_FLAG_WRITE | IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLEFASTSEEK | IPC_FILE_FLAG_DISABLESPEEDEMU) != 0) return;
+    file_status_t *st = dvd_custom_status();
+    if (st == NULL || st->result != 0) return;
+    DCFlushRange(text, len);
+    dvd_custom_write(text, 0, len, st->fd);
+    dvd_custom_close(st->fd);
+}
+
 extern const void _patches_end;
 
 void chainload_boot_game(gm_file_entry_t *boot_entry, bool passthrough) {
@@ -233,6 +254,25 @@ void chainload_boot_game(gm_file_entry_t *boot_entry, bool passthrough) {
         fst_offset = header.FSTOffset;
         fst_size = header.FSTSize;
         max_fst_size = header.MaxFSTSize;
+    }
+
+    // cubeboot_vmc: every disc started by Cubeboot's own disc-image boot (this function; no game-id gate since T2, the generic scanner decides); a Swiss launch
+    // (chainload_swiss_game) and DOL launches never come here, so Swiss keeps its own virtual card. The EXI slots are probed first: a physical memory
+    // card (or any other device) in a slot always wins, and with both slots taken nothing at all is reserved or touched (stock behaviour, byte for byte).
+    // Otherwise take the RESIDENT image's memory (CBVMC_R_SIZE) out of the top of MEM1 before the FST is placed. It sits above the FST and the arena,
+    // so the game never sees or clears it; the one-shot install image is staged inside the arena and costs the game nothing (section 11 of the design note).
+    u32 cbvmc_allow = 0;
+    bool cbvmc_wanted = false;
+    {
+        cbvmc_allow = cbvmc_flash_enabled() ? cbvmc_flash_probe() : 0;      // vmc = 0 in config.ini switches the whole thing off (stock behaviour)
+        cbvmc_wanted = cbvmc_allow != 0;
+        custom_OSReport("cbvmc: slot probe allow=%d\n", cbvmc_allow);
+    }
+    if (cbvmc_wanted) {
+        patchSize += CBVMC_R_SIZE;
+        topAddr = 0x81800000 - patchSize;
+        *(vu32*)(0x800000E8) = 0x81800000 - topAddr;
+        *(vu32*)(0x800000EC) = topAddr;
     }
 
     // print all offsets and sizes
@@ -327,6 +367,47 @@ void chainload_boot_game(gm_file_entry_t *boot_entry, bool passthrough) {
     custom_OSReport("Booting... (%08x)\n", (u32)info.entrypoint);
 
     char *game_code = (char*)&lowmem->b_disk_info.game_code[0];
+
+    if (cbvmc_wanted) {
+        // cubeboot_vmc: the game DOL is in RAM at its final addresses and nothing of it has run yet.  The call checks the game and
+        // the word table, copies the resident image into the reserve and redirects one OSInit call to it; on any refusal nothing is
+        // written and the game boots exactly as without this patch.
+        struct cbvmc_loader_cfg cfg;
+        cfg.ram = (uint8_t*)0x80000000;
+        cfg.ram_base = 0x80000000;
+        cfg.ram_size = 0x01800000;
+        cfg.game_code = game_code;
+        cfg.dol_max = info.max_addr;
+        cfg.bi2_addr = bi2Addr;
+        cfg.res_image = cbvmc_resident_bin;
+        cfg.res_len = cbvmc_resident_bin_size;
+        cfg.ins_image = cbvmc_install_bin;
+        cfg.ins_len = cbvmc_install_bin_size;
+        int vmc;
+        {
+            // scan the game's code sections as they sit in RAM, write the report, install what the scan found (all or nothing).  A refused scan whose
+            // install point is still proven (unique `bl EXIInit` right after __OSInitSystemCall) gets the KEEP-ALIVE install: card files, blob, vector and
+            // the T2 watch, no word patched, so a later executable of the same session (PAL 50/60 Hz stub -> game, menu -> game) is still caught.
+            static struct cbvmc_scan_result sr;
+            static char report[1024] __attribute__((aligned(32)));
+            struct cbvmc_range rg[CBVMC_SCAN_MAX_RANGES];
+            unsigned nrg = 0, len, k;
+            for (k = 0; k < MAXTEXTSECTION && nrg < CBVMC_SCAN_MAX_RANGES; k++) {
+                if (dol_hdr.textAddress[k] && dol_hdr.textLength[k]) { rg[nrg].lo = dol_hdr.textAddress[k]; rg[nrg].hi = dol_hdr.textAddress[k] + dol_hdr.textLength[k]; nrg++; }
+            }
+            cbvmc_scan(cfg.ram, cfg.ram_base, rg, nrg, &sr);
+            len = cbvmc_scan_report(&sr, rg, nrg, game_code, report, sizeof(report) - 32);
+            custom_OSReport("%s", report);
+            while (len & 31) report[len++] = '\n';                           // the Flippy file API writes whole 32-byte blocks
+            if (cbvmc_ipl_diag & CBVMC_IPLD_STATUS) cbvmc_write_report(report, len);     // vmc_diag = 1: status files on the SD
+            if (sr.ok > 0) vmc = cbvmc_loader_install_generic(&cfg, sr.words, sr.nwords, sr.hook_addr, sr.hook_target);
+            else if (sr.hook_addr && sr.hook_target && sr.syscall_init && sr.refuse != CBVMC_R_RANGE) vmc = cbvmc_loader_install_generic(&cfg, 0, 0, sr.hook_addr, sr.hook_target);
+            else vmc = -99;
+        }
+        if (vmc == 0) cbvmc_flash_set_allow(cbvmc_allow, vmc, cbvmc_layer_of_game(game_code));    // slot mask, the layer's card paths and the geometry go into the resident image      // per-slot mask, the config.ini card paths and vmc_t2 go into the resident image the install image reads
+        custom_OSReport("cbvmc loader: %d\n", vmc);
+    }
+
     bool is_tonyhawk_pro_4 = (game_code[0] == 'G' && game_code[1] == 'T' && game_code[2] == '4');
     if (is_tonyhawk_pro_4) {
         custom_OSReport("Tony Hawk Pro Skater 4 detected\n");

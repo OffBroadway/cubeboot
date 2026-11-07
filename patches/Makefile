@@ -22,6 +22,8 @@ include $(DEVKITPRO)/libogc2/gamecube_rules
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
 SOURCES		:=	source source/picolibc source/pmalloc
+VMC_DIR		:=	$(CURDIR)/../vmc
+VMC_CFILES	:=	cbvmc_exiprobe.c cbvmc_flash_hook.c cbvmc_ipl_dev.c cbvmc_ipl_policy.c cbvmc_ipl_probe.c cbvmc_ipl_probe_dev.c cbvmc_loader.c cbvmc_scan.c cbvmc_words.c   # cubeboot_vmc: the patch-side files of the one vmc/ tree (the rest of it is the resident image and host tests)
 DATA		:=	data
 INCLUDES	:=	include
 
@@ -37,6 +39,16 @@ endif
 
 CFLAGS		= -O2 -Wall -Wno-main -ffixed-r12 -ffixed-r13 -ffunction-sections -fdata-sections -Wno-unused-function -Werror-implicit-function-declaration $(MACHDEP) $(INCLUDE)
 CXXFLAGS	= $(CFLAGS)
+
+# G4 stage 1 (docs/virtual_memory_card.md): CBVMC_IPL=1 compiles the read-only IPL install in; without it nothing changes
+ifneq ($(strip $(CBVMC_IPL)),)
+CFLAGS		+= -DCBVMC_IPL
+endif
+
+# G3 diagnostic IPL probe (docs/virtual_memory_card.md): CBVMC_IPL_PROBE=1 in the environment compiles the read-only probe in; without it nothing changes
+ifneq ($(strip $(CBVMC_IPL_PROBE)),)
+CFLAGS		+= -DCBVMC_IPL_PROBE
+endif
 
 LINKER_SCRIPTS	:=
 LINKER_SCRIPTS	+= patch.ld
@@ -72,14 +84,15 @@ ifneq ($(BUILD),$(notdir $(CURDIR)))
 export OUTPUT	:=	$(CURDIR)/$(TARGET)
 
 export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
-			$(foreach dir,$(DATA),$(CURDIR)/$(dir))
+			$(foreach dir,$(DATA),$(CURDIR)/$(dir)) \
+			$(VMC_DIR)
 
 export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
 #---------------------------------------------------------------------------------
 # automatically build a list of object files for our project
 #---------------------------------------------------------------------------------
-CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c))) $(VMC_CFILES)
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 sFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
@@ -104,6 +117,7 @@ export HFILES := $(addsuffix .h,$(subst .,_,$(BINFILES)))
 # build a list of include paths
 #---------------------------------------------------------------------------------
 export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
+			-I$(CURDIR)/.. -I$(VMC_DIR) -I$(CURDIR)/source \
 			$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
 			-I$(CURDIR)/$(BUILD) \
 			-I$(LIBOGC_INC)

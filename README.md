@@ -52,6 +52,7 @@ image suitable for injection over the stock BS2 in the GCN.
   - Random color each boot using RTC
 - Custom Nintendo logo text replacement
 - Force Progressive video modes
+- Virtual memory cards on the FlippyDrive's SD card, for every game Cubeboot starts and on the IPL's Memory Card page, see [docs/virtual_memory_card.md](docs/virtual_memory_card.md)
 
 ## Compatibility
 

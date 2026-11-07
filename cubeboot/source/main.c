@@ -309,6 +309,18 @@ int main(int argc, char **argv) {
     set_patch_value(symshdr, syment, symstringdata, "preboot_delay_ms", settings.preboot_delay_ms);
     set_patch_value(symshdr, syment, symstringdata, "postboot_delay_ms", settings.postboot_delay_ms);
 
+    // cubeboot_vmc settings (the variables live in patches/source/vmc/cbvmc_flash_hook.c)
+    set_patch_value(symshdr, syment, symstringdata, "cbvmc_enable", settings.vmc_enable);
+    set_patch_value(symshdr, syment, symstringdata, "cbvmc_blocks", settings.vmc_blocks ? settings.vmc_blocks : 2043);
+#ifdef CBVMC_IPL
+#ifdef CBVMC_IPL_FORCE
+    settings.vmc_ipl_diag = CBVMC_IPL_FORCE;      // TEST BUILD: diag switches regardless of config.ini vmc_diag
+#endif
+#endif
+    set_patch_value(symshdr, syment, symstringdata, "cbvmc_ipl_diag", settings.vmc_ipl_diag);   // vmc_diag, both paths
+    if (settings.vmc_dir) set_patch_string(symshdr, syment, symstringdata, "cbvmc_dir", settings.vmc_dir, 88);
+    set_patch_value(symshdr, syment, symstringdata, "cbvmc_regions", settings.vmc_regions);
+
     // // Copy settings string
     // void *cube_logo_ptr = (void*)get_symbol_value(symshdr, syment, symstringdata, "cube_logo_path");
     // if (cube_logo_ptr != NULL && settings.cube_logo != NULL) {

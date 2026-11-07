@@ -23,6 +23,12 @@
 #include "dol.h"
 #include "boot.h"
 #include "gameid.h"
+#ifdef CBVMC_IPL_PROBE
+#include "vmc/cbvmc_ipl_probe.h"
+#endif
+#ifdef CBVMC_IPL
+#include "vmc/cbvmc_ipl_dev.h"
+#endif
 
 #define CUBE_TEX_WIDTH 84
 #define CUBE_TEX_HEIGHT 84
@@ -353,6 +359,18 @@ __attribute_used__ void pre_thread_init() {
 
     gm_init_heap();
     gm_init_thread();
+#ifdef CBVMC_IPL_PROBE
+    // G3 diagnostic (read-only, writes /cubeboot/ipl_probe.txt, changes nothing); the menu's file thread is not running yet, so the DI is ours
+    if (!start_passthrough_game) {
+        cbvmc_ipl_probe_device();
+    }
+#endif
+#ifdef CBVMC_IPL
+    // G4 stage 1: virtual cards in the IPL's Memory Card menu (read-only); decides, installs or refuses, never blocks. The file thread is not running yet: the DI is ours.
+    if (!start_passthrough_game) {
+        cbvmc_ipl_install_device();
+    }
+#endif
     if (!start_passthrough_game) {
         gm_start_thread("/");
     }
@@ -431,8 +449,16 @@ __attribute_used__ u32 get_tvmode() {
 }
 
 __attribute_data__ int frame_count = 0;
+#ifdef CBVMC_IPL
+extern volatile u32 cbvmc_ipl_cnt[16];
+#endif
 __attribute_used__ u32 bs2tick() {
     frame_count++;
+#ifdef CBVMC_IPL
+    cbvmc_ipl_cnt[0]++;
+    cbvmc_ipl_watch();
+    cbvmc_ipl_patch_hb();
+#endif
     if (!completed_time && cube_state->cube_anim_done) {
         OSReport("FINISHED (%d frames)\n", frame_count);
         completed_time = gettime();
@@ -502,6 +528,9 @@ __attribute_used__ void bs2start() {
     while (!PADSync());
     OSDisableInterrupts();
     __OSStopAudioSystem();
+#ifdef CBVMC_IPL
+    cbvmc_ipl_finish_device();     // G4 stage 1: take the DSI vector back and write the counters before BS2 is wiped (no-op unless the IPL install is live)
+#endif
 
     u32 start_addr = 0x80100000;
     u32 end_addr = 0x81600000;

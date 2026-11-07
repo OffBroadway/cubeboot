@@ -228,7 +228,29 @@ int dvd_read_data(void* dst, unsigned int len, uint64_t offset, unsigned int fd)
 }
 
 static GCN_ALIGNED(file_status_t) status;
+#if defined(CBVMC_IPL) && !defined(NOSYS)
+// G4 stage 1: the IPL's virtual memory card runs next to this code (a DSI handler that issues its own Flippy commands). A command that belongs to the one before it (the
+// status record of an open) must not have the handler's commands pushed in between, so an open reads its status inside one interrupt-disabled section and
+// dvd_custom_status() hands that record out once.  Callers always call open and then status; behaviour for them is unchanged.
+static int status_cached;
+extern volatile u32 cbvmc_ipl_noatomic;     // vmc_ipl_diag bit 1: leave the open+status pair as upstream has it
+static file_status_t *dvd_custom_status_raw();
+// plain MSR[EE] toggling, NOT BS2's OSDisableInterrupts: these functions also run after Cubeboot has wiped BS2 (chainload), where that address is gone
+#define CBVMC_IRQ_OFF(m) do { __asm__ volatile("mfmsr %0" : "=r"(m)); __asm__ volatile("mtmsr %0 ; isync" : : "r"((m) & ~0x8000u) : "memory"); } while (0)
+#define CBVMC_IRQ_RESTORE(m) __asm__ volatile("mtmsr %0 ; isync" : : "r"(m) : "memory")
+#endif
+#if defined(CBVMC_IPL) && !defined(NOSYS)
 file_status_t *dvd_custom_status() {
+    if (status_cached) {
+        status_cached = 0;
+        return &status;
+    }
+    return dvd_custom_status_raw();
+}
+static file_status_t *dvd_custom_status_raw() {
+#else
+file_status_t *dvd_custom_status() {
+#endif
     _di_regs[DI_SR] = (DI_SR_BRKINTMASK | DI_SR_TCINTMASK | DI_SR_DEINT | DI_SR_DEINTMASK);
     _di_regs[DI_CVR] = 0; // clear cover int
 
@@ -334,7 +356,22 @@ int dvd_custom_unlink_flash(char *path) {
     return 0;
 }
 
+#if defined(CBVMC_IPL) && !defined(NOSYS)
+static int dvd_custom_open_raw(const char *path, uint8_t type, uint8_t flags);
 int dvd_custom_open(const char *path, uint8_t type, uint8_t flags) {
+    if (cbvmc_ipl_noatomic) return dvd_custom_open_raw(path, type, flags);     // upstream behaviour exactly
+    u32 level;
+    CBVMC_IRQ_OFF(level);
+    int ret = dvd_custom_open_raw(path, type, flags);
+    status_cached = 0;
+    if (ret == 0 && !cbvmc_ipl_noatomic && dvd_custom_status_raw() != NULL) status_cached = 1;
+    CBVMC_IRQ_RESTORE(level);
+    return ret;
+}
+static int dvd_custom_open_raw(const char *path, uint8_t type, uint8_t flags) {
+#else
+int dvd_custom_open(const char *path, uint8_t type, uint8_t flags) {
+#endif
     GCN_ALIGNED(file_entry_t) entry;
 
     strncpy(entry.name, path, 256);
@@ -365,7 +402,22 @@ int dvd_custom_open(const char *path, uint8_t type, uint8_t flags) {
     return 0;
 }
 
+#if defined(CBVMC_IPL) && !defined(NOSYS)
+static int dvd_custom_open_flash_raw(const char *path, uint8_t type, uint8_t flags);
 int dvd_custom_open_flash(const char *path, uint8_t type, uint8_t flags) {
+    if (cbvmc_ipl_noatomic) return dvd_custom_open_flash_raw(path, type, flags);     // upstream behaviour exactly
+    u32 level;
+    CBVMC_IRQ_OFF(level);
+    int ret = dvd_custom_open_flash_raw(path, type, flags);
+    status_cached = 0;
+    if (ret == 0 && !cbvmc_ipl_noatomic && dvd_custom_status_raw() != NULL) status_cached = 1;
+    CBVMC_IRQ_RESTORE(level);
+    return ret;
+}
+static int dvd_custom_open_flash_raw(const char *path, uint8_t type, uint8_t flags) {
+#else
+int dvd_custom_open_flash(const char *path, uint8_t type, uint8_t flags) {
+#endif
     GCN_ALIGNED(file_entry_t) entry;
 
     strncpy(entry.name, path, 256);

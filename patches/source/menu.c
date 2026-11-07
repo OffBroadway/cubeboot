@@ -10,6 +10,8 @@
 
 #include "usbgecko.h"
 #include "menu.h"
+#include "vmc/cbvmc_flash_hook.h"
+
 #include "grid.h"
 #include "games.h"
 #include "gameid.h"
@@ -714,7 +716,13 @@ __attribute_used__ void mod_gameselect_draw(u8 alpha_0, u8 alpha_1, u8 alpha_2) 
     return;
 }
 
+#ifdef CBVMC_IPL
+extern volatile u32 cbvmc_ipl_cnt[16];
+#endif
 __attribute_used__ s32 handle_gameselect_inputs() {
+#ifdef CBVMC_IPL
+    cbvmc_ipl_cnt[1]++;
+#endif
     update_icon_positions();
     grid_update_icon_positions();
 

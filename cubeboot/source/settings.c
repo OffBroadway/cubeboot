@@ -30,6 +30,8 @@ char *buttons_names[] = {
 
 void load_settings() {
     memset(&settings, 0, sizeof(settings));
+    settings.vmc_enable = 1;
+    // cubeboot_vmc defaults (no config.ini, or the keys missing): on, both slots, built-in card locations
     int config_size = get_file_size("/config.ini");
     if (config_size == SD_FAIL) return;
 
@@ -129,6 +131,38 @@ void load_settings() {
     } else {
         iprintf("Found disable_mcp_select = %d\n", disable_mcp_select);
         settings.disable_mcp_select = disable_mcp_select;
+    }
+
+    // cubeboot_vmc keys (section [cubeboot]): vmc = 0|1, vmc_dir = /folder, vmc_blocks, vmc_diag
+    int vmc_enable = 1;
+    if (ini_sget(conf, "cubeboot", "vmc", "%d", &vmc_enable)) {
+        iprintf("Found vmc = %d\n", vmc_enable);
+        settings.vmc_enable = vmc_enable != 0;
+    }
+    int vmc_ipl_diag = 0;
+    if (ini_sget(conf, "cubeboot", "vmc_diag", "%i", &vmc_ipl_diag)) {
+        iprintf("Found vmc_diag = %d\n", vmc_ipl_diag);
+        settings.vmc_ipl_diag = (u32)vmc_ipl_diag;
+    }
+    int vmc_blocks = 0;
+    if (ini_sget(conf, "cubeboot", "vmc_blocks", "%d", &vmc_blocks)) {
+        if (vmc_blocks == 59 || vmc_blocks == 123 || vmc_blocks == 251 || vmc_blocks == 507 || vmc_blocks == 1019 || vmc_blocks == 2043) {
+            iprintf("Found vmc_blocks = %d\n", vmc_blocks);
+            settings.vmc_blocks = vmc_blocks;
+        } else {
+            iprintf("Unknown vmc_blocks %d (59, 123, 251, 507, 1019, 2043), using 2043\n", vmc_blocks);
+        }
+    }
+    const char *vmc_regions = ini_get(conf, "cubeboot", "vmc_regions");
+    if (vmc_regions != NULL) {
+        if (strcmp(vmc_regions, "swiss") == 0) settings.vmc_regions = 1;
+        else if (strcmp(vmc_regions, "stock") != 0) iprintf("Unknown vmc_regions '%s' (stock, swiss), using stock\n", vmc_regions);
+        iprintf("Found vmc_regions = %s\n", vmc_regions);
+    }
+    const char *vmc_dir = ini_get(conf, "cubeboot", "vmc_dir");
+    if (vmc_dir != NULL && vmc_dir[0] == '/' && strlen(vmc_dir) < 64) {
+        iprintf("Found vmc_dir = %s\n", vmc_dir);
+        settings.vmc_dir = (char*)vmc_dir;
     }
 
     // button presses

@@ -39,6 +39,12 @@ PATCHES_PATH := $(PROJDIR)/$(PATCHES)
 #---------------------------------------------------------------------------------
 
 CFLAGS	= -O3 -Wno-unused-function -Wall $(MACHDEP) $(INCLUDE)
+ifneq ($(strip $(CBVMC_IPL)),)
+CFLAGS	+= -DCBVMC_IPL
+ifneq ($(strip $(CBVMC_IPL_FORCE)),)
+CFLAGS	+= -DCBVMC_IPL_FORCE=$(CBVMC_IPL_FORCE)
+endif
+endif
 CXXFLAGS	=	$(CFLAGS)
 
 LDFLAGS	=	$(MACHDEP) -Wl,-Map,$(notdir $@).map -T $(DEVKITPPC)/powerpc-eabi/lib/ogc.ld -T $(PROJDIR)/scripts/override.ld 
